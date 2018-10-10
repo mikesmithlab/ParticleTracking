@@ -121,7 +121,7 @@ class CropShape:
 
 
 if __name__ == "__main__":
-    vid = video.ReadVideo("/home/ppxjd3/Code/ParticleTracking/test_data/test_video.avi")
+    vid = video.ReadVideo("/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
     output_video_filename = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_crop.avi"
     VP = VideoPreprocessor(vid, output_video_filename)
     VP.crop_and_mask(no_of_sides=4, show=True)
