@@ -100,13 +100,7 @@ class CropShape:
         cv2.imshow("ROI", roi)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-        cv2.imshow("mask", mask_img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
         return mask_img, np.array(crop, dtype=np.int32)
-
-
 
 
 if __name__ == "__main__":
