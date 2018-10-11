@@ -12,6 +12,8 @@ class ParticleTracker:
     def __init__(self, vid, dataframe, options, method_order,
                  write_video_filename=None):
         """
+        Init
+
         Parameters
         ----------
         vid: class instance
@@ -52,6 +54,15 @@ class ParticleTracker:
         self.TD.save_dataframe()
 
     def _filter_trajectories(self):
+        """
+        Use trackpy to filter trajectories
+
+        Class Options
+        -------------
+        Uses the following keys from self.options:
+            'max frame displacement'
+            'min frame life'
+        """
         self.TD.dataframe = tp.link_df(self.TD.dataframe,
                                        self.options['max frame displacement'])
         self.TD.dataframe = tp.filter_stubs(self.TD.dataframe,
