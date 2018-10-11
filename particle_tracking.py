@@ -14,28 +14,29 @@ class ParticleTracker:
 
     def track(self):
         for f in range(self.video.num_frames):
-            print(f, " of ", self.video.num_frames)
+            print(f+1, " of ", self.video.num_frames)
             frame = vid.read_next_frame()
             new_frame = self.IP.process_image(frame)
             circles = self._find_circles(new_frame)
-            annotated_frame = new_frame.copy()
-            if len(np.shape(annotated_frame)) == 2:
-                annotated_frame = np.stack((annotated_frame,
-                                            annotated_frame,
-                                            annotated_frame),
-                                           axis=2)
-            for i in circles[0, :]:
-                cv2.circle(annotated_frame, (int(i[0]), int(i[1])),
-                           int(i[2]), (0, 255, 255), 2)
+            self._annotate_video_with_circles(new_frame, circles)
 
-            if self.video.frame_num == 1:
-                self.new_video = video.WriteVideo(
-                        self.new_vid_filename,
-                        frame_size=np.shape(annotated_frame))
+    def _annotate_video_with_circles(self, frame, circles):
 
+        if len(np.shape(frame)) == 2:
+            frame = np.stack((frame, frame, frame), axis=2)
+        for i in circles[0, :]:
+            cv2.circle(frame, (int(i[0]), int(i[1])),
+                       int(i[2]), (0, 255, 255), 2)
 
-            self.new_video.add_frame(annotated_frame)
-        self.new_video.close()
+        if self.video.frame_num == 1:
+            self.new_video = video.WriteVideo(
+                    self.new_vid_filename,
+                    frame_size=np.shape(frame))
+
+        self.new_video.add_frame(frame)
+
+        if self.video.frame_num == self.video.num_frames:
+            self.new_video.close()
 
     def _find_circles(self, frame):
         circles = cv2.HoughCircles(frame, cv2.HOUGH_GRADIENT, 1,
