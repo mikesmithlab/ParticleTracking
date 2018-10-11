@@ -6,22 +6,56 @@ import ParticleTracking.configuration as config
 class ImagePreprocessor:
     """Class to manage the frame by frame processing of videos"""
 
-    def __init__(self, video_object, process_config, options_dict):
+    def __init__(self, video_object, method_order, options):
+        """
+        Parameters
+        ----------
+        video_object: class instance
+            An instance of the Generic.video.ReadVideo class
+
+        method_order: list
+            A list containing string assoicated with methods in the order they
+            will be used
+
+        options: dictionary
+            A dictionary containing all the parameters needed for functions
+
+        """
+
         self.video_object = video_object
         self.mask_img = np.array([])
         self.crop = []
-        self.blur_kernel = 5
-        self.process_config = process_config
-        self.options = options_dict
+        self.method_order = method_order
+        self.options = options
 
     def process_image(self, input_frame):
+        """
+        Manipulates an image using class methods.
+
+        The order of the methods is described by self.method_order.
+
+        Parameters
+        ----------
+        input_frame: numpy array
+            uint8 numpy array containing an image
+
+        Returns
+        -------
+        new_frame: numpy array
+            uint8 numpy array containing the new image
+        """
+
         frame = input_frame
+
+        # Find the crop and mask values for the first frame
         if self.video_object.frame_num == 1:
             print(self.options['number of tray sides'])
             crop_inst = CropShape(frame, self.options['number of tray sides'])
             self.mask_img, self.crop = crop_inst.begin_crop()
+
         new_frame = self._crop_and_mask_frame(frame)
-        for method in self.process_config:
+
+        for method in self.method_order:
             if method == 'grayscale':
                 new_frame = self._grayscale_frame(new_frame)
             elif method == 'simple threshold':
@@ -58,6 +92,7 @@ class ImagePreprocessor:
         cropped_frame: numpy array
             A numpy array containing an image which has been cropped and masked
         """
+
         masked_frame = cv2.bitwise_and(frame, frame, mask=self.mask_img)
         cropped_frame = masked_frame[self.crop[0][0]:self.crop[0][1],
                                      self.crop[1][0]:self.crop[1][1],
@@ -65,12 +100,44 @@ class ImagePreprocessor:
         return cropped_frame
 
     def _grayscale_frame(self, frame):
-        """Make the a frame grayscale"""
+        """
+        Convert a frame to grayscale.
+
+        Uses cv2.cvtColor with cv2.COLOR_BGR2GRAY for the conversion
+
+        Parameters
+        ----------
+        frame: numpy array
+            A numpy array of a colour image of type uint8
+
+        Returns
+        -------
+        new_frame: numpy array
+            A numpy array of a grayscale image of type uint8
+        """
+
         new_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         return new_frame
 
     def _simple_threshold(self, frame):
-        """Perform a binary threshold of a frame"""
+        """
+        Perform a binary threshold of a frame
+
+        Parameters
+        ----------
+        frame: numpy array
+            A numpy array of a grayscale image of type uint8
+
+        Class Options
+        -------------
+        Uses the key 'grayscale threshold' from self.options
+
+        Returns
+        -------
+        new_frame: numpy array
+            A numpy array of a binary image of type uint8
+        """
+
         ret, new_frame = cv2.threshold(frame,
                                        self.options['grayscale threshold'],
                                        255,
@@ -78,6 +145,26 @@ class ImagePreprocessor:
         return new_frame
 
     def _adaptive_threshold(self, frame):
+        """
+        Perform an adaptive threshold of a frame
+
+        Parameters
+        ----------
+        frame: numpy array
+            A numpy array of a grayscale image of type uint8
+
+        Class Options
+        -------------
+        Uses the following keys from self.options:
+            'adaptive threshold block size'
+            'adaptive threshold C'
+
+        Returns
+        -------
+        new_frame: numpy array
+            A numpy array of a binary image of type uint8
+        """
+
         new_frame = cv2.adaptiveThreshold(
                 frame,
                 255,
@@ -88,6 +175,25 @@ class ImagePreprocessor:
         return new_frame
 
     def _gaussian_blur(self, frame):
+        """
+        Perform a gaussian blur of a frame
+
+        Parameters
+        ----------
+        frame: numpy array
+            A numpy array of an image of type uint8
+
+        Class Options
+        -------------
+        Uses the following keys from self.options:
+            'blur kernel'
+
+        Returns
+        -------
+        new_frame: numpy array
+            A numpy array of an image of type uint8
+        """
+
         new_frame = cv2.GaussianBlur(frame, self.options['blur kernel'], 0)
         return new_frame
 
@@ -109,6 +215,7 @@ class CropShape:
                 >2: Uses a polygon
 
         """
+
         super().__init__()
         self.cropping = False
         self.refPt = []
@@ -117,6 +224,7 @@ class CropShape:
 
     def _click_and_crop(self, event, x, y, flags, param):
         """Internal method to manage the user cropping"""
+
         if event == cv2.EVENT_LBUTTONDOWN:
             self.refPt = [(x, y)]
             self.cropping = True
@@ -135,6 +243,7 @@ class CropShape:
 
     def begin_crop(self):
         """Method to create the mask image and the crop region"""
+
         clone = self.image.copy()
         points = np.zeros((self.no_of_sides, 2))
         cv2.namedWindow("image")
