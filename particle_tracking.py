@@ -1,16 +1,19 @@
 import cv2
 import Generic.video as video
 import ParticleTracking.preprocessing as preprocessing
+import ParticleTracking.dataframes as dataframes
 import numpy as np
 
-class ParticleTracker:
-    """Class to track the locations of the particles in a video for each frame."""
 
-    def __init__(self, vid, options, write_video_filename):
+class ParticleTracker:
+    """Class to track the locations of the particles in a video."""
+
+    def __init__(self, vid, options, write_video_filename, dataframe_filename):
         self.video = vid
         self.options = options
         self.IP = preprocessing.ImagePreprocessor(self.video, 1)
         self.new_vid_filename = write_video_filename
+        self.df = dataframes.TrackingDataframe(dataframe_filename)
 
     def track(self):
         for f in range(self.video.num_frames):
@@ -18,7 +21,10 @@ class ParticleTracker:
             frame = vid.read_next_frame()
             new_frame = self.IP.process_image(frame)
             circles = self._find_circles(new_frame)
-            self._annotate_video_with_circles(new_frame, circles)
+            # self._annotate_video_with_circles(new_frame, circles)
+            self.df.add_tracking_data(f, circles)
+        self.df.filter_trajectories()
+        self.df.save_dataframe()
 
     def _annotate_video_with_circles(self, frame, circles):
 
@@ -48,12 +54,12 @@ class ParticleTracker:
         return circles
 
 
-
 if __name__ == "__main__":
     vid = video.ReadVideo(
         "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
     options_dict = {'min_dist': 20, 'p_1': 200, 'p_2': 10, 'min_rad': 18,
                     'max_rad': 20}
     out_vid = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_annotated.avi"
-    PT = ParticleTracker(vid, options_dict, out_vid)
+    dataframe_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5"
+    PT = ParticleTracker(vid, options_dict, out_vid, dataframe_name)
     PT.track()
