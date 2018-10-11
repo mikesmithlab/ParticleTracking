@@ -16,6 +16,7 @@ class ParticleTracker:
         self.TD = dataframes.TrackingDataframe(dataframe_filename)
 
     def track(self):
+        """Call this to start the tracking"""
         for f in range(self.video.num_frames):
             print(f+1, " of ", self.video.num_frames)
             frame = vid.read_next_frame()
