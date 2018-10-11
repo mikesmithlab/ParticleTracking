@@ -3,15 +3,16 @@ import Generic.video as video
 import ParticleTracking.preprocessing as preprocessing
 import ParticleTracking.dataframes as dataframes
 import numpy as np
-
+import ParticleTracking.configuration as config
 
 class ParticleTracker:
     """Class to track the locations of the particles in a video."""
 
-    def __init__(self, vid, dataframe, options, write_video_filename):
+    def __init__(self, vid, dataframe, options, process_config, write_video_filename):
         self.video = vid
         self.options = options
-        self.IP = preprocessing.ImagePreprocessor(self.video, 1)
+        self.IP = preprocessing.ImagePreprocessor(self.video, process_config,
+                                                  self.options)
         self.new_vid_filename = write_video_filename
         self.TD = dataframe
 
@@ -58,11 +59,11 @@ class ParticleTracker:
 if __name__ == "__main__":
     in_vid = video.ReadVideo(
         "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
-    options_dict = {'min_dist': 20, 'p_1': 200, 'p_2': 10, 'min_rad': 18,
-                    'max_rad': 20}
+    options_dict = config.GLASS_BEAD_OPTIONS_DICT
+    process_config = config.GLASS_BEAD_PROCESS_LIST
     out_vid = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_annotated.avi"
     dataframe_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5"
     dataframe = dataframes.TrackingDataframe(dataframe_name)
-
-    PT = ParticleTracker(in_vid, dataframe, options_dict, out_vid)
+    PT = ParticleTracker(in_vid, dataframe, options_dict,
+                         process_config, out_vid)
     PT.track()

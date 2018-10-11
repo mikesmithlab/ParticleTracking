@@ -1,28 +1,35 @@
 import Generic.video as video
 import cv2
 import numpy as np
-
+import ParticleTracking.configuration as config
 
 class ImagePreprocessor:
     """Class to manage the frame by frame processing of videos"""
 
-    def __init__(self, video_object, no_of_crop_sides=1):
-        self.no_of_crop_sides = no_of_crop_sides
+    def __init__(self, video_object, process_config, options_dict):
         self.video_object = video_object
         self.mask_img = np.array([])
         self.crop = []
         self.blur_kernel = 5
+        self.process_config = process_config
+        self.options = options_dict
 
     def process_image(self, input_frame):
         frame = input_frame
         if self.video_object.frame_num == 1:
-            crop_inst = CropShape(frame, self.no_of_crop_sides)
+            print(self.options['number of tray sides'])
+            crop_inst = CropShape(frame, self.options['number of tray sides'])
             self.mask_img, self.crop = crop_inst.begin_crop()
         new_frame = self._crop_and_mask_frame(frame)
-        new_frame = self._grayscale_frame(new_frame)
-        new_frame = self._simple_threshold(new_frame, 100)
-        new_frame = self._adaptive_threshold(new_frame)
-        new_frame = self._gaussian_blur(new_frame)
+        for method in self.process_config:
+            if method == 'grayscale':
+                new_frame = self._grayscale_frame(new_frame)
+            elif method == 'simple threshold':
+                new_frame = self._simple_threshold(new_frame)
+            elif method == 'adaptive threshold':
+                new_frame = self._adaptive_threshold(new_frame)
+            elif method == 'gaussian blur':
+                new_frame = self._gaussian_blur(new_frame)
         return new_frame
 
     def _crop_and_mask_frame(self, frame):
@@ -62,21 +69,26 @@ class ImagePreprocessor:
         new_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         return new_frame
 
-    def _simple_threshold(self, frame, threshold):
+    def _simple_threshold(self, frame):
         """Perform a binary threshold of a frame"""
-        ret, new_frame = cv2.threshold(frame, threshold, 255, cv2.THRESH_BINARY)
+        ret, new_frame = cv2.threshold(frame,
+                                       self.options['grayscale threshold'],
+                                       255,
+                                       cv2.THRESH_BINARY)
         return new_frame
 
     def _adaptive_threshold(self, frame):
-        new_frame = cv2.adaptiveThreshold(frame, 255,
-                                          cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                          cv2.THRESH_BINARY, 11, 2)
+        new_frame = cv2.adaptiveThreshold(
+                frame,
+                255,
+                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY,
+                self.options['adaptive threshold block size'],
+                self.options['adaptive threshold C'])
         return new_frame
 
     def _gaussian_blur(self, frame):
-        new_frame = cv2.GaussianBlur(frame,
-                                     (self.blur_kernel, self.blur_kernel),
-                                     0)
+        new_frame = cv2.GaussianBlur(frame, self.options['blur kernel'], 0)
         return new_frame
 
 
@@ -182,14 +194,13 @@ class CropShape:
 if __name__ == "__main__":
     vid = video.ReadVideo(
         "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
-    IP = ImagePreprocessor(vid, no_of_crop_sides=1)
-    frame = vid.read_next_frame()
-    new_frame = IP.process_image(frame)
-    cv2.imshow("new_frame", new_frame)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    frame = vid.read_next_frame()
-    new_frame = IP.process_image(frame)
-    cv2.imshow("new_frame", new_frame)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    process_config = config.GLASS_BEAD_PROCESS_LIST
+    options_dict = config.GLASS_BEAD_OPTIONS_DICT
+    IP = ImagePreprocessor(vid, process_config,
+                           options_dict)
+    for f in range(2):
+        frame = vid.read_next_frame()
+        new_frame = IP.process_image(frame)
+        cv2.imshow("new_frame", new_frame)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
