@@ -13,7 +13,7 @@ class ParticleTracker:
         self.options = options
         self.IP = preprocessing.ImagePreprocessor(self.video, 1)
         self.new_vid_filename = write_video_filename
-        self.df = dataframes.TrackingDataframe(dataframe_filename)
+        self.TD = dataframes.TrackingDataframe(dataframe_filename)
 
     def track(self):
         for f in range(self.video.num_frames):
@@ -22,9 +22,9 @@ class ParticleTracker:
             new_frame = self.IP.process_image(frame)
             circles = self._find_circles(new_frame)
             # self._annotate_video_with_circles(new_frame, circles)
-            self.df.add_tracking_data(f, circles)
-        self.df.filter_trajectories()
-        self.df.save_dataframe()
+            self.TD.add_tracking_data(f, circles)
+        self.TD.filter_trajectories()
+        self.TD.save_dataframe()
 
     def _annotate_video_with_circles(self, frame, circles):
 
