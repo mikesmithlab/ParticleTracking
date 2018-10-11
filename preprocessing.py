@@ -79,101 +79,6 @@ class ImagePreprocessor:
                                      0)
         return new_frame
 
-class VideoPreprocessor:
-    """Class to manage the preprocessing of videos"""
-
-    def __init__(self, input_video, output_video_filename):
-        """
-        Parameters
-        ----------
-        input_video: Class instance
-            An instance of the video.ReadVideo class containing a video
-
-        output_video_filename: string
-            The full filepath where the processed video will be saved
-        """
-        self.vid = input_video
-        self.output_video_filename = output_video_filename
-        self.frame = self.vid.read_next_frame()
-        self.mask_img, self.crop = self.crop_and_mask()
-
-    def process_frames(self):
-        for f in range(self.vid.num_frames):
-            if f != 0:
-                self.frame = self.vid.read_next_frame()
-            new_frame = self._crop_and_mask_frame(self.crop, self.mask_img)
-            new_frame = self._grayscale_frame(new_frame)
-            self._send_to_video_writer(new_frame)
-        self.output_video.close()
-
-    def _send_to_video_writer(self, send_frame):
-        if len(np.shape(send_frame)) == 2:
-            send_frame = np.stack((send_frame, send_frame, send_frame), axis=2)
-
-        if self.vid.frame_num == 1:
-            self.output_video = video.WriteVideo(
-                    self.output_video_filename,
-                    frame_size=np.shape(send_frame))
-        self.output_video.add_frame(send_frame)
-
-    def _grayscale_frame(self, frame):
-        """Make the a frame grayscale"""
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        return gray
-
-    def _crop_and_mask_frame(self, crop, mask_img):
-        """
-        Masks then crops a given frame
-
-        Takes a frame and uses a bitwise_and operation with the input mask_img
-        to mask the image around a shape.
-        It then crops the image around the mask.
-
-        Parameters
-        ----------
-        frame: numpy array
-            A numpy array of an image of type uint8
-
-        crop: a int list
-            A list in the format [ymin, ymax], [xmin, xmax] where x and y are
-            the points selected when you click during manual cropping
-
-        mask_img: numpy array
-            A 2D array with the same dimensions as frame which is used to mask
-            the image
-
-        Returns
-        -------
-        cropped_frame: numpy array
-            A numpy array containing an image which has been cropped and masked
-        """
-        masked_frame = cv2.bitwise_and(self.frame, self.frame, mask=mask_img)
-        cropped_frame = masked_frame[crop[0][0]:crop[0][1],
-                                     crop[1][0]:crop[1][1],
-                                     :]
-        return cropped_frame
-
-    def crop_and_mask(self, no_of_sides=1):
-        """
-        Crops a video to a mask and saves it to file
-
-        Allows the user to manually select a region which the method will send
-        to the _crop_and_mask method to be masked and cropped.
-
-        Parameters
-        ----------
-        no_of_sides: int
-            The number of sides that the desired shape contains.
-                1: Uses a circle
-                >2: Uses a polygon
-        show: Bool
-            If true displays the first cropped and masked frame
-        """
-        crop_inst = CropShape(self.frame, no_of_sides)
-        mask_img, crop = crop_inst.begin_crop()
-        return mask_img, crop
-
-
 
 class CropShape:
     """ Take an interactive crop of a circle"""
@@ -277,20 +182,14 @@ class CropShape:
 if __name__ == "__main__":
     vid = video.ReadVideo(
         "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
-    choice = input("Choose 1 to test VideoPreProcessor, Choose 2 to test ImagePreProcessor: ")
-    if choice == 1:
-        output_video_filename = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_crop.avi"
-        VP = VideoPreprocessor(vid, output_video_filename)
-        VP.process_frames()
-    else:
-        IP = ImagePreprocessor(vid, no_of_crop_sides=1)
-        frame = vid.read_next_frame()
-        new_frame = IP.process_image(frame)
-        cv2.imshow("new_frame", new_frame)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        frame = vid.read_next_frame()
-        new_frame = IP.process_image(frame)
-        cv2.imshow("new_frame", new_frame)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+    IP = ImagePreprocessor(vid, no_of_crop_sides=1)
+    frame = vid.read_next_frame()
+    new_frame = IP.process_image(frame)
+    cv2.imshow("new_frame", new_frame)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    frame = vid.read_next_frame()
+    new_frame = IP.process_image(frame)
+    cv2.imshow("new_frame", new_frame)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
