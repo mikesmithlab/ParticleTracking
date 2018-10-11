@@ -3,6 +3,82 @@ import cv2
 import numpy as np
 
 
+class ImagePreprocessor:
+    """Class to manage the frame by frame processing of videos"""
+
+    def __init__(self, video_object, no_of_crop_sides=1):
+        self.no_of_crop_sides = no_of_crop_sides
+        self.video_object = video_object
+        self.mask_img = np.array([])
+        self.crop = []
+        self.blur_kernel = 5
+
+    def process_image(self, input_frame):
+        frame = input_frame
+        if self.video_object.frame_num == 1:
+            crop_inst = CropShape(frame, self.no_of_crop_sides)
+            self.mask_img, self.crop = crop_inst.begin_crop()
+        new_frame = self._crop_and_mask_frame(frame)
+        new_frame = self._grayscale_frame(new_frame)
+        new_frame = self._simple_threshold(new_frame, 100)
+        new_frame = self._adaptive_threshold(new_frame)
+        new_frame = self._gaussian_blur(new_frame)
+        return new_frame
+
+    def _crop_and_mask_frame(self, frame):
+        """
+        Masks then crops a given frame
+
+        Takes a frame and uses a bitwise_and operation with the input mask_img
+        to mask the image around a shape.
+        It then crops the image around the mask.
+
+        Parameters
+        ----------
+        frame: numpy array
+            A numpy array of an image of type uint8
+
+        crop: a int list
+            A list in the format [ymin, ymax], [xmin, xmax] where x and y are
+            the points selected when you click during manual cropping
+
+        mask_img: numpy array
+            A 2D array with the same dimensions as frame which is used to mask
+            the image
+
+        Returns
+        -------
+        cropped_frame: numpy array
+            A numpy array containing an image which has been cropped and masked
+        """
+        masked_frame = cv2.bitwise_and(frame, frame, mask=self.mask_img)
+        cropped_frame = masked_frame[self.crop[0][0]:self.crop[0][1],
+                                     self.crop[1][0]:self.crop[1][1],
+                                     :]
+        return cropped_frame
+
+    def _grayscale_frame(self, frame):
+        """Make the a frame grayscale"""
+        new_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        return new_frame
+
+    def _simple_threshold(self, frame, threshold):
+        """Perform a binary threshold of a frame"""
+        ret, new_frame = cv2.threshold(frame, threshold, 255, cv2.THRESH_BINARY)
+        return new_frame
+
+    def _adaptive_threshold(self, frame):
+        new_frame = cv2.adaptiveThreshold(frame, 255,
+                                          cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                          cv2.THRESH_BINARY, 11, 2)
+        return new_frame
+
+    def _gaussian_blur(self, frame):
+        new_frame = cv2.GaussianBlur(frame,
+                                     (self.blur_kernel, self.blur_kernel),
+                                     0)
+        return new_frame
+
 class VideoPreprocessor:
     """Class to manage the preprocessing of videos"""
 
@@ -201,6 +277,20 @@ class CropShape:
 if __name__ == "__main__":
     vid = video.ReadVideo(
         "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
-    output_video_filename = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_crop.avi"
-    VP = VideoPreprocessor(vid, output_video_filename)
-    VP.process_frames()
+    choice = input("Choose 1 to test VideoPreProcessor, Choose 2 to test ImagePreProcessor: ")
+    if choice == 1:
+        output_video_filename = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_crop.avi"
+        VP = VideoPreprocessor(vid, output_video_filename)
+        VP.process_frames()
+    else:
+        IP = ImagePreprocessor(vid, no_of_crop_sides=1)
+        frame = vid.read_next_frame()
+        new_frame = IP.process_image(frame)
+        cv2.imshow("new_frame", new_frame)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        frame = vid.read_next_frame()
+        new_frame = IP.process_image(frame)
+        cv2.imshow("new_frame", new_frame)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
