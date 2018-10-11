@@ -8,18 +8,18 @@ import numpy as np
 class ParticleTracker:
     """Class to track the locations of the particles in a video."""
 
-    def __init__(self, vid, options, write_video_filename, dataframe_filename):
+    def __init__(self, vid, dataframe, options, write_video_filename):
         self.video = vid
         self.options = options
         self.IP = preprocessing.ImagePreprocessor(self.video, 1)
         self.new_vid_filename = write_video_filename
-        self.TD = dataframes.TrackingDataframe(dataframe_filename)
+        self.TD = dataframe
 
     def track(self):
         """Call this to start the tracking"""
         for f in range(self.video.num_frames):
             print(f+1, " of ", self.video.num_frames)
-            frame = vid.read_next_frame()
+            frame = self.video.read_next_frame()
             new_frame = self.IP.process_image(frame)
             circles = self._find_circles(new_frame)
             # self._annotate_video_with_circles(new_frame, circles)
@@ -56,11 +56,13 @@ class ParticleTracker:
 
 
 if __name__ == "__main__":
-    vid = video.ReadVideo(
+    in_vid = video.ReadVideo(
         "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
     options_dict = {'min_dist': 20, 'p_1': 200, 'p_2': 10, 'min_rad': 18,
                     'max_rad': 20}
     out_vid = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_annotated.avi"
     dataframe_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5"
-    PT = ParticleTracker(vid, options_dict, out_vid, dataframe_name)
+    dataframe = dataframes.TrackingDataframe(dataframe_name)
+
+    PT = ParticleTracker(in_vid, dataframe, options_dict, out_vid)
     PT.track()
