@@ -23,11 +23,6 @@ class TrackingDataframe:
     def save_dataframe(self):
         self.dataframe.to_hdf(self.filename, 'w')
 
-    def filter_trajectories(self):
-        max_frame_displacement = 10
-        min_frame_life = 5
-        self.dataframe = tp.link_df(self.dataframe, max_frame_displacement)
-        self.dataframe = tp.filter_stubs(self.dataframe, min_frame_life)
 
 if __name__=="__main__":
     dataframe = pd.read_hdf("/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5")

@@ -4,6 +4,7 @@ import ParticleTracking.preprocessing as preprocessing
 import ParticleTracking.dataframes as dataframes
 import numpy as np
 import ParticleTracking.configuration as config
+import trackpy as tp
 
 class ParticleTracker:
     """Class to track the locations of the particles in a video."""
@@ -47,8 +48,14 @@ class ParticleTracker:
             if self.new_vid_filename:
                 self._annotate_video_with_circles(new_frame, circles)
             self.TD.add_tracking_data(f, circles)
-        self.TD.filter_trajectories()
+        self._filter_trajectories()
         self.TD.save_dataframe()
+
+    def _filter_trajectories(self):
+        self.TD.dataframe = tp.link_df(self.TD.dataframe,
+                                       self.options['max frame displacement'])
+        self.TD.dataframe = tp.filter_stubs(self.TD.dataframe,
+                                            self.options['min frame life'])
 
     def _annotate_video_with_circles(self, frame, circles):
         """
