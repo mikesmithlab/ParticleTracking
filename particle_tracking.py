@@ -26,7 +26,7 @@ class ParticleTracker:
             A dictionary containing all the parameters needed for functions
 
         method_order: list
-            A list containing string assoicated with methods in the order they
+            A list containing string associated with methods in the order they
             will be used
 
         write_video_filename: string

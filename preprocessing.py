@@ -202,7 +202,7 @@ class ImagePreprocessor:
 class CropShape:
     """ Take an interactive crop of a circle"""
 
-    def __init__(self, input_image, no_of_sides=1):
+    def __init__(self, input_image, no_of_sides=1, show_roi=False):
         """
         Initialise with input image and the number of sides:
 
@@ -222,6 +222,7 @@ class CropShape:
         self.refPt = []
         self.image = input_image
         self.no_of_sides = no_of_sides
+        self.show_roi = show_roi
 
     def _click_and_crop(self, event, x, y, flags, param):
         """Internal method to manage the user cropping"""
@@ -295,9 +296,10 @@ class CropShape:
                          color=(250, 250, 250))
             crop = ([min(points[:, 1]), max(points[:, 1])],
                     [min(points[:, 0]), max(points[:, 0])])
-        cv2.imshow("ROI", roi)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        if self.show_roi:
+            cv2.imshow("ROI", roi)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
         return mask_img[:, :, 0], np.array(crop, dtype=np.int32)
 
 
