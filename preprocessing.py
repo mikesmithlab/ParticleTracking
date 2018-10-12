@@ -53,7 +53,8 @@ class ImagePreprocessor:
             crop_inst = CropShape(frame, self.options['number of tray sides'])
             self.mask_img, self.crop = crop_inst.begin_crop()
 
-        new_frame = self._crop_and_mask_frame(frame)
+        cropped_frame = self._crop_and_mask_frame(frame)
+        new_frame = cropped_frame.copy()
 
         for method in self.method_order:
             if method == 'grayscale':
@@ -64,7 +65,7 @@ class ImagePreprocessor:
                 new_frame = self._adaptive_threshold(new_frame)
             elif method == 'gaussian blur':
                 new_frame = self._gaussian_blur(new_frame)
-        return new_frame
+        return new_frame, cropped_frame
 
     def _crop_and_mask_frame(self, frame):
         """

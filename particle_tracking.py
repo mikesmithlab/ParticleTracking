@@ -10,7 +10,7 @@ class ParticleTracker:
     """Class to track the locations of the particles in a video."""
 
     def __init__(self, vid, dataframe, options, method_order,
-                 write_video_filename=None):
+                 write_video_filename=None, crop_vid_filename=None):
         """
         Init
 
@@ -38,6 +38,7 @@ class ParticleTracker:
         self.IP = preprocessing.ImagePreprocessor(self.video, method_order,
                                                   self.options)
         self.new_vid_filename = write_video_filename
+        self.crop_vid_filename = crop_vid_filename
         self.TD = dataframe
 
     def track(self):
@@ -45,13 +46,25 @@ class ParticleTracker:
         for f in range(self.video.num_frames):
             print(f+1, " of ", self.video.num_frames)
             frame = self.video.read_next_frame()
-            new_frame = self.IP.process_image(frame)
+            new_frame, cropped_frame = self.IP.process_image(frame)
             circles = self._find_circles(new_frame)
             if self.new_vid_filename:
                 self._annotate_video_with_circles(new_frame, circles)
+            if self.crop_vid_filename:
+                self._save_cropped_video(cropped_frame)
             self.TD.add_tracking_data(f, circles)
         self._filter_trajectories()
         self.TD.save_dataframe()
+
+    def _save_cropped_video(self, frame):
+        if self.video.frame_num == 1:
+            self.crop_video = video.WriteVideo(
+                    self.crop_vid_filename,
+                    frame_size=np.shape(frame))
+        self.crop_video.add_frame(frame)
+
+        if self.video.frame_num == self.video.num_frames:
+            self.crop_video.close()
 
     def _filter_trajectories(self):
         """
@@ -139,8 +152,9 @@ if __name__ == "__main__":
     process_config = config.GLASS_BEAD_PROCESS_LIST
     out_vid = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_annotated.avi"
     out_vid = None
+    crop_vid_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_crop.avi"
     dataframe_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5"
     dataframe = dataframes.TrackingDataframe(dataframe_name)
     PT = ParticleTracker(in_vid, dataframe, options_dict,
-                         process_config, out_vid)
+                         process_config, out_vid, crop_vid_name)
     PT.track()
