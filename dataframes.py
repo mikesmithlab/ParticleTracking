@@ -6,9 +6,11 @@ import trackpy as tp
 class TrackingDataframe:
     """Class to manage dataframes associated with tracking"""
 
-    def __init__(self, filename):
+    def __init__(self, filename, load=False):
         self.dataframe = pd.DataFrame()
         self.filename = filename
+        if load:
+            self._load_dataframe()
 
     def add_tracking_data(self, frame, circles):
         frame_list = np.ones((np.shape(circles)[1], 1)) * frame
@@ -22,6 +24,30 @@ class TrackingDataframe:
 
     def save_dataframe(self):
         self.dataframe.to_hdf(self.filename, 'w')
+
+    def _load_dataframe(self):
+        self.dataframe = pd.read_hdf(self.filename)
+
+    def return_circles_for_frame(self, frame):
+        """
+        Returns the 'x', 'y', and 'size' data for a certain frame
+
+        Parameters
+        ----------
+        frame: int
+
+        Returns
+        -------
+        circles: ndarray
+            Array of shape (p, 3) where for each particle p:
+             circles[p, 0] contains x coordinates
+             circles[p, 1] contains y coordinate
+             circles[p, size] contains size
+        """
+        circles = self.dataframe.loc[self.dataframe['frame'] == frame,
+                                     ['x', 'y', 'size']].as_matrix()
+
+        return circles
 
 
 if __name__=="__main__":
