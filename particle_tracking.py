@@ -9,8 +9,13 @@ import trackpy as tp
 class ParticleTracker:
     """Class to track the locations of the particles in a video."""
 
-    def __init__(self, vid, dataframe, options, method_order,
-                 write_video_filename=None, crop_vid_filename=None):
+    def __init__(self,
+                 input_video,
+                 dataframe_inst,
+                 options,
+                 method_order,
+                 write_video_filename=None,
+                 crop_vid_filename=None):
         """
         Init
 
@@ -33,28 +38,29 @@ class ParticleTracker:
             A string containing the filepath to save the annotated video
                 If None don't make video
         """
-        self.video = vid
+        self.video = input_video
         self.options = options
-        self.IP = preprocessing.ImagePreprocessor(self.video, method_order,
+        self.ip = preprocessing.ImagePreprocessor(self.video,
+                                                  method_order,
                                                   self.options)
         self.new_vid_filename = write_video_filename
         self.crop_vid_filename = crop_vid_filename
-        self.TD = dataframe
+        self.td = dataframe_inst
 
     def track(self):
         """Call this to start the tracking"""
         for f in range(self.video.num_frames):
             print(f+1, " of ", self.video.num_frames)
             frame = self.video.read_next_frame()
-            new_frame, cropped_frame, boundary = self.IP.process_image(frame)
+            new_frame, cropped_frame, boundary = self.ip.process_image(frame)
             circles = self._find_circles(new_frame)
             if self.new_vid_filename:
                 self._annotate_video_with_circles(new_frame, circles)
             if self.crop_vid_filename:
                 self._save_cropped_video(cropped_frame)
-            self.TD.add_tracking_data(f, circles, boundary)
+            self.td.add_tracking_data(f, circles, boundary)
         self._filter_trajectories()
-        self.TD.save_dataframe()
+        self.td.save_dataframe()
 
     def _save_cropped_video(self, frame):
         if self.video.frame_num == 1:
@@ -76,9 +82,9 @@ class ParticleTracker:
             'max frame displacement'
             'min frame life'
         """
-        self.TD.dataframe = tp.link_df(self.TD.dataframe,
+        self.td.dataframe = tp.link_df(self.td.dataframe,
                                        self.options['max frame displacement'])
-        self.TD.dataframe = tp.filter_stubs(self.TD.dataframe,
+        self.td.dataframe = tp.filter_stubs(self.td.dataframe,
                                             self.options['min frame life'])
 
     def _annotate_video_with_circles(self, frame, circles):

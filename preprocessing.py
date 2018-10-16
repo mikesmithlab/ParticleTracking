@@ -23,7 +23,7 @@ class ImagePreprocessor:
 
         """
 
-        self.video_object = video_object
+        self.video = video_object
         self.mask_img = np.array([])
         self.crop = []
         self.method_order = method_order
@@ -46,7 +46,7 @@ class ImagePreprocessor:
             uint8 numpy array containing the new image
         """
 
-        if self.video_object.frame_num == 1:
+        if self.video.frame_num == 1:
             self._find_crop_and_mask_for_first_frame(frame)
 
         cropped_frame = self._crop_and_mask_frame(frame)

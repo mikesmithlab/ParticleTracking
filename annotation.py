@@ -9,13 +9,16 @@ import Generic.video as video
 class VideoAnnotator:
     """Class to annotate videos with information"""
 
-    def __init__(self, TD, input_video_filename, output_video_filename):
+    def __init__(self,
+                 dataframe_inst,
+                 input_video_filename,
+                 output_video_filename):
         """
         Initialise VideoAnnotator
 
         Parameters
         ----------
-        TD: Class instance
+        td: Class instance
             Instance of the class dataframes.TrackingDataframe
 
         input_video_filename: string
@@ -25,8 +28,8 @@ class VideoAnnotator:
             string containing the full filepath where the annotated video
             will be saved
         """
-        self.TD = TD
-        print(self.TD.dataframe.head())
+        self.td = dataframe_inst
+        print(self.td.dataframe.head())
         self.input_video = video.ReadVideo(input_video_filename)
         self.output_video = video.WriteVideo(
                 output_video_filename,
@@ -38,7 +41,7 @@ class VideoAnnotator:
         """Annotates a video with the tracked circles to check tracking"""
         for f in range(self.input_video.num_frames):
             frame = self.input_video.read_next_frame()
-            circles = self.TD.return_circles_for_frame(f)
+            circles = self.td.return_circles_for_frame(f)
             for x, y, size in circles:
                 cv2.circle(frame, (int(x), int(y)),
                            int(size), (0, 255, 255), 2)
