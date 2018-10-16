@@ -4,6 +4,7 @@ import numpy as np
 import ParticleTracking.configuration as config
 import Generic.simple_funcs as sf
 
+
 class ImagePreprocessor:
     """Class to manage the frame by frame processing of videos"""
 
@@ -306,7 +307,6 @@ class CropShape:
             crop = ([min(points[:, 1]), max(points[:, 1])],
                     [min(points[:, 0]), max(points[:, 0])])
             return mask_img[:, :, 0], np.array(crop, dtype=np.int32), points
-
 
 
 if __name__ == "__main__":

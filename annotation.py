@@ -49,7 +49,6 @@ class VideoAnnotator:
         self.output_video.close()
 
 
-
 if __name__=="__main__":
 
     dataframe = dataframes.TrackingDataframe(

@@ -6,6 +6,7 @@ import numpy as np
 import ParticleTracking.configuration as config
 import trackpy as tp
 
+
 class ParticleTracker:
     """Class to track the locations of the particles in a video."""
 
