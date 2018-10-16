@@ -8,11 +8,12 @@ class TrackingDataframe:
 
     def __init__(self, filename, load=False):
         self.dataframe = pd.DataFrame()
+        self.boundary_df = pd.DataFrame()
         self.filename = filename
         if load:
             self._load_dataframe()
 
-    def add_tracking_data(self, frame, circles):
+    def add_tracking_data(self, frame, circles, boundary):
         frame_list = np.ones((np.shape(circles)[1], 1)) * frame
         dataframe_to_append = pd.DataFrame({
                 "x": circles[0, :, 0],
@@ -21,12 +22,21 @@ class TrackingDataframe:
                 "frame": frame_list[:, 0]},
                 index=np.arange(1, np.shape(circles)[1] + 1))
         self.dataframe = pd.concat([self.dataframe, dataframe_to_append])
+        print(boundary)
+        boundary_df_to_append = pd.DataFrame({
+                "frame": frame,
+                "boundary": [boundary]})
+        self.boundary_df = pd.concat([self.boundary_df, boundary_df_to_append])
 
     def save_dataframe(self):
-        self.dataframe.to_hdf(self.filename, 'w')
+        store = pd.HDFStore(self.filename)
+        store['data'] = self.dataframe
+        store['boundary'] = self.boundary_df
 
     def _load_dataframe(self):
-        self.dataframe = pd.read_hdf(self.filename)
+        store = pd.HDFStore(self.filename)
+        self.dataframe = store['data']
+        self.boundary_df = store['boundary']
 
     def return_circles_for_frame(self, frame):
         """
@@ -51,5 +61,6 @@ class TrackingDataframe:
 
 
 if __name__=="__main__":
-    dataframe = pd.read_hdf("/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5")
-    print(dataframe.head())
+    store = pd.HDFStore("/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5")
+    boundary_df = store['boundary']
+    print(boundary_df.loc[boundary_df['frame'] == 50, 'boundary'].as_matrix())

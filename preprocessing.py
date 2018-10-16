@@ -2,6 +2,7 @@ import Generic.video as video
 import cv2
 import numpy as np
 import ParticleTracking.configuration as config
+import Generic.simple_funcs as sf
 
 class ImagePreprocessor:
     """Class to manage the frame by frame processing of videos"""
@@ -28,7 +29,7 @@ class ImagePreprocessor:
         self.method_order = method_order
         self.options = options
 
-    def process_image(self, input_frame):
+    def process_image(self, frame):
         """
         Manipulates an image using class methods.
 
@@ -45,13 +46,8 @@ class ImagePreprocessor:
             uint8 numpy array containing the new image
         """
 
-        frame = input_frame
-
-        # Find the crop and mask values for the first frame
         if self.video_object.frame_num == 1:
-            print(self.options['number of tray sides'])
-            crop_inst = CropShape(frame, self.options['number of tray sides'])
-            self.mask_img, self.crop = crop_inst.begin_crop()
+            self._find_crop_and_mask_for_first_frame(frame)
 
         cropped_frame = self._crop_and_mask_frame(frame)
         new_frame = cropped_frame.copy()
@@ -65,7 +61,18 @@ class ImagePreprocessor:
                 new_frame = self._adaptive_threshold(new_frame)
             elif method == 'gaussian blur':
                 new_frame = self._gaussian_blur(new_frame)
-        return new_frame, cropped_frame
+
+        return new_frame, cropped_frame, self.boundary
+
+    def _find_crop_and_mask_for_first_frame(self, frame):
+        crop_inst = CropShape(frame, self.options['number of tray sides'])
+        self.mask_img, self.crop, self.boundary = crop_inst.begin_crop()
+        if np.shape(self.boundary) == (3,):
+            self.boundary[0] -= self.crop[1][0]
+            self.boundary[1] -= self.crop[0][0]
+        else:
+            self.boundary[:, 0] -= self.crop[1][0]
+            self.boundary[:, 1] -= self.crop[0][0]
 
     def _crop_and_mask_frame(self, frame):
         """
@@ -202,7 +209,7 @@ class ImagePreprocessor:
 class CropShape:
     """ Take an interactive crop of a circle"""
 
-    def __init__(self, input_image, no_of_sides=1, show_roi=False):
+    def __init__(self, input_image, no_of_sides=1):
         """
         Initialise with input image and the number of sides:
 
@@ -222,12 +229,12 @@ class CropShape:
         self.refPt = []
         self.image = input_image
         self.no_of_sides = no_of_sides
-        self.show_roi = show_roi
 
     def _click_and_crop(self, event, x, y, flags, param):
         """Internal method to manage the user cropping"""
 
         if event == cv2.EVENT_LBUTTONDOWN:
+            # x is across, y is down
             self.refPt = [(x, y)]
             self.cropping = True
 
@@ -254,7 +261,7 @@ class CropShape:
 
         # keep looping until 'q' is pressed
         while True:
-            cv2.imshow("image", self.image)
+            cv2.imshow(str(self.no_of_sides), self.image)
             key = cv2.waitKey(1) & 0xFF
 
             if self.cropping and self.no_of_sides > 1:
@@ -284,6 +291,8 @@ class CropShape:
                        thickness=-1)
             crop = ([int(cy - rad), int(cy + rad)],
                     [self.refPt[0][0], self.refPt[1][0]])
+            boundary = np.array((cx, cy, rad), dtype=np.int32)
+            return mask_img[:, :, 0], np.array(crop, dtype=np.int32), boundary
 
         else:
             roi = clone.copy()
@@ -296,11 +305,8 @@ class CropShape:
                          color=(250, 250, 250))
             crop = ([min(points[:, 1]), max(points[:, 1])],
                     [min(points[:, 0]), max(points[:, 0])])
-        if self.show_roi:
-            cv2.imshow("ROI", roi)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-        return mask_img[:, :, 0], np.array(crop, dtype=np.int32)
+            return mask_img[:, :, 0], np.array(crop, dtype=np.int32), points
+
 
 
 if __name__ == "__main__":
@@ -312,7 +318,18 @@ if __name__ == "__main__":
                            options_dict)
     for f in range(2):
         frame = vid.read_next_frame()
-        new_frame = IP.process_image(frame)
+        new_frame, crop_frame, boundary = IP.process_image(frame)
+        if np.shape(boundary) == (3,):
+            new_frame = cv2.circle(new_frame,
+                                   (boundary[0], boundary[1]),
+                                   boundary[2],
+                                   (255, 0, 255),
+                                   2)
+        else:
+            # convert boundary list of points from (n, 2) to (n, 1, 2)
+            boundary = boundary.reshape((-1, 1, 2))
+            boundary = boundary.astype(np.int32)
+            cv2.polylines(new_frame, [boundary], True, (0, 0, 255))
         cv2.imshow("new_frame", new_frame)
         cv2.waitKey(0)
         cv2.destroyAllWindows()

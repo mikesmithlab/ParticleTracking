@@ -12,6 +12,6 @@ GLASS_BEAD_OPTIONS_DICT = {'grayscale threshold': 100,
                            'p_2': 10,
                            'min_rad': 18,
                            'max_rad': 20,
-                           'number of tray sides': 1,
+                           'number of tray sides': 3,
                            'max frame displacement': 10,
                            'min frame life': 5}

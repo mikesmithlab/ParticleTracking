@@ -46,13 +46,13 @@ class ParticleTracker:
         for f in range(self.video.num_frames):
             print(f+1, " of ", self.video.num_frames)
             frame = self.video.read_next_frame()
-            new_frame, cropped_frame = self.IP.process_image(frame)
+            new_frame, cropped_frame, boundary = self.IP.process_image(frame)
             circles = self._find_circles(new_frame)
             if self.new_vid_filename:
                 self._annotate_video_with_circles(new_frame, circles)
             if self.crop_vid_filename:
                 self._save_cropped_video(cropped_frame)
-            self.TD.add_tracking_data(f, circles)
+            self.TD.add_tracking_data(f, circles, boundary)
         self._filter_trajectories()
         self.TD.save_dataframe()
 
