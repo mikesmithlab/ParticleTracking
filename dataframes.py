@@ -62,5 +62,7 @@ class TrackingDataframe:
 
 if __name__=="__main__":
     store = pd.HDFStore("/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5")
-    boundary_df = store['boundary']
-    print(boundary_df.loc[boundary_df['frame'] == 50, 'boundary'].as_matrix())
+    dataframe = store['data']
+    circles = dataframe.loc[dataframe['frame'] == 1,
+                                 ['x', 'y', 'size']].as_matrix()
+    a =1
