@@ -5,6 +5,7 @@ import ParticleTracking.dataframes as dataframes
 import numpy as np
 import ParticleTracking.configuration as config
 import trackpy as tp
+import annotation as anno
 
 
 class ParticleTracker:
@@ -15,8 +16,8 @@ class ParticleTracker:
                  dataframe_inst,
                  options,
                  method_order,
-                 write_video_filename=None,
-                 crop_vid_filename=None):
+                 crop_vid_filename=None,
+                 test_vid_filename=None):
         """
         Init
 
@@ -35,17 +36,22 @@ class ParticleTracker:
             A list containing string associated with methods in the order they
             will be used
 
-        write_video_filename: string
-            A string containing the filepath to save the annotated video
+        crop_vid_filename: string
+            A string containing the filepath to save the cropped video
                 If None don't make video
+
+        test_vid_filename: string
+            A string containing the filepath to save the video with the tracked
+            circles annotated on top.
+                If None, don't make video
         """
         self.video = input_video
         self.options = options
         self.ip = preprocessing.ImagePreprocessor(self.video,
                                                   method_order,
                                                   self.options)
-        self.new_vid_filename = write_video_filename
         self.crop_vid_filename = crop_vid_filename
+        self.test_vid_filename = test_vid_filename
         self.td = dataframe_inst
 
     def track(self):
@@ -55,13 +61,19 @@ class ParticleTracker:
             frame = self.video.read_next_frame()
             new_frame, cropped_frame, boundary = self.ip.process_image(frame)
             circles = self._find_circles(new_frame)
-            if self.new_vid_filename:
-                self._annotate_video_with_circles(new_frame, circles)
             if self.crop_vid_filename:
                 self._save_cropped_video(cropped_frame)
             self.td.add_tracking_data(f, circles, boundary)
         self._filter_trajectories()
         self.td.save_dataframe()
+        if self.test_vid_filename:
+            self._check_video_tracking()
+
+    def _check_video_tracking(self):
+        va = anno.VideoAnnotator(self.td,
+                                 self.crop_vid_filename,
+                                 self.test_vid_filename)
+        va.add_tracking_circles()
 
     def _save_cropped_video(self, frame):
         if self.video.frame_num == 1:
@@ -87,39 +99,6 @@ class ParticleTracker:
                                        self.options['max frame displacement'])
         self.td.dataframe = tp.filter_stubs(self.td.dataframe,
                                             self.options['min frame life'])
-
-    def _annotate_video_with_circles(self, frame, circles):
-        """
-        Creates a video with the detected objects annotated.
-
-        On first frame the new video is initialised then frames with the
-        circles are added to the video. The WriteVideo instance is closed when
-        the last frame has been sent.
-
-        Parameters
-        ----------
-        frame: numpy array
-            A numpy array containing the cropped and masked image
-
-        circles: numpy array
-            Contains the x, y, and radius of each detected circle
-
-        """
-        if len(np.shape(frame)) == 2:
-            frame = np.stack((frame, frame, frame), axis=2)
-        for i in circles[0, :]:
-            cv2.circle(frame, (int(i[0]), int(i[1])),
-                       int(i[2]), (0, 255, 255), 2)
-
-        if self.video.frame_num == 1:
-            self.new_video = video.WriteVideo(
-                    self.new_vid_filename,
-                    frame_size=np.shape(frame))
-
-        self.new_video.add_frame(frame)
-
-        if self.video.frame_num == self.video.num_frames:
-            self.new_video.close()
 
     def _find_circles(self, frame):
         """
@@ -158,10 +137,9 @@ if __name__ == "__main__":
     options_dict = config.GLASS_BEAD_OPTIONS_DICT
     process_config = config.GLASS_BEAD_PROCESS_LIST
     out_vid = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_annotated.avi"
-    out_vid = None
     crop_vid_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_crop.avi"
     dataframe_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5"
     dataframe = dataframes.TrackingDataframe(dataframe_name)
     PT = ParticleTracker(in_vid, dataframe, options_dict,
-                         process_config, out_vid, crop_vid_name)
+                         process_config, crop_vid_name,  out_vid)
     PT.track()

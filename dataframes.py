@@ -23,7 +23,6 @@ class TrackingDataframe:
                 "frame": frame_list[:, 0]},
                 index=np.arange(1, np.shape(circles)[1] + 1))
         self.dataframe = pd.concat([self.dataframe, dataframe_to_append])
-        print(boundary)
         boundary_df_to_append = pd.DataFrame({
                 "frame": frame,
                 "boundary": [boundary]})

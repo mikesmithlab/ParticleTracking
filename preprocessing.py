@@ -49,10 +49,8 @@ class ImagePreprocessor:
 
         if self.video.frame_num == 1:
             self._find_crop_and_mask_for_first_frame(frame)
-
         cropped_frame = self._crop_and_mask_frame(frame)
         new_frame = cropped_frame.copy()
-
         for method in self.method_order:
             if method == 'grayscale':
                 new_frame = self._grayscale_frame(new_frame)
@@ -249,15 +247,15 @@ class CropShape:
                       self.refPt[0][1])
                 rad = int((self.refPt[1][0] - self.refPt[0][0]) / 2)
                 cv2.circle(self.image, (int(cx), int(cy)), rad, (0, 255, 0), 2)
-                cv2.imshow("image", self.image)
+                cv2.imshow(str(self.no_of_sides), self.image)
 
     def begin_crop(self):
         """Method to create the mask image and the crop region"""
 
         clone = self.image.copy()
         points = np.zeros((self.no_of_sides, 2))
-        cv2.namedWindow("image")
-        cv2.setMouseCallback("image", self._click_and_crop)
+        cv2.namedWindow(str(self.no_of_sides))
+        cv2.setMouseCallback(str(self.no_of_sides), self._click_and_crop)
         count = 0
 
         # keep looping until 'q' is pressed
