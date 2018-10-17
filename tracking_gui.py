@@ -23,19 +23,21 @@ class MainWindow(QMainWindow):
         self.video = video
         self.frame = self.video.read_next_frame()
         cv2.imwrite('frame.png', self.frame)
-        methods = con.GLASS_BEAD_PROCESS_LIST
-        options = con.GLASS_BEAD_OPTIONS_DICT
-        self.pp = pp.ImagePreprocessor(self.video, methods, options)
-        self.pt = pt.ParticleTracker(self.video, None, self.pp, options, methods)
+        self.methods = con.GLASS_BEAD_PROCESS_LIST
+        self.options = con.GLASS_BEAD_OPTIONS_DICT
+        self.pp = pp.ImagePreprocessor(self.video, self.methods, self.options)
         self.initUI()
 
     def initUI(self):
         self.central_widget = QWidget(self)
+        self.statusBar().showMessage('Ready')
+        self.setup_file_menu()
+
         self.layout = QGridLayout(self.central_widget)
 
         self.create_main_image()
-        self.create_process_button()
-        self.create_detect_button()
+        self.create_main_buttons()
+        self.create_process_options()
 
         self.add_widgets_to_layout()
 
@@ -46,11 +48,96 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('Particle Tracker')
         self.show()
 
+    def create_process_options(self):
+        self.process_options_layout = QVBoxLayout(self.central_widget)
+        self.create_tray_choice_combo()
+        self.process_options_layout.addWidget(self.tray_choice_combo)
+
+        self.create_grayscale_threshold_slider()
+        self.process_options_layout.addWidget(self.grayscale_label)
+        self.process_options_layout.addWidget(self.grayscale_threshold_slider)
+
+        self.create_blur_kernel_slider()
+        self.process_options_layout.addWidget(self.blur_kernel_label)
+        self.process_options_layout.addWidget(self.blur_kernel_slider)
+
+        self.process_options_layout.addStretch()
+
+    def create_blur_kernel_slider(self):
+        self.blur_kernel_label = QLabel(self.central_widget)
+        self.blur_kernel_label.setText('Blur kernel size: ' +
+                                       str(self.options['blur kernel'][0]))
+        self.blur_kernel_slider = QSlider(Qt.Horizontal, self.central_widget)
+        self.blur_kernel_slider.setRange(0, 5)
+        self.blur_kernel_slider.setValue((self.options['blur kernel'][0]-1)/2)
+        self.blur_kernel_slider.valueChanged[int].connect(self.blur_kernel_slider_changed)
+
+    def blur_kernel_slider_changed(self, val):
+        self.options['blur kernel'] = (val*2+1, val*2+1)
+        self.blur_kernel_label.setText('Blur kernel size: ' + str(val*2+1))
+
+
+    def create_grayscale_threshold_slider(self):
+        self.grayscale_label = QLabel(self.central_widget)
+        self.grayscale_label.setText('Grayscale Threshold: ' +
+                                     str(self.options['grayscale threshold']))
+        self.grayscale_threshold_slider = QSlider(Qt.Horizontal,
+                                                  self.central_widget)
+        self.grayscale_threshold_slider.setRange(0, 255)
+        self.grayscale_threshold_slider.setValue(self.options['grayscale threshold'])
+        self.grayscale_threshold_slider.valueChanged[int].connect(self.grayscale_threshold_slider_changed)
+
+
+
+
+    def grayscale_threshold_slider_changed(self, val):
+        self.options['grayscale threshold'] = val
+        self.grayscale_label.setText('Grayscale Threshold: ' + str(val))
+
+    def create_tray_choice_combo(self):
+        self.tray_choice_combo = QComboBox(self.central_widget)
+        tray_choices = 'Circular', 'Hexagonal', 'Square'
+        self.tray_choice_combo.addItems(tray_choices)
+        self.tray_choice_combo.activated[str].connect(self.tray_choice_changed)
+
+    def tray_choice_changed(self, text):
+        tray = {'Circular': 1, 'Hexagonal': 6, 'Square': 4}
+        self.options['number of tray sides'] = tray[text]
+
+
+    def create_main_buttons(self):
+        self.main_button_layout = QVBoxLayout(self.central_widget)
+        self.create_process_button()
+        self.create_detect_button()
+        self.main_button_layout.addWidget(self.process_button)
+        self.main_button_layout.addWidget(self.detect_button)
+
+    def setup_file_menu(self):
+        exitAction = QAction(QtGui.QIcon('exit.png'), '&Exit', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(qApp.quit)
+
+        loadvidAction = QAction(QtGui.QIcon('load.png'), '&Load', self)
+        loadvidAction.setShortcut('Ctrl+l')
+        loadvidAction.setStatusTip('Load Video')
+        loadvidAction.triggered.connect(self.load_vid)
+
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(exitAction)
+        fileMenu.addAction(loadvidAction)
+
+    def load_vid(self):
+        pass
+
     def create_detect_button(self):
         self.detect_button = QPushButton("Detect Circles", self.central_widget)
         self.detect_button.clicked.connect(self.detect_button_clicked)
 
     def detect_button_clicked(self):
+        self.pt = pt.ParticleTracker(self.video, None, self.pp, self.options,
+                                     self.methods)
         circles = self.pt.find_circles(self.new_frame)
         circles = np.array(circles).squeeze()
         annotated_frame = self.pt.annotate_frame_with_circles(self.cropped_frame, circles)
@@ -59,14 +146,15 @@ class MainWindow(QMainWindow):
 
     def add_widgets_to_layout(self):
         self.layout.addWidget(self.main_image, 0, 0, 2, 2)
-        self.layout.addWidget(self.process_button, 0, 3, 1, 1)
-        self.layout.addWidget(self.detect_button, 0, 3, 2, 1)
+        self.layout.addLayout(self.main_button_layout, 0, 3, 1, 1)
+        self.layout.addLayout(self.process_options_layout, 1, 3, 1, 1)
 
     def create_process_button(self):
         self.process_button = QPushButton("Process Image", self.central_widget)
         self.process_button.clicked.connect(self.process_button_clicked)
 
     def process_button_clicked(self):
+        self.pp.update_options(self.options, self.methods)
         self.new_frame, self.cropped_frame, _ = self.pp.process_image(self.frame)
         cv2.imwrite('frame.png', self.new_frame)
         self.update_main_image()

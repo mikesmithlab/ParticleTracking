@@ -29,6 +29,7 @@ class ImagePreprocessor:
         self.crop = []
         self.method_order = method_order
         self.options = options
+        self.process_calls = 0
 
     def process_image(self, frame):
         """
@@ -47,7 +48,7 @@ class ImagePreprocessor:
             uint8 numpy array containing the new image
         """
 
-        if self.video.frame_num == 1:
+        if self.process_calls == 0:
             self._find_crop_and_mask_for_first_frame(frame)
         cropped_frame = self._crop_and_mask_frame(frame)
         new_frame = cropped_frame.copy()
@@ -61,7 +62,12 @@ class ImagePreprocessor:
             elif method == 'gaussian blur':
                 new_frame = self._gaussian_blur(new_frame)
 
+        self.process_calls += 1
         return new_frame, cropped_frame, self.boundary
+
+    def update_options(self, options, methods):
+        self.options = options
+        self.method_order = methods
 
     def _find_crop_and_mask_for_first_frame(self, frame):
         crop_inst = CropShape(frame, self.options['number of tray sides'])
