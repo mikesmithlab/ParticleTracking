@@ -4,9 +4,9 @@ from PyQt5.QtWidgets import (
     QAction, QWidget, QLabel, QDesktopWidget,
     QApplication, QComboBox, QPushButton, QGridLayout,
     QMainWindow, qApp, QVBoxLayout, QSlider,
-    QHBoxLayout, QLineEdit
+    QHBoxLayout, QLineEdit, QListView, QAbstractItemView
     )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5 import QtGui
 import Generic.video as vid
 import cv2
@@ -14,6 +14,7 @@ import preprocessing as pp
 import configuration as con
 import particle_tracking as pt
 import numpy as np
+import pyperclip
 
 
 class MainWindow(QMainWindow):
@@ -30,19 +31,22 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
         self.central_widget = QWidget(self)
+        self.central_widget.setFocus()
+        self.setCentralWidget(self.central_widget)
         self.statusBar().showMessage('Ready')
-        self.setup_file_menu()
+
+
 
         self.layout = QGridLayout(self.central_widget)
 
+        self.setup_file_menu()
         self.create_main_image()
         self.create_main_buttons()
         self.create_process_options()
+        self.create_track_options()
 
         self.add_widgets_to_layout()
 
-        self.central_widget.setFocus()
-        self.setCentralWidget(self.central_widget)
         self.resize(1280, 720)
         self.center()
         self.setWindowTitle('Particle Tracker')
@@ -61,7 +65,104 @@ class MainWindow(QMainWindow):
         self.process_options_layout.addWidget(self.blur_kernel_label)
         self.process_options_layout.addWidget(self.blur_kernel_slider)
 
+        self.create_adaptive_block_size_slider()
+        self.process_options_layout.addWidget(self.adaptive_block_size_label)
+        self.process_options_layout.addWidget(self.adaptive_block_size_slider)
+
+        self.create_adaptive_constant_slider()
+        self.process_options_layout.addWidget(self.adaptive_constant_label)
+        self.process_options_layout.addWidget(self.adaptive_constant_slider)
+
+        self.create_methods_list()
+        self.process_options_layout.addWidget(self.methods_list)
+
+        self.create_save_config_button()
+        self.process_options_layout.addWidget(self.save_config_button)
+
         self.process_options_layout.addStretch()
+
+    def create_save_config_button(self):
+        self.save_config_button = QPushButton(
+                "Save config to clipboard",
+                self.central_widget)
+        self.save_config_button.clicked.connect(self.save_config_button_clicked)
+
+    def save_config_button_clicked(self):
+        pyperclip.copy(str(self.options))
+
+    def create_methods_list(self):
+        self.methods_list = QListView()
+        self.methods_list.setDragDropMode(QListView.InternalMove)
+        self.methods_list.setDefaultDropAction(Qt.MoveAction)
+        self.methods_list.setDragDropMode(False)
+        self.methods_list.setAcceptDrops(True)
+        self.methods_list.setDropIndicatorShown(True)
+        self.methods_list.setDragEnabled(True)
+        self.methods_list.setWindowTitle('Method Order')
+
+        self.methods_model = QtGui.QStandardItemModel(self.methods_list)
+        for method in self.methods:
+            item = QtGui.QStandardItem(method)
+            item.setData(method)
+            item.setCheckable(True)
+            item.setDragEnabled(True)
+            item.setDropEnabled(False)
+            item.setCheckState(2)
+
+            self.methods_model.appendRow(item)
+
+        self.methods_model.itemChanged.connect(self.method_item_changed)
+        self.methods_list.setModel(self.methods_model)
+        self.methods_list.setFixedHeight(
+            self.methods_list.sizeHintForRow(0)
+            * (self.methods_model.rowCount() + 1))
+
+    def method_item_changed(self):
+        print(self.methods_model.rowCount())
+        i = 0
+        new_methods = []
+        while self.methods_model.item(i):
+            if self.methods_model.item(i).checkState():
+                new_methods.append(self.methods_model.item(i).data())
+            i += 1
+        self.methods = new_methods
+
+    def create_adaptive_constant_slider(self):
+        self.adaptive_constant_label = QLabel(self.central_widget)
+        self.adaptive_constant_label.setText(
+            'Adaptive threshold constant: '
+            + str(self.options['adaptive threshold C']))
+
+        self.adaptive_constant_slider = QSlider(Qt.Horizontal,
+                                                self.central_widget)
+        self.adaptive_constant_slider.setRange(-20, 20)
+        self.adaptive_constant_slider.setValue(self.options['adaptive threshold C'])
+        self.adaptive_constant_slider.valueChanged[int].connect(self.adaptive_constant_slider_changed)
+
+    def adaptive_constant_slider_changed(self, val):
+        self.options['adaptive threshold C'] = val
+        self.adaptive_constant_label.setText('Adaptive threshold constant: '
+                                             + str(self.options['adaptive threshold C']))
+
+    def create_adaptive_block_size_slider(self):
+        self.adaptive_block_size_label = QLabel(self.central_widget)
+        self.adaptive_block_size_label.setText(
+            'Adaptive Threshold kernel size: '
+            + str(self.options['adaptive threshold block size']))
+
+        self.adaptive_block_size_slider = QSlider(Qt.Horizontal,
+                                                  self.central_widget)
+        self.adaptive_block_size_slider.setRange(1, 20)
+        self.adaptive_block_size_slider.setValue((self.options['adaptive threshold block size']))
+        self.adaptive_block_size_slider.valueChanged[int].connect(self.adaptive_block_size_slider_changed)
+
+    def adaptive_block_size_slider_changed(self, val):
+        self.options['adaptive threshold block size'] = val*2+1
+        self.adaptive_block_size_label.setText(
+            'Adaptive Threshold kernel size: '
+            + str(val*2+1))
+
+
 
     def create_blur_kernel_slider(self):
         self.blur_kernel_label = QLabel(self.central_widget)
@@ -70,7 +171,8 @@ class MainWindow(QMainWindow):
         self.blur_kernel_slider = QSlider(Qt.Horizontal, self.central_widget)
         self.blur_kernel_slider.setRange(0, 5)
         self.blur_kernel_slider.setValue((self.options['blur kernel'][0]-1)/2)
-        self.blur_kernel_slider.valueChanged[int].connect(self.blur_kernel_slider_changed)
+        self.blur_kernel_slider.valueChanged[int].\
+            connect(self.blur_kernel_slider_changed)
 
     def blur_kernel_slider_changed(self, val):
         self.options['blur kernel'] = (val*2+1, val*2+1)
@@ -84,8 +186,10 @@ class MainWindow(QMainWindow):
         self.grayscale_threshold_slider = QSlider(Qt.Horizontal,
                                                   self.central_widget)
         self.grayscale_threshold_slider.setRange(0, 255)
-        self.grayscale_threshold_slider.setValue(self.options['grayscale threshold'])
-        self.grayscale_threshold_slider.valueChanged[int].connect(self.grayscale_threshold_slider_changed)
+        self.grayscale_threshold_slider.\
+            setValue(self.options['grayscale threshold'])
+        self.grayscale_threshold_slider.valueChanged[int].\
+            connect(self.grayscale_threshold_slider_changed)
 
 
 
@@ -140,7 +244,8 @@ class MainWindow(QMainWindow):
                                      self.methods)
         circles = self.pt.find_circles(self.new_frame)
         circles = np.array(circles).squeeze()
-        annotated_frame = self.pt.annotate_frame_with_circles(self.cropped_frame, circles)
+        annotated_frame = \
+            self.pt.annotate_frame_with_circles(self.cropped_frame, circles)
         cv2.imwrite('frame.png', self.cropped_frame)
         self.update_main_image()
 
@@ -148,6 +253,28 @@ class MainWindow(QMainWindow):
         self.layout.addWidget(self.main_image, 0, 0, 2, 2)
         self.layout.addLayout(self.main_button_layout, 0, 3, 1, 1)
         self.layout.addLayout(self.process_options_layout, 1, 3, 1, 1)
+        self.layout.addLayout(self.track_options_layout, 2, 3, 1, 1)
+
+    def create_track_options(self):
+        self.track_options_layout = QVBoxLayout(self.central_widget)
+        self.create_min_dist_slider()
+        self.track_options_layout.addWidget(self.min_dist_label)
+        self.track_options_layout.addWidget(self.min_dist_slider)
+        self.track_options_layout.addStretch()
+
+    def create_min_dist_slider(self):
+        self.min_dist_label = QLabel(self.central_widget)
+        self.min_dist_label.setText('Minimum distance: '
+                                    + str(self.options['min_dist']))
+        self.min_dist_slider = QSlider(Qt.Horizontal, self.central_widget)
+        self.min_dist_slider.setRange(1, 50)
+        self.min_dist_slider.setValue(self.options['min_dist'])
+        self.min_dist_slider.valueChanged[int].\
+            connect(self.min_dist_slider_changed)
+
+    def min_dist_slider_changed(self, val):
+        self.options['min_dist'] = val
+        self.min_dist_label.setText('Minimum distance: ' + str(val))
 
     def create_process_button(self):
         self.process_button = QPushButton("Process Image", self.central_widget)
@@ -155,7 +282,8 @@ class MainWindow(QMainWindow):
 
     def process_button_clicked(self):
         self.pp.update_options(self.options, self.methods)
-        self.new_frame, self.cropped_frame, _ = self.pp.process_image(self.frame)
+        self.new_frame, self.cropped_frame, _ = \
+            self.pp.process_image(self.frame)
         cv2.imwrite('frame.png', self.new_frame)
         self.update_main_image()
 
