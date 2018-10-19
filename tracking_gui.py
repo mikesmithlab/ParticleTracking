@@ -70,13 +70,10 @@ class MainWindow(QMainWindow):
     def create_main_image(self):
         self.main_image = QLabel()
         pixmap = QtGui.QPixmap('frame.png')
-        #self.main_image.setFixedHeight(int(pixmap.height()/2))
-        #self.main_image.setFixedWidth(int(pixmap.width()/2))
         self.main_image.setFixedHeight(600)
         self.main_image.setFixedWidth(600)
         pixmap = pixmap.scaled(self.main_image.size(), Qt.KeepAspectRatio)
         self.main_image.setPixmap(pixmap)
-
 
     """Main buttons and their callback functions"""
 
