@@ -430,11 +430,10 @@ class MainWindow(QMainWindow):
         new_pt.track()
 
     def reload_configs(self, config):
+        self.options = self.config_dataframe.get_options(config)
         if config == 'Glass_Bead':
-            self.options = con.GLASS_BEAD_OPTIONS_DICT
             self.methods = con.GLASS_BEAD_PROCESS_LIST
         elif config == 'Red_Bead':
-            self.options = con.RED_BEAD_OPTIONS_DICT
             self.methods = con.RED_BEAD_PROCESS_LIST
         self.update_all_sliders()
         self.update_method_list()

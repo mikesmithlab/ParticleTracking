@@ -60,8 +60,12 @@ class config_dataframe:
     def save_dataframe(self):
         self.dataframe.to_csv('configs.csv')
 
+    def print_head(self):
+        print(self.dataframe.head())
+
 if __name__=="__main__":
     cd = config_dataframe()
     options = cd.get_options('Red_Bead')
     print(options)
-    print(options['p_1'])
+    #methods = cd.get_methods('Red_Bead')
+    #print(methods)
