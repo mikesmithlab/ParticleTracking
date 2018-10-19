@@ -78,9 +78,10 @@ class ParticleTracker:
         va.add_tracking_circles()
 
     def annotate_frame_with_circles(self, frame, circles):
-        for x, y, size in circles:
-            cv2.circle(frame, (int(x), int(y)),
-                       int(size), (0, 255, 255), 2)
+        if len(circles) > 0:
+            for x, y, size in circles:
+                cv2.circle(frame, (int(x), int(y)),
+                           int(size), (0, 255, 255), 2)
         return frame
 
     def _save_cropped_video(self, frame):
