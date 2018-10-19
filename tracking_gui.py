@@ -48,6 +48,79 @@ class MainWindow(QMainWindow):
 
         self.add_widgets_to_layout()
 
+    def setup_file_menu(self):
+        exit_action = QAction(QtGui.QIcon('exit.png'), '&Exit', self)
+        exit_action.setShortcut('Ctrl+Q')
+        exit_action.setStatusTip('Exit application')
+        exit_action.triggered.connect(qApp.quit)
+
+        loadvid_action = QAction(QtGui.QIcon('load.png'), '&Load', self)
+        loadvid_action.setShortcut('Ctrl+l')
+        loadvid_action.setStatusTip('Load Video')
+        loadvid_action.triggered.connect(self.load_vid)
+
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu('&File')
+        file_menu.addAction(exit_action)
+        file_menu.addAction(loadvid_action)
+
+    def create_main_image(self):
+        self.main_image = QLabel()
+        pixmap = QtGui.QPixmap('frame.png')
+        self.main_image.setFixedHeight(int(pixmap.height()/2))
+        self.main_image.setFixedWidth(int(pixmap.width()/2))
+        pixmap = pixmap.scaled(self.main_image.size(), Qt.KeepAspectRatio)
+        self.main_image.setPixmap(pixmap)
+
+    """Main buttons and their callback functions"""
+
+    def create_main_buttons(self):
+        self.main_button_layout = QVBoxLayout()
+        self.create_process_button()
+        self.create_detect_button()
+        self.create_save_config_button()
+        self.main_button_layout.addWidget(self.process_button)
+        self.main_button_layout.addWidget(self.detect_button)
+        self.main_button_layout.addWidget(self.save_config_button)
+
+    def create_process_button(self):
+        self.process_button = QPushButton("Process Image")
+        self.process_button.clicked.connect(self.process_button_clicked)
+
+    def process_button_clicked(self):
+        self.check_method_list()
+        self.pp.update_options(self.options, self.methods)
+        self.new_frame, self.cropped_frame, _ = \
+            self.pp.process_image(self.frame)
+        cv2.imwrite('frame.png', self.new_frame)
+        self.update_main_image()
+
+    def create_detect_button(self):
+        self.detect_button = QPushButton("Detect Circles")
+        self.detect_button.clicked.connect(self.detect_button_clicked)
+
+    def detect_button_clicked(self):
+        self.check_method_list()
+        self.pt = pt.ParticleTracker(self.video, None, self.pp, self.options,
+                                     self.methods)
+        circles = self.pt.find_circles(self.new_frame)
+        circles = np.array(circles).squeeze()
+        annotated_frame = \
+            self.pt.annotate_frame_with_circles(self.cropped_frame, circles)
+        cv2.imwrite('frame.png', annotated_frame)
+        self.update_main_image()
+
+    def create_save_config_button(self):
+        self.save_config_button = QPushButton("Save config to clipboard")
+        self.save_config_button.clicked.connect(self.save_config_button_clicked)
+
+    def save_config_button_clicked(self):
+        self.check_method_list()
+        pyperclip.copy(str(self.options))
+
+
+    """Process options and their callbacks"""
+
     def create_process_options(self):
         self.process_options_layout = QVBoxLayout()
         self.create_tray_choice_combo()
@@ -72,18 +145,88 @@ class MainWindow(QMainWindow):
         self.create_methods_list()
         self.process_options_layout.addWidget(self.methods_list)
 
-        self.create_save_config_button()
-        self.process_options_layout.addWidget(self.save_config_button)
-
         self.process_options_layout.addStretch()
 
-    def create_save_config_button(self):
-        self.save_config_button = QPushButton("Save config to clipboard")
-        self.save_config_button.clicked.connect(self.save_config_button_clicked)
+    def create_tray_choice_combo(self):
+        self.tray_choice_combo = QComboBox()
+        tray_choices = 'Circular', 'Hexagonal', 'Square'
+        self.tray_choice_combo.addItems(tray_choices)
+        self.tray_choice_combo.activated.connect(self.tray_choice_changed)
 
-    def save_config_button_clicked(self):
-        self.check_method_list()
-        pyperclip.copy(str(self.options))
+    def tray_choice_changed(self):
+        text = self.tray_choice_combo.currentText()
+        tray = {'Circular': 1, 'Hexagonal': 6, 'Square': 4}
+        self.options['number of tray sides'] = tray[text]
+
+    def create_grayscale_threshold_slider(self):
+        self.grayscale_label = QLabel()
+        self.grayscale_label.setText('Grayscale Threshold: ' +
+                                     str(self.options['grayscale threshold']))
+        self.grayscale_threshold_slider = QSlider(Qt.Horizontal)
+        self.grayscale_threshold_slider.setRange(0, 255)
+        self.grayscale_threshold_slider.\
+            setValue(self.options['grayscale threshold'])
+        self.grayscale_threshold_slider.valueChanged.\
+            connect(self.grayscale_threshold_slider_changed)
+
+    def grayscale_threshold_slider_changed(self):
+        val = self.grayscale_threshold_slider.value()
+        self.options['grayscale threshold'] = val
+        self.grayscale_label.setText('Grayscale Threshold: ' + str(val))
+
+    def create_blur_kernel_slider(self):
+        self.blur_kernel_label = QLabel()
+        self.blur_kernel_label.setText('Blur kernel size: ' +
+                                       str(self.options['blur kernel'][0]))
+        self.blur_kernel_slider = QSlider(Qt.Horizontal)
+        self.blur_kernel_slider.setRange(0, 5)
+        self.blur_kernel_slider.setValue((self.options['blur kernel'][0]-1)/2)
+        self.blur_kernel_slider.valueChanged.\
+            connect(self.blur_kernel_slider_changed)
+
+    def blur_kernel_slider_changed(self):
+        val = self.blur_kernel_slider.value()
+        self.options['blur kernel'] = (val*2+1, val*2+1)
+        self.blur_kernel_label.setText('Blur kernel size: ' + str(val*2+1))
+
+    def create_adaptive_block_size_slider(self):
+        self.adaptive_block_size_label = QLabel()
+        self.adaptive_block_size_label.setText(
+            'Adaptive Threshold kernel size: '
+            + str(self.options['adaptive threshold block size']))
+
+        self.adaptive_block_size_slider = QSlider(Qt.Horizontal)
+        self.adaptive_block_size_slider.setRange(1, 20)
+        self.adaptive_block_size_slider.setValue(
+            self.options['adaptive threshold block size'])
+        self.adaptive_block_size_slider.valueChanged.\
+            connect(self.adaptive_block_size_slider_changed)
+
+    def adaptive_block_size_slider_changed(self):
+        val = self.adaptive_block_size_slider.value()
+        self.options['adaptive threshold block size'] = val*2+1
+        self.adaptive_block_size_label.setText(
+            'Adaptive Threshold kernel size: '
+            + str(val*2+1))
+
+    def create_adaptive_constant_slider(self):
+        self.adaptive_constant_label = QLabel()
+        self.adaptive_constant_label.setText(
+            'Adaptive threshold constant: '
+            + str(self.options['adaptive threshold C']))
+        self.adaptive_constant_slider = QSlider(Qt.Horizontal)
+        self.adaptive_constant_slider.setRange(-20, 20)
+        self.adaptive_constant_slider.\
+            setValue(self.options['adaptive threshold C'])
+        self.adaptive_constant_slider.\
+            valueChanged.connect(self.adaptive_constant_slider_changed)
+
+    def adaptive_constant_slider_changed(self):
+        val = self.adaptive_constant_slider.value()
+        self.options['adaptive threshold C'] = val
+        self.adaptive_constant_label.setText(
+            'Adaptive threshold constant: '
+            + str(self.options['adaptive threshold C']))
 
     def create_methods_list(self):
         self.methods_list = QListView()
@@ -118,178 +261,32 @@ class MainWindow(QMainWindow):
                 new_methods.append(it.text())
         self.methods = new_methods
 
-    def create_adaptive_constant_slider(self):
-        self.adaptive_constant_label = QLabel()
-        self.adaptive_constant_label.setText(
-            'Adaptive threshold constant: '
-            + str(self.options['adaptive threshold C']))
-        self.adaptive_constant_slider = QSlider(Qt.Horizontal)
-        self.adaptive_constant_slider.setRange(-20, 20)
-        self.adaptive_constant_slider.\
-            setValue(self.options['adaptive threshold C'])
-        self.adaptive_constant_slider.\
-            valueChanged.connect(self.adaptive_constant_slider_changed)
-
-    def adaptive_constant_slider_changed(self):
-        val = self.adaptive_constant_slider.value()
-        self.options['adaptive threshold C'] = val
-        self.adaptive_constant_label.setText(
-            'Adaptive threshold constant: '
-            + str(self.options['adaptive threshold C']))
-
-    def create_adaptive_block_size_slider(self):
-        self.adaptive_block_size_label = QLabel()
-        self.adaptive_block_size_label.setText(
-            'Adaptive Threshold kernel size: '
-            + str(self.options['adaptive threshold block size']))
-
-        self.adaptive_block_size_slider = QSlider(Qt.Horizontal)
-        self.adaptive_block_size_slider.setRange(1, 20)
-        self.adaptive_block_size_slider.setValue(
-            self.options['adaptive threshold block size'])
-        self.adaptive_block_size_slider.valueChanged.\
-            connect(self.adaptive_block_size_slider_changed)
-
-    def adaptive_block_size_slider_changed(self):
-        val = self.adaptive_block_size_slider.value()
-        self.options['adaptive threshold block size'] = val*2+1
-        self.adaptive_block_size_label.setText(
-            'Adaptive Threshold kernel size: '
-            + str(val*2+1))
-
-    def create_blur_kernel_slider(self):
-        self.blur_kernel_label = QLabel()
-        self.blur_kernel_label.setText('Blur kernel size: ' +
-                                       str(self.options['blur kernel'][0]))
-        self.blur_kernel_slider = QSlider(Qt.Horizontal)
-        self.blur_kernel_slider.setRange(0, 5)
-        self.blur_kernel_slider.setValue((self.options['blur kernel'][0]-1)/2)
-        self.blur_kernel_slider.valueChanged.\
-            connect(self.blur_kernel_slider_changed)
-
-    def blur_kernel_slider_changed(self):
-        val = self.blur_kernel_slider.value()
-        self.options['blur kernel'] = (val*2+1, val*2+1)
-        self.blur_kernel_label.setText('Blur kernel size: ' + str(val*2+1))
-
-    def create_grayscale_threshold_slider(self):
-        self.grayscale_label = QLabel()
-        self.grayscale_label.setText('Grayscale Threshold: ' +
-                                     str(self.options['grayscale threshold']))
-        self.grayscale_threshold_slider = QSlider(Qt.Horizontal)
-        self.grayscale_threshold_slider.setRange(0, 255)
-        self.grayscale_threshold_slider.\
-            setValue(self.options['grayscale threshold'])
-        self.grayscale_threshold_slider.valueChanged.\
-            connect(self.grayscale_threshold_slider_changed)
-
-    def grayscale_threshold_slider_changed(self):
-        val = self.grayscale_threshold_slider.value()
-        self.options['grayscale threshold'] = val
-        self.grayscale_label.setText('Grayscale Threshold: ' + str(val))
-
-    def create_tray_choice_combo(self):
-        self.tray_choice_combo = QComboBox()
-        tray_choices = 'Circular', 'Hexagonal', 'Square'
-        self.tray_choice_combo.addItems(tray_choices)
-        self.tray_choice_combo.activated.connect(self.tray_choice_changed)
-
-    def tray_choice_changed(self):
-        text = self.tray_choice_combo.currentText()
-        tray = {'Circular': 1, 'Hexagonal': 6, 'Square': 4}
-        self.options['number of tray sides'] = tray[text]
-
-    def create_main_buttons(self):
-        self.main_button_layout = QVBoxLayout()
-        self.create_process_button()
-        self.create_detect_button()
-        self.main_button_layout.addWidget(self.process_button)
-        self.main_button_layout.addWidget(self.detect_button)
-
-    def setup_file_menu(self):
-        exit_action = QAction(QtGui.QIcon('exit.png'), '&Exit', self)
-        exit_action.setShortcut('Ctrl+Q')
-        exit_action.setStatusTip('Exit application')
-        exit_action.triggered.connect(qApp.quit)
-
-        loadvid_action = QAction(QtGui.QIcon('load.png'), '&Load', self)
-        loadvid_action.setShortcut('Ctrl+l')
-        loadvid_action.setStatusTip('Load Video')
-        loadvid_action.triggered.connect(self.load_vid)
-
-        menubar = self.menuBar()
-        file_menu = menubar.addMenu('&File')
-        file_menu.addAction(exit_action)
-        file_menu.addAction(loadvid_action)
-
-    def load_vid(self):
-        pass
-
-    def create_detect_button(self):
-        self.detect_button = QPushButton("Detect Circles")
-        self.detect_button.clicked.connect(self.detect_button_clicked)
-
-    def detect_button_clicked(self):
-        self.check_method_list()
-        self.pt = pt.ParticleTracker(self.video, None, self.pp, self.options,
-                                     self.methods)
-        circles = self.pt.find_circles(self.new_frame)
-        circles = np.array(circles).squeeze()
-        annotated_frame = \
-            self.pt.annotate_frame_with_circles(self.cropped_frame, circles)
-        cv2.imwrite('frame.png', annotated_frame)
-        self.update_main_image()
-
-    def add_widgets_to_layout(self):
-        self.layout.addWidget(self.main_image, 0, 0, 2, 2)
-        self.layout.addLayout(self.main_button_layout, 0, 3, 1, 1)
-        self.layout.addLayout(self.process_options_layout, 1, 3, 1, 1)
-        self.layout.addLayout(self.track_options_layout, 2, 3, 1, 1)
+    """Track options and their callbacks"""
 
     def create_track_options(self):
         self.track_options_layout = QVBoxLayout()
+
         self.create_min_dist_slider()
         self.track_options_layout.addWidget(self.min_dist_label)
         self.track_options_layout.addWidget(self.min_dist_slider)
+
         self.create_min_rad_slider()
         self.track_options_layout.addWidget(self.min_rad_label)
         self.track_options_layout.addWidget(self.min_rad_slider)
+
         self.create_max_rad_slider()
         self.track_options_layout.addWidget(self.max_rad_label)
         self.track_options_layout.addWidget(self.max_rad_slider)
+
         self.create_p1_slider()
         self.track_options_layout.addWidget(self.p1_label)
         self.track_options_layout.addWidget(self.p1_slider)
+
         self.create_p2_slider()
         self.track_options_layout.addWidget(self.p2_label)
         self.track_options_layout.addWidget(self.p2_slider)
+
         self.track_options_layout.addStretch()
-
-    def create_p2_slider(self):
-        self.p2_label = QLabel()
-        self.p2_label.setText('p2: ' + str(self.options['p_2']))
-        self.p2_slider = QSlider(Qt.Horizontal)
-        self.p2_slider.setRange(0, 255)
-        self.p2_slider.setValue(self.options['p_2'])
-        self.p2_slider.valueChanged.connect(self.p2_slider_changed)
-
-    def p2_slider_changed(self):
-        val = self.p2_slider.value()
-        self.options['p_2'] = val
-        self.p2_label.setText('p2: ' + str(val))
-
-    def create_p1_slider(self):
-        self.p1_label = QLabel()
-        self.p1_label.setText('p1: ' + str(self.options['p_1']))
-        self.p1_slider = QSlider(Qt.Horizontal)
-        self.p1_slider.setRange(0, 255)
-        self.p1_slider.setValue(self.options['p_1'])
-        self.p1_slider.valueChanged.connect(self.p1_slider_changed)
-
-    def p1_slider_changed(self):
-        val = self.p1_slider.value()
-        self.options['p_1'] = val
-        self.p1_label.setText('p1: ' + str(val))
 
     def create_min_dist_slider(self):
         self.min_dist_label = QLabel()
@@ -336,28 +333,45 @@ class MainWindow(QMainWindow):
         self.options['max_rad'] = val
         self.max_rad_label.setText('Maximum radius: ' + str(val))
 
-    def create_process_button(self):
-        self.process_button = QPushButton("Process Image")
-        self.process_button.clicked.connect(self.process_button_clicked)
+    def create_p1_slider(self):
+        self.p1_label = QLabel()
+        self.p1_label.setText('p1: ' + str(self.options['p_1']))
+        self.p1_slider = QSlider(Qt.Horizontal)
+        self.p1_slider.setRange(0, 255)
+        self.p1_slider.setValue(self.options['p_1'])
+        self.p1_slider.valueChanged.connect(self.p1_slider_changed)
 
-    def process_button_clicked(self):
-        self.check_method_list()
-        self.pp.update_options(self.options, self.methods)
-        self.new_frame, self.cropped_frame, _ = \
-            self.pp.process_image(self.frame)
-        cv2.imwrite('frame.png', self.new_frame)
-        self.update_main_image()
+    def p1_slider_changed(self):
+        val = self.p1_slider.value()
+        self.options['p_1'] = val
+        self.p1_label.setText('p1: ' + str(val))
+
+    def create_p2_slider(self):
+        self.p2_label = QLabel()
+        self.p2_label.setText('p2: ' + str(self.options['p_2']))
+        self.p2_slider = QSlider(Qt.Horizontal)
+        self.p2_slider.setRange(0, 255)
+        self.p2_slider.setValue(self.options['p_2'])
+        self.p2_slider.valueChanged.connect(self.p2_slider_changed)
+
+    def p2_slider_changed(self):
+        val = self.p2_slider.value()
+        self.options['p_2'] = val
+        self.p2_label.setText('p2: ' + str(val))
+
+    """Other methods"""
+
+    def load_vid(self):
+        pass
+
+    def add_widgets_to_layout(self):
+        self.layout.addWidget(self.main_image, 0, 0, 2, 2)
+        self.layout.addLayout(self.main_button_layout, 0, 3, 1, 1)
+        self.layout.addLayout(self.process_options_layout, 1, 3, 1, 1)
+        self.layout.addLayout(self.track_options_layout, 2, 3, 1, 1)
 
     def update_main_image(self):
         pixmap = QtGui.QPixmap('frame.png')
-        pixmap = pixmap.scaled(self.main_image.size(), Qt.KeepAspectRatio)
-        self.main_image.setPixmap(pixmap)
-
-    def create_main_image(self):
-        self.main_image = QLabel()
-        pixmap = QtGui.QPixmap('frame.png')
-        self.main_image.setFixedHeight(int(pixmap.height()/2))
-        self.main_image.setFixedWidth(int(pixmap.width()/2))
         pixmap = pixmap.scaled(self.main_image.size(), Qt.KeepAspectRatio)
         self.main_image.setPixmap(pixmap)
 
