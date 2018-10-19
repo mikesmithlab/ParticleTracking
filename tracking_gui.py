@@ -15,7 +15,7 @@ import configuration as con
 import particle_tracking as pt
 import numpy as np
 import pyperclip
-
+import dataframes as df
 
 class MainWindow(QMainWindow):
 
@@ -28,7 +28,8 @@ class MainWindow(QMainWindow):
         self.frame = self.video.read_next_frame()
         cv2.imwrite('frame.png', self.frame)
         self.methods = con.GLASS_BEAD_PROCESS_LIST
-        self.options = con.GLASS_BEAD_OPTIONS_DICT
+        self.config_dataframe = con.config_dataframe()
+        self.options = self.config_dataframe.get_options('Glass_Bead')
         self.pp = pp.ImagePreprocessor(self.video, self.methods, self.options)
         self.init_ui()
 
@@ -46,6 +47,7 @@ class MainWindow(QMainWindow):
         self.setup_file_menu()
         self.create_main_image()
         self.create_main_buttons()
+        self.create_config_controls()
         self.create_process_options()
         self.create_track_options()
 
@@ -82,9 +84,11 @@ class MainWindow(QMainWindow):
         self.create_process_button()
         self.create_detect_button()
         self.create_save_config_button()
+        self.create_track_button()
         self.main_button_layout.addWidget(self.process_button)
         self.main_button_layout.addWidget(self.detect_button)
         self.main_button_layout.addWidget(self.save_config_button)
+        self.main_button_layout.addWidget(self.track_button)
 
     def create_process_button(self):
         self.process_button = QPushButton("Process Image")
@@ -120,6 +124,29 @@ class MainWindow(QMainWindow):
     def save_config_button_clicked(self):
         self.check_method_list()
         pyperclip.copy(str(self.options))
+        text = self.config_choice_combo.currentText()
+        self.config_dataframe.replace_row(self.options, text)
+
+    def create_track_button(self):
+        self.track_button = QPushButton("Start Track")
+        self.track_button.clicked.connect(self.track_button_clicked)
+
+    def track_button_clicked(self):
+        self.begin_track()
+
+    def create_config_controls(self):
+        self.config_controls_layout = QHBoxLayout()
+        self.create_config_choice_combo()
+        self.config_controls_layout.addWidget(self.config_choice_combo)
+
+    def create_config_choice_combo(self):
+        self.config_choice_combo = QComboBox()
+        config_choices = con.PARTICLE_LIST
+        self.config_choice_combo.addItems(config_choices)
+        self.config_choice_combo.activated.connect(self.config_choice_combo_changed)
+
+    def config_choice_combo_changed(self):
+        self.reload_configs(self.config_choice_combo.currentText())
 
     """Process options and their callbacks"""
 
@@ -179,16 +206,16 @@ class MainWindow(QMainWindow):
     def create_blur_kernel_slider(self):
         self.blur_kernel_label = QLabel()
         self.blur_kernel_label.setText('Blur kernel size: ' +
-                                       str(self.options['blur kernel'][0]))
+                                       str(self.options['blur kernel']))
         self.blur_kernel_slider = QSlider(Qt.Horizontal)
         self.blur_kernel_slider.setRange(0, 5)
-        self.blur_kernel_slider.setValue((self.options['blur kernel'][0]-1)/2)
+        self.blur_kernel_slider.setValue((self.options['blur kernel']-1)/2)
         self.blur_kernel_slider.valueChanged.\
             connect(self.blur_kernel_slider_changed)
 
     def blur_kernel_slider_changed(self):
         val = self.blur_kernel_slider.value()
-        self.options['blur kernel'] = (val*2+1, val*2+1)
+        self.options['blur kernel'] = val*2+1
         self.blur_kernel_label.setText('Blur kernel size: ' + str(val*2+1))
 
     def create_adaptive_block_size_slider(self):
@@ -370,15 +397,16 @@ class MainWindow(QMainWindow):
         self.update_main_image()
 
     def load_vid(self):
-        filename = QFileDialog.getOpenFileName(self, 'Open video', '/home')
-        print(filename)
-        self.video = vid.ReadVideo(filename[0])
+        self.filename = QFileDialog.getOpenFileName(self, 'Open video', '/home')
+        self.video = vid.ReadVideo(self.filename[0])
+        self.name = os.path.split(self.filename[0])[0]
 
     def add_widgets_to_layout(self):
-        self.layout.addWidget(self.main_image, 0, 0, 2, 2)
+        self.layout.addWidget(self.main_image, 0, 0, 4, 2)
         self.layout.addLayout(self.main_button_layout, 0, 3, 1, 1)
-        self.layout.addLayout(self.process_options_layout, 1, 3, 1, 1)
-        self.layout.addLayout(self.track_options_layout, 2, 3, 1, 1)
+        self.layout.addLayout(self.config_controls_layout, 1, 3, 1, 1)
+        self.layout.addLayout(self.process_options_layout, 2, 3, 1, 1)
+        self.layout.addLayout(self.track_options_layout, 3, 3, 1, 1)
 
     def update_main_image(self):
         pixmap = QtGui.QPixmap('frame.png')
@@ -390,6 +418,72 @@ class MainWindow(QMainWindow):
         size = self.geometry()
         self.move(int((screen.width()-size.width())/2),
                   int((screen.height()-size.height())/2))
+
+    def begin_track(self):
+        # reload video
+        self.video = vid.ReadVideo(self.filename[0])
+        # create dataframe
+        dataframe = df.TrackingDataframe(self.name+'.hdf5')
+        new_pp = pp.ImagePreprocessor(self.video, self.methods, self.options)
+        new_pt = pt.ParticleTracker(self.video, dataframe, new_pp, self.options, self.methods, self.name+'_crop.avi', self.name+'_test.avi')
+        qApp.quit()
+        new_pt.track()
+
+    def reload_configs(self, config):
+        if config == 'Glass_Bead':
+            self.options = con.GLASS_BEAD_OPTIONS_DICT
+            self.methods = con.GLASS_BEAD_PROCESS_LIST
+        elif config == 'Red_Bead':
+            self.options = con.RED_BEAD_OPTIONS_DICT
+            self.methods = con.RED_BEAD_PROCESS_LIST
+        self.update_all_sliders()
+        self.update_method_list()
+
+    def update_all_sliders(self):
+        self.grayscale_threshold_slider.\
+            setValue(self.options['grayscale threshold'])
+        self.grayscale_label.setText('Grayscale Threshold: ' +
+                                     str(self.options['grayscale threshold']))
+        self.blur_kernel_label.setText('Blur kernel size: ' +
+                                       str(self.options['blur kernel']))
+        self.blur_kernel_slider.setValue(
+            (self.options['blur kernel'] - 1) / 2)
+        self.adaptive_block_size_label.setText(
+            'Adaptive Threshold kernel size: '
+            + str(self.options['adaptive threshold block size']))
+        self.adaptive_block_size_slider.setValue(
+            self.options['adaptive threshold block size'])
+        self.adaptive_constant_label.setText(
+            'Adaptive threshold constant: '
+            + str(self.options['adaptive threshold C']))
+        self.adaptive_constant_slider. \
+            setValue(self.options['adaptive threshold C'])
+        self.min_dist_label.setText('Minimum distance: '
+                                    + str(self.options['min_dist']))
+        self.min_dist_slider.setValue(self.options['min_dist'])
+        self.min_rad_label.setText('Minimum radius: '
+                                   + str(self.options['min_rad']))
+        self.min_rad_slider.setValue(self.options['min_rad'])
+        self.max_rad_label.setText('Maximum radius: '
+                                   + str(self.options['max_rad']))
+        self.max_rad_slider.setValue(self.options['max_rad'])
+        self.p1_label.setText('p1: ' + str(self.options['p_1']))
+        self.p1_slider.setValue(self.options['p_1'])
+        self.p2_label.setText('p2: ' + str(self.options['p_2']))
+        self.p2_slider.setValue(self.options['p_2'])
+
+    def update_method_list(self):
+        self.methods_model = QtGui.QStandardItemModel(self.methods_list)
+        for method in self.methods:
+            item = QtGui.QStandardItem(method)
+            item.setData(method)
+            item.setCheckable(True)
+            item.setDragEnabled(True)
+            item.setDropEnabled(False)
+            item.setCheckState(Qt.Checked)
+
+            self.methods_model.appendRow(item)
+        self.methods_list.setModel(self.methods_model)
 
 
 if __name__ == '__main__':

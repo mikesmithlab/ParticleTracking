@@ -207,7 +207,10 @@ class ImagePreprocessor:
             A numpy array of an image of type uint8
         """
 
-        new_frame = cv2.GaussianBlur(frame, self.options['blur kernel'], 0)
+        new_frame = cv2.GaussianBlur(
+            frame,
+            (self.options['blur kernel'], self.options['blur kernel']),
+            0)
         return new_frame
 
 
@@ -317,9 +320,10 @@ if __name__ == "__main__":
     vid = video.ReadVideo(
         "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
     process_config = config.GLASS_BEAD_PROCESS_LIST
-    options_dict = config.GLASS_BEAD_OPTIONS_DICT
+    config_df = config.config_dataframe()
+    options = config_df.get_options('Glass_Bead')
     IP = ImagePreprocessor(vid, process_config,
-                           options_dict)
+                           options)
     for f in range(2):
         frame = vid.read_next_frame()
         new_frame, crop_frame, boundary = IP.process_image(frame)

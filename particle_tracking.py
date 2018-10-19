@@ -143,15 +143,17 @@ class ParticleTracker:
 if __name__ == "__main__":
     in_vid = video.ReadVideo(
         "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
-    options_dict = config.GLASS_BEAD_OPTIONS_DICT
     process_config = config.GLASS_BEAD_PROCESS_LIST
     out_vid = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_annotated.avi"
     crop_vid_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_crop.avi"
     dataframe_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5"
     dataframe = dataframes.TrackingDataframe(dataframe_name)
+    config_df = config.config_dataframe()
+    options = config_df.get_options('Glass_Bead')
     preprocess = preprocessing.ImagePreprocessor(in_vid,
                                                 process_config,
-                                                options_dict)
-    PT = ParticleTracker(in_vid, dataframe, preprocess, options_dict,
+                                                options)
+
+    PT = ParticleTracker(in_vid, dataframe, preprocess, options,
                          process_config, crop_vid_name,  out_vid)
     PT.track()
