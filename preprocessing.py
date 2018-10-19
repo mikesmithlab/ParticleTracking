@@ -39,7 +39,7 @@ class ImagePreprocessor:
 
         Parameters
         ----------
-        input_frame: numpy array
+        frame: numpy array
             uint8 numpy array containing an image
 
         Returns
@@ -234,6 +234,10 @@ class CropShape:
         self.refPt = []
         self.image = input_image
         self.no_of_sides = no_of_sides
+        self.scale = 1280/np.shape(self.image)[1]
+        self.original_image = self.image.copy()
+        self.image = cv2.resize(self.image, None, fx=self.scale, fy=self.scale,
+                                interpolation=cv2.INTER_CUBIC)
 
     def _click_and_crop(self, event, x, y, flags, param):
         """Internal method to manage the user cropping"""
@@ -289,23 +293,19 @@ class CropShape:
             cx = (self.refPt[1][0] - self.refPt[0][0]) / 2 + self.refPt[0][0]
             cy = (self.refPt[1][1] - self.refPt[0][1]) / 2 + self.refPt[0][1]
             rad = int((self.refPt[1][0] - self.refPt[0][0]) / 2)
-            roi = clone[int(cy - rad):int(cy + rad),
-                        self.refPt[0][0]:self.refPt[1][0]]
-            mask_img = np.zeros((np.shape(clone))).astype(np.uint8)
-            cv2.circle(mask_img, (int(cx), int(cy)), rad, [1, 1, 1],
-                       thickness=-1)
+            cx = int(cx/self.scale)
+            cy = int(cy/self.scale)
+            rad = int(rad/self.scale)
+            mask_img = np.zeros((np.shape(self.original_image))).astype(np.uint8)
+            cv2.circle(mask_img, (cx, cy), rad, [1, 1, 1], thickness=-1)
             crop = ([int(cy - rad), int(cy + rad)],
-                    [self.refPt[0][0], self.refPt[1][0]])
+                    [int(self.refPt[0][0]/self.scale), int(self.refPt[1][0]/self.scale)])
             boundary = np.array((cx, cy, rad), dtype=np.int32)
             return mask_img[:, :, 0], np.array(crop, dtype=np.int32), boundary
 
         else:
-            roi = clone.copy()
-            for n in np.arange(-1, len(points) - 1):
-                roi = cv2.line(roi, (int(points[n, 0]), int(points[n, 1])),
-                               (int(points[n + 1, 0]), int(points[n + 1, 1])),
-                               [0, 255, 0], 2)
-            mask_img = np.zeros(np.shape(clone)).astype('uint8')
+            points = points/self.scale
+            mask_img = np.zeros(np.shape(self.original_image)).astype('uint8')
             cv2.fillPoly(mask_img, pts=np.array([points], dtype=np.int32),
                          color=(250, 250, 250))
             crop = ([min(points[:, 1]), max(points[:, 1])],
