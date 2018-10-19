@@ -4,9 +4,9 @@ from PyQt5.QtWidgets import (
     QAction, QWidget, QLabel, QDesktopWidget,
     QApplication, QComboBox, QPushButton, QGridLayout,
     QMainWindow, qApp, QVBoxLayout, QSlider,
-    QHBoxLayout, QLineEdit, QListView, QAbstractItemView
+    QHBoxLayout, QLineEdit, QListView
     )
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
 import Generic.video as vid
 import cv2
@@ -30,15 +30,15 @@ class MainWindow(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
         self.statusBar().showMessage('Ready')
         self.resize(1280, 720)
         self.center()
         self.setWindowTitle('Particle Tracker')
         self.show()
 
-        self.layout = QGridLayout(self.central_widget)
+        self.layout = QGridLayout(central_widget)
 
         self.setup_file_menu()
         self.create_main_image()
@@ -82,13 +82,13 @@ class MainWindow(QMainWindow):
         self.save_config_button.clicked.connect(self.save_config_button_clicked)
 
     def save_config_button_clicked(self):
+        self.check_method_list()
         pyperclip.copy(str(self.options))
 
     def create_methods_list(self):
         self.methods_list = QListView()
         self.methods_list.setDragDropMode(QListView.InternalMove)
         self.methods_list.setDefaultDropAction(Qt.MoveAction)
-        self.methods_list.setDragDropMode(False)
         self.methods_list.setAcceptDrops(True)
         self.methods_list.setDropIndicatorShown(True)
         self.methods_list.setDragEnabled(True)
@@ -101,7 +101,7 @@ class MainWindow(QMainWindow):
             item.setCheckable(True)
             item.setDragEnabled(True)
             item.setDropEnabled(False)
-            item.setCheckState(2)
+            item.setCheckState(Qt.Checked)
 
             self.methods_model.appendRow(item)
 
@@ -128,9 +128,10 @@ class MainWindow(QMainWindow):
         self.adaptive_constant_slider.\
             setValue(self.options['adaptive threshold C'])
         self.adaptive_constant_slider.\
-            valueChanged[int].connect(self.adaptive_constant_slider_changed)
+            valueChanged.connect(self.adaptive_constant_slider_changed)
 
-    def adaptive_constant_slider_changed(self, val):
+    def adaptive_constant_slider_changed(self):
+        val = self.adaptive_constant_slider.value()
         self.options['adaptive threshold C'] = val
         self.adaptive_constant_label.setText(
             'Adaptive threshold constant: '
@@ -146,10 +147,11 @@ class MainWindow(QMainWindow):
         self.adaptive_block_size_slider.setRange(1, 20)
         self.adaptive_block_size_slider.setValue(
             self.options['adaptive threshold block size'])
-        self.adaptive_block_size_slider.valueChanged[int].\
+        self.adaptive_block_size_slider.valueChanged.\
             connect(self.adaptive_block_size_slider_changed)
 
-    def adaptive_block_size_slider_changed(self, val):
+    def adaptive_block_size_slider_changed(self):
+        val = self.adaptive_block_size_slider.value()
         self.options['adaptive threshold block size'] = val*2+1
         self.adaptive_block_size_label.setText(
             'Adaptive Threshold kernel size: '
@@ -162,10 +164,11 @@ class MainWindow(QMainWindow):
         self.blur_kernel_slider = QSlider(Qt.Horizontal)
         self.blur_kernel_slider.setRange(0, 5)
         self.blur_kernel_slider.setValue((self.options['blur kernel'][0]-1)/2)
-        self.blur_kernel_slider.valueChanged[int].\
+        self.blur_kernel_slider.valueChanged.\
             connect(self.blur_kernel_slider_changed)
 
-    def blur_kernel_slider_changed(self, val):
+    def blur_kernel_slider_changed(self):
+        val = self.blur_kernel_slider.value()
         self.options['blur kernel'] = (val*2+1, val*2+1)
         self.blur_kernel_label.setText('Blur kernel size: ' + str(val*2+1))
 
@@ -177,20 +180,22 @@ class MainWindow(QMainWindow):
         self.grayscale_threshold_slider.setRange(0, 255)
         self.grayscale_threshold_slider.\
             setValue(self.options['grayscale threshold'])
-        self.grayscale_threshold_slider.valueChanged[int].\
+        self.grayscale_threshold_slider.valueChanged.\
             connect(self.grayscale_threshold_slider_changed)
 
-    def grayscale_threshold_slider_changed(self, val):
+    def grayscale_threshold_slider_changed(self):
+        val = self.grayscale_threshold_slider.value()
         self.options['grayscale threshold'] = val
         self.grayscale_label.setText('Grayscale Threshold: ' + str(val))
 
     def create_tray_choice_combo(self):
-        self.tray_choice_combo = QComboBox(self.central_widget)
+        self.tray_choice_combo = QComboBox()
         tray_choices = 'Circular', 'Hexagonal', 'Square'
         self.tray_choice_combo.addItems(tray_choices)
-        self.tray_choice_combo.activated[str].connect(self.tray_choice_changed)
+        self.tray_choice_combo.activated.connect(self.tray_choice_changed)
 
-    def tray_choice_changed(self, text):
+    def tray_choice_changed(self):
+        text = self.tray_choice_combo.currentText()
         tray = {'Circular': 1, 'Hexagonal': 6, 'Square': 4}
         self.options['number of tray sides'] = tray[text]
 
@@ -252,7 +257,39 @@ class MainWindow(QMainWindow):
         self.create_max_rad_slider()
         self.track_options_layout.addWidget(self.max_rad_label)
         self.track_options_layout.addWidget(self.max_rad_slider)
+        self.create_p1_slider()
+        self.track_options_layout.addWidget(self.p1_label)
+        self.track_options_layout.addWidget(self.p1_slider)
+        self.create_p2_slider()
+        self.track_options_layout.addWidget(self.p2_label)
+        self.track_options_layout.addWidget(self.p2_slider)
         self.track_options_layout.addStretch()
+
+    def create_p2_slider(self):
+        self.p2_label = QLabel()
+        self.p2_label.setText('p2: ' + str(self.options['p_2']))
+        self.p2_slider = QSlider(Qt.Horizontal)
+        self.p2_slider.setRange(0, 255)
+        self.p2_slider.setValue(self.options['p_2'])
+        self.p2_slider.valueChanged.connect(self.p2_slider_changed)
+
+    def p2_slider_changed(self):
+        val = self.p2_slider.value()
+        self.options['p_2'] = val
+        self.p2_label.setText('p2: ' + str(val))
+
+    def create_p1_slider(self):
+        self.p1_label = QLabel()
+        self.p1_label.setText('p1: ' + str(self.options['p_1']))
+        self.p1_slider = QSlider(Qt.Horizontal)
+        self.p1_slider.setRange(0, 255)
+        self.p1_slider.setValue(self.options['p_1'])
+        self.p1_slider.valueChanged.connect(self.p1_slider_changed)
+
+    def p1_slider_changed(self):
+        val = self.p1_slider.value()
+        self.options['p_1'] = val
+        self.p1_label.setText('p1: ' + str(val))
 
     def create_min_dist_slider(self):
         self.min_dist_label = QLabel()
@@ -261,10 +298,11 @@ class MainWindow(QMainWindow):
         self.min_dist_slider = QSlider(Qt.Horizontal)
         self.min_dist_slider.setRange(1, 50)
         self.min_dist_slider.setValue(self.options['min_dist'])
-        self.min_dist_slider.valueChanged[int].\
+        self.min_dist_slider.valueChanged.\
             connect(self.min_dist_slider_changed)
 
-    def min_dist_slider_changed(self, val):
+    def min_dist_slider_changed(self):
+        val = self.min_dist_slider.value()
         self.options['min_dist'] = val
         self.min_dist_label.setText('Minimum distance: ' + str(val))
 
@@ -275,10 +313,11 @@ class MainWindow(QMainWindow):
         self.min_rad_slider = QSlider(Qt.Horizontal)
         self.min_rad_slider.setRange(1, 50)
         self.min_rad_slider.setValue(self.options['min_rad'])
-        self.min_rad_slider.valueChanged[int].\
+        self.min_rad_slider.valueChanged.\
             connect(self.min_rad_slider_changed)
 
-    def min_rad_slider_changed(self, val):
+    def min_rad_slider_changed(self):
+        val = self.min_rad_slider.value()
         self.options['min_rad'] = val
         self.min_rad_label.setText('Minimum radius: ' + str(val))
 
@@ -289,10 +328,11 @@ class MainWindow(QMainWindow):
         self.max_rad_slider = QSlider(Qt.Horizontal)
         self.max_rad_slider.setRange(1, 50)
         self.max_rad_slider.setValue(self.options['max_rad'])
-        self.max_rad_slider.valueChanged[int].\
+        self.max_rad_slider.valueChanged.\
             connect(self.max_rad_slider_changed)
 
-    def max_rad_slider_changed(self, val):
+    def max_rad_slider_changed(self):
+        val = self.max_rad_slider.value()
         self.options['max_rad'] = val
         self.max_rad_label.setText('Maximum radius: ' + str(val))
 
