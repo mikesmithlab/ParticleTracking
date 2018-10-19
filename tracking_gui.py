@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (
     QAction, QWidget, QLabel, QDesktopWidget,
     QApplication, QComboBox, QPushButton, QGridLayout,
     QMainWindow, qApp, QVBoxLayout, QSlider,
-    QHBoxLayout, QLineEdit, QListView
+    QHBoxLayout, QLineEdit, QListView, QFileDialog
     )
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
@@ -19,9 +19,12 @@ import pyperclip
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, video):
+    def __init__(self, video=None):
         super().__init__()
-        self.video = video
+        if video:
+            self.video = video
+        else:
+            self.load_vid()
         self.frame = self.video.read_next_frame()
         cv2.imwrite('frame.png', self.frame)
         self.methods = con.GLASS_BEAD_PROCESS_LIST
@@ -57,7 +60,7 @@ class MainWindow(QMainWindow):
         loadvid_action = QAction(QtGui.QIcon('load.png'), '&Load', self)
         loadvid_action.setShortcut('Ctrl+l')
         loadvid_action.setStatusTip('Load Video')
-        loadvid_action.triggered.connect(self.load_vid)
+        loadvid_action.triggered.connect(self.load_vid_clicked)
 
         menubar = self.menuBar()
         file_menu = menubar.addMenu('&File')
@@ -67,10 +70,13 @@ class MainWindow(QMainWindow):
     def create_main_image(self):
         self.main_image = QLabel()
         pixmap = QtGui.QPixmap('frame.png')
-        self.main_image.setFixedHeight(int(pixmap.height()/2))
-        self.main_image.setFixedWidth(int(pixmap.width()/2))
+        #self.main_image.setFixedHeight(int(pixmap.height()/2))
+        #self.main_image.setFixedWidth(int(pixmap.width()/2))
+        self.main_image.setFixedHeight(600)
+        self.main_image.setFixedWidth(600)
         pixmap = pixmap.scaled(self.main_image.size(), Qt.KeepAspectRatio)
         self.main_image.setPixmap(pixmap)
+
 
     """Main buttons and their callback functions"""
 
@@ -117,7 +123,6 @@ class MainWindow(QMainWindow):
     def save_config_button_clicked(self):
         self.check_method_list()
         pyperclip.copy(str(self.options))
-
 
     """Process options and their callbacks"""
 
@@ -361,8 +366,16 @@ class MainWindow(QMainWindow):
 
     """Other methods"""
 
+    def load_vid_clicked(self):
+        self.load_vid()
+        self.frame = self.video.read_next_frame()
+        cv2.imwrite('frame.png', self.frame)
+        self.update_main_image()
+
     def load_vid(self):
-        pass
+        filename = QFileDialog.getOpenFileName(self, 'Open video', '/home')
+        print(filename)
+        self.video = vid.ReadVideo(filename[0])
 
     def add_widgets_to_layout(self):
         self.layout.addWidget(self.main_image, 0, 0, 2, 2)
@@ -386,6 +399,6 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     in_video = vid.ReadVideo("/home/ppxjd3/Code/ParticleTracking/test_data/"
                              "test_video_EDIT.avi")
-    ex = MainWindow(in_video)
+    ex = MainWindow()
     ex.show()
     sys.exit(app.exec_())
