@@ -388,6 +388,14 @@ class MainWindow(QMainWindow):
         self.options['p_2'] = val
         self.p2_label.setText('p2: ' + str(val))
 
+        '''
+    def create_max_displacement_slider(self):
+        self.max_displacement_label = QLabel()
+        self.max_displacement_label.setText(
+            'max frame displacement: '
+            + str(self.options['max frame displacement'])
+        self.max_displacement_slider = QSlider(qt.Horizontal)
+        '''
     """Other methods"""
 
     def load_vid_clicked(self):

@@ -139,7 +139,6 @@ class ParticleTracker:
                                    maxRadius=self.options['max_rad'])
         return circles
 
-
 if __name__ == "__main__":
     in_vid = video.ReadVideo(
         "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
