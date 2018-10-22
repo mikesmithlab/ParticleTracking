@@ -148,7 +148,7 @@ if __name__ == "__main__":
     crop_vid_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_crop.avi"
     dataframe_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5"
     dataframe = dataframes.TrackingDataframe(dataframe_name)
-    config_df = config.config_dataframe()
+    config_df = config.ConfigDataframe()
     options = config_df.get_options('Glass_Bead')
     preprocess = preprocessing.ImagePreprocessor(in_vid,
                                                 process_config,

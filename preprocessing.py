@@ -320,7 +320,7 @@ if __name__ == "__main__":
     vid = video.ReadVideo(
         "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
     process_config = config.GLASS_BEAD_PROCESS_LIST
-    config_df = config.config_dataframe()
+    config_df = config.ConfigDataframe()
     options = config_df.get_options('Glass_Bead')
     IP = ImagePreprocessor(vid, process_config,
                            options)

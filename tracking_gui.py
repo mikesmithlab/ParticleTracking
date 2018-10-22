@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
         self.frame = self.video.read_next_frame()
         cv2.imwrite('frame.png', self.frame)
         self.methods = con.GLASS_BEAD_PROCESS_LIST
-        self.config_dataframe = con.config_dataframe()
+        self.config_dataframe = con.ConfigDataframe()
         self.options = self.config_dataframe.get_options('Glass_Bead')
         self.pp = pp.ImagePreprocessor(self.video, self.methods, self.options)
         self.init_ui()

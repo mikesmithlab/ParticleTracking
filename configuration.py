@@ -42,7 +42,8 @@ RED_BEAD_PROCESS_LIST = ['grayscale','gaussian blur',
 
 PARTICLE_LIST = ['Glass_Bead', 'Red_Bead']
 
-class config_dataframe:
+
+class ConfigDataframe:
 
     def __init__(self):
         self.dataframe = pd.read_csv('configs.csv')
@@ -64,7 +65,7 @@ class config_dataframe:
         print(self.dataframe.head())
 
 if __name__=="__main__":
-    cd = config_dataframe()
+    cd = ConfigDataframe()
     options = cd.get_options('Red_Bead')
     print(options)
     #methods = cd.get_methods('Red_Bead')
