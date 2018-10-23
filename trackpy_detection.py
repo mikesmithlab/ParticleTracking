@@ -5,25 +5,32 @@ mpl.rc('figure', figsize=(10, 5))
 mpl.rc('image', cmap='gray')
 
 import numpy as np
-import pandas as pd
 import trackpy as tp
-import pims
 import cv2
+import ParticleTracking.preprocessing as pp
 
-video = vid.ReadVideo("/home/ppxjd3/Videos/test_video_EDIT.avi")
+
+def mpl_figure(im, title=''):
+    plt.figure()
+    plt.imshow(im)
+    plt.title(title)
+    plt.show()
+
+prepro = pp.ImagePreprocessor()
+video = vid.ReadVideo("/home/ppxjd3/Videos/12240002.MP4")
 frame = video.read_next_frame()
-
+prepro._find_crop_and_mask_for_first_frame(frame, 1)
+frame = prepro._crop_and_mask_frame(frame)
 
 original = frame.copy()
 
-frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-ret, frame = cv2.threshold(frame, 120, 255, cv2.THRESH_BINARY)
-frame = cv2.morphologyEx(frame, cv2.MORPH_OPEN, np.ones((3,3), dtype=np.uint8))
+frame = prepro._grayscale_frame(frame)
+frame = prepro._adaptive_threshold(frame, block_size=31, constant=0)
 
-plt.figure()
-plt.imshow(frame)
 
-f = tp.locate(frame, diameter=29, invert=True, minmass=25000, separation=25)
+mpl_figure(frame)
+
+f = tp.locate(frame, diameter=33, invert=True)
 
 
 

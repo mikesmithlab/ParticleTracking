@@ -32,7 +32,7 @@ frame = prepro._grayscale_frame(frame)
 
 frame = prepro._adaptive_threshold(frame, block_size=41)
 #frame = prepro._closing(frame, kernel=(5,5))
-frame = prepro._dilate(frame, kernel=(4,3))
+frame = prepro._dilate(frame, kernel=(3,3))
 
 
 #frame = prepro._gaussian_blur(frame, kernel=(5, 5))

@@ -136,17 +136,14 @@ class ParticleTracker:
         return circles
 
 if __name__ == "__main__":
-    in_vid = video.ReadVideo(
-        "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
-    process_config = config.GLASS_BEAD_PROCESS_LIST
-    out_vid = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_annotated.avi"
-    crop_vid_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_crop.avi"
-    dataframe_name = "/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5"
+    in_vid = video.ReadVideo("/home/ppxjd3/Videos/12240002.MP4")
+    process_config = config.RUBBER_BEAD_PROCESS_LIST
+    out_vid = "/home/ppxjd3/Videos/12240002_annotated.MP4"
+    crop_vid_name = "/home/ppxjd3/Videos/12240002_cropped.MP4"
+    dataframe_name = "/home/ppxjd3/Videos/12240002_data.hdf5"
     dataframe = dataframes.TrackingDataframe(dataframe_name)
     config_df = config.ConfigDataframe()
-    options = config_df.get_options('Glass_Bead')
-    print(options)
-
+    options = config_df.get_options('Rubber_Bead')
     PT = ParticleTracker(in_vid, dataframe, options,
                          process_config, crop_vid_name,  out_vid)
     PT.track()

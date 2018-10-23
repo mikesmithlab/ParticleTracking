@@ -39,6 +39,8 @@ RED_BEAD_PROCESS_LIST = ['gaussian blur',
                          'simple threshold',
                          'adaptive threshold']
 
+RUBBER_BEAD_PROCESS_LIST = ['adaptive threshold', 'gaussian blur']
+
 PARTICLE_LIST = ['Glass_Bead',
                  'Red_Bead', 'Rubber_Bead']
 
