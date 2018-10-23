@@ -72,6 +72,8 @@ class ImagePreprocessor:
                 new_frame = self._gaussian_blur(new_frame)
             elif method == 'distance transform':
                 new_frame = self._distance_transform(new_frame)
+            elif method == 'closing':
+                new_frame = self._closing(new_frame)
 
         self.process_calls += 1
         return new_frame, cropped_frame, self.boundary

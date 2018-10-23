@@ -3,7 +3,7 @@ import numpy as np
 
 GLASS_BEAD_PROCESS_LIST = ['simple threshold',
                              'adaptive threshold',
-                             'gaussian blur']
+                             'gaussian blur', 'closing', 'opening']
 
 GLASS_BEAD_OPTIONS_DICT = {'config': 1,
                            'title': 'Glass_Bead',
@@ -40,7 +40,7 @@ RED_BEAD_PROCESS_LIST = ['gaussian blur',
                          'adaptive threshold']
 
 PARTICLE_LIST = ['Glass_Bead',
-                 'Red_Bead']
+                 'Red_Bead', 'Rubber_Bead']
 
 
 class ConfigDataframe:
