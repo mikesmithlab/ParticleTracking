@@ -204,7 +204,7 @@ class ImagePreprocessor:
                 constant)
         return new_frame
 
-    def _gaussian_blur(self, frame, kernel=np.ones((3, 3), dtype=np.uint8)):
+    def _gaussian_blur(self, frame, kernel=(3, 3)):
         """
         Perform a gaussian blur of a frame
 
@@ -228,7 +228,7 @@ class ImagePreprocessor:
         new_frame = cv2.GaussianBlur(frame, kernel, 0)
         return new_frame
 
-    def _dilate(self, frame, kernel=np.ones((3,3,), dtype=np.uint8)):
+    def _dilate(self, frame, kernel=np.ones((3,3), dtype=np.uint8)):
         if self.options:
             if 'dilate kernel' in self.options:
                 kernel = (self.options['dilate kernel'],
@@ -236,7 +236,7 @@ class ImagePreprocessor:
         new_frame = cv2.dilate(frame, kernel)
         return new_frame
 
-    def _erode(self, frame, kernel=np.ones((3,3,), dtype=np.uint8)):
+    def _erode(self, frame, kernel=np.ones((3,3), dtype=np.uint8)):
         if self.options:
             if 'erode kernel' in self.options:
                 kernel = (self.options['erode kernel'],
@@ -244,7 +244,7 @@ class ImagePreprocessor:
         new_frame = cv2.erode(frame, kernel)
         return new_frame
 
-    def _opening(self, frame, kernel=np.ones((3,3,), dtype=np.uint8)):
+    def _opening(self, frame, kernel=np.ones((3,3), dtype=np.uint8)):
         if self.options:
             if 'opening kernel' in self.options:
                 kernel = (self.options['opening kernel'],
@@ -252,7 +252,7 @@ class ImagePreprocessor:
         new_frame = cv2.morphologyEx(frame, cv2.MORPH_OPEN, kernel)
         return new_frame
 
-    def _closing(self, frame, kernel=np.ones((3,3,), dtype=np.uint8)):
+    def _closing(self, frame, kernel=np.ones((3,3), dtype=np.uint8)):
         if self.options:
             if 'closing kernel' in self.options:
                 kernel = (self.options['closing kernel'],

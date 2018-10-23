@@ -26,27 +26,33 @@ prepro._find_crop_and_mask_for_first_frame(frame, 1)
 frame = prepro._crop_and_mask_frame(frame)
 
 copy = frame.copy()
+copy2 = frame.copy()
 
 frame = prepro._grayscale_frame(frame)
 
-frame = prepro._adaptive_threshold(frame, block_size=31)
-mpl_figure(frame, 'gray')
+frame = prepro._adaptive_threshold(frame, block_size=41)
+#frame = prepro._closing(frame, kernel=(5,5))
+frame = prepro._dilate(frame, kernel=(4,3))
 
-frame = prepro._distance_transform(frame)
+
+#frame = prepro._gaussian_blur(frame, kernel=(5, 5))
+mpl_figure(frame, 'gray')
+#frame = prepro._distance_transform(frame)
 #mpl_figure(frame, 'distance transform')
 
-frame = cv2.normalize(frame, frame, 0, 255, cv2.NORM_MINMAX)
+#frame = cv2.normalize(frame, frame, 0, 255, cv2.NORM_MINMAX)
 #mpl_figure(frame, 'distance transform normalized')
 
-frame = prepro._simple_threshold(frame, 50)
+#frame = prepro._simple_threshold(frame, 50)
 #mpl_figure(frame)
 
-frame = frame.astype(np.uint8)
+#frame = frame.astype(np.uint8)
 
-_, contours, _ = cv2.findContours(frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+_, contours, _ = cv2.findContours(frame, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 hull_list = []
 for contour in contours:
     hull = cv2.convexHull(contour)
-    if cv2.contourArea(hull) <500:
+    if cv2.contourArea(hull) > 100 and cv2.contourArea(hull) < 1000:
         cv2.drawContours(copy, [hull],  0, (0, 255, 0), 4)
-mpl_figure(copy, 'minEnclosingCircle')
+mpl_figure(copy, 'contour')
+
