@@ -14,7 +14,6 @@ class ParticleTracker:
     def __init__(self,
                  input_video,
                  dataframe_inst,
-                 preprocessor_inst,
                  options,
                  method_order,
                  crop_vid_filename=None,
@@ -47,14 +46,11 @@ class ParticleTracker:
                 If None, don't make video
         """
         self.video = input_video
+        self.td = dataframe_inst
         self.options = options
-        self.ip = preprocessor_inst
-        self.ip = preprocessing.ImagePreprocessor(self.video,
-                                                  method_order,
-                                                  self.options)
+        self.ip = preprocessing.ImagePreprocessor(method_order, self.options)
         self.crop_vid_filename = crop_vid_filename
         self.test_vid_filename = test_vid_filename
-        self.td = dataframe_inst
 
     def track(self):
         """Call this to start the tracking"""
@@ -149,10 +145,8 @@ if __name__ == "__main__":
     dataframe = dataframes.TrackingDataframe(dataframe_name)
     config_df = config.ConfigDataframe()
     options = config_df.get_options('Glass_Bead')
-    preprocess = preprocessing.ImagePreprocessor(in_vid,
-                                                process_config,
-                                                options)
+    print(options)
 
-    PT = ParticleTracker(in_vid, dataframe, preprocess, options,
+    PT = ParticleTracker(in_vid, dataframe, options,
                          process_config, crop_vid_name,  out_vid)
     PT.track()

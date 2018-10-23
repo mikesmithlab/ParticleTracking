@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
 
-GLASS_BEAD_PROCESS_LIST = ['grayscale',
-                             'simple threshold',
+GLASS_BEAD_PROCESS_LIST = ['simple threshold',
                              'adaptive threshold',
                              'gaussian blur']
 
@@ -36,11 +35,12 @@ RED_BEAD_OPTIONS_DICT = {'config': 0,
                          'max frame displacement': 5,
                          'min frame life': 2}
 
-RED_BEAD_PROCESS_LIST = ['grayscale','gaussian blur',
-                             'simple threshold',
-                             'adaptive threshold']
+RED_BEAD_PROCESS_LIST = ['gaussian blur',
+                         'simple threshold',
+                         'adaptive threshold']
 
-PARTICLE_LIST = ['Glass_Bead', 'Red_Bead']
+PARTICLE_LIST = ['Glass_Bead',
+                 'Red_Bead']
 
 
 class ConfigDataframe:

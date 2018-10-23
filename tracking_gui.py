@@ -30,7 +30,7 @@ class MainWindow(QMainWindow):
         self.methods = con.GLASS_BEAD_PROCESS_LIST
         self.config_dataframe = con.ConfigDataframe()
         self.options = self.config_dataframe.get_options('Glass_Bead')
-        self.pp = pp.ImagePreprocessor(self.video, self.methods, self.options)
+        self.pp = pp.ImagePreprocessor(self.methods, self.options)
         self.init_ui()
 
     def init_ui(self):
@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
 
     def detect_button_clicked(self):
         self.check_method_list()
-        self.pt = pt.ParticleTracker(self.video, None, self.pp, self.options,
+        self.pt = pt.ParticleTracker(self.video, None, self.options,
                                      self.methods)
         circles = self.pt.find_circles(self.new_frame)
         circles = np.array(circles).squeeze()
@@ -432,8 +432,12 @@ class MainWindow(QMainWindow):
         self.video = vid.ReadVideo(self.filename[0])
         # create dataframe
         dataframe = df.TrackingDataframe(self.name+'.hdf5')
-        new_pp = pp.ImagePreprocessor(self.video, self.methods, self.options)
-        new_pt = pt.ParticleTracker(self.video, dataframe, new_pp, self.options, self.methods, self.name+'_crop.avi', self.name+'_test.avi')
+        new_pt = pt.ParticleTracker(self.video,
+                                    dataframe,
+                                    self.options,
+                                    self.methods,
+                                    self.name+'_crop.avi',
+                                    self.name+'_test.avi')
         qApp.quit()
         new_pt.track()
 

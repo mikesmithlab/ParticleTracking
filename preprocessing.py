@@ -8,23 +8,21 @@ import Generic.simple_funcs as sf
 class ImagePreprocessor:
     """Class to manage the frame by frame processing of videos"""
 
-    def __init__(self, video_object, method_order, options):
+    def __init__(self, method_order=None, options=None):
         """
         Parameters
         ----------
-        video_object: class instance
-            An instance of the Generic.video.ReadVideo class
-
         method_order: list
             A list containing string assoicated with methods in the order they
-            will be used
+            will be used.
+            If None, process_image will only perform a grayscale of the image.
 
         options: dictionary
-            A dictionary containing all the parameters needed for functions
+            A dictionary containing all the parameters needed for functions.
+            If None, methods will use their keyword parameters
 
         """
 
-        self.video = video_object
         self.mask_img = np.array([])
         self.crop = []
         self.method_order = method_order
@@ -46,21 +44,34 @@ class ImagePreprocessor:
         -------
         new_frame: numpy array
             uint8 numpy array containing the new image
+
+        cropped_frame: numpy array
+            uint8 numpy array containing the cropped and masked image
+
+        self.boundary: numpy array
+            Contains information about the boundary points
         """
+        if self.method_order:
+            method_order = self.method_order
+        else:
+            method_order = []
 
         if self.process_calls == 0:
             self._find_crop_and_mask_for_first_frame(frame)
         cropped_frame = self._crop_and_mask_frame(frame)
         new_frame = cropped_frame.copy()
-        for method in self.method_order:
-            if method == 'grayscale':
-                new_frame = self._grayscale_frame(new_frame)
+        new_frame = self._grayscale_frame(new_frame)
+        for method in method_order:
+            if method == 'opening':
+                new_frame = self._opening(new_frame)
             elif method == 'simple threshold':
                 new_frame = self._simple_threshold(new_frame)
             elif method == 'adaptive threshold':
                 new_frame = self._adaptive_threshold(new_frame)
             elif method == 'gaussian blur':
                 new_frame = self._gaussian_blur(new_frame)
+            elif method == 'distance transform':
+                new_frame = self._distance_transform(new_frame)
 
         self.process_calls += 1
         return new_frame, cropped_frame, self.boundary
@@ -69,8 +80,10 @@ class ImagePreprocessor:
         self.options = options
         self.method_order = methods
 
-    def _find_crop_and_mask_for_first_frame(self, frame):
-        crop_inst = CropShape(frame, self.options['number of tray sides'])
+    def _find_crop_and_mask_for_first_frame(self, frame, no_of_sides=1):
+        if self.options:
+            no_of_sides = self.options['number of tray sides']
+        crop_inst = CropShape(frame, no_of_sides)
         self.mask_img, self.crop, self.boundary = crop_inst.begin_crop()
         if np.shape(self.boundary) == (3,):
             self.boundary[0] -= self.crop[1][0]
@@ -105,7 +118,6 @@ class ImagePreprocessor:
         cropped_frame: numpy array
             A numpy array containing an image which has been cropped and masked
         """
-
         masked_frame = cv2.bitwise_and(frame, frame, mask=self.mask_img)
         cropped_frame = masked_frame[self.crop[0][0]:self.crop[0][1],
                                      self.crop[1][0]:self.crop[1][1],
@@ -132,7 +144,7 @@ class ImagePreprocessor:
         new_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         return new_frame
 
-    def _simple_threshold(self, frame):
+    def _simple_threshold(self, frame, threshold=100):
         """
         Perform a binary threshold of a frame
 
@@ -150,14 +162,15 @@ class ImagePreprocessor:
         new_frame: numpy array
             A numpy array of a binary image of type uint8
         """
-
+        if self.options:
+            threshold = self.options['grayscale threshold']
         ret, new_frame = cv2.threshold(frame,
-                                       self.options['grayscale threshold'],
+                                       threshold,
                                        255,
                                        cv2.THRESH_BINARY)
         return new_frame
 
-    def _adaptive_threshold(self, frame):
+    def _adaptive_threshold(self, frame, block_size=13, constant=0):
         """
         Perform an adaptive threshold of a frame
 
@@ -177,17 +190,19 @@ class ImagePreprocessor:
         new_frame: numpy array
             A numpy array of a binary image of type uint8
         """
-
+        if self.options:
+            block_size = self.options['adaptive threshold block size']
+            constant = self.options['adaptive threshold C']
         new_frame = cv2.adaptiveThreshold(
                 frame,
                 255,
                 cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                 cv2.THRESH_BINARY,
-                self.options['adaptive threshold block size'],
-                self.options['adaptive threshold C'])
+                block_size,
+                constant)
         return new_frame
 
-    def _gaussian_blur(self, frame):
+    def _gaussian_blur(self, frame, kernel=np.ones((3, 3), dtype=np.uint8)):
         """
         Perform a gaussian blur of a frame
 
@@ -206,11 +221,45 @@ class ImagePreprocessor:
         new_frame: numpy array
             A numpy array of an image of type uint8
         """
+        if self.options:
+            kernel = (self.options['blur kernel'], self.options['blur kernel'])
+        new_frame = cv2.GaussianBlur(frame, kernel, 0)
+        return new_frame
 
-        new_frame = cv2.GaussianBlur(
-            frame,
-            (self.options['blur kernel'], self.options['blur kernel']),
-            0)
+    def _dilate(self, frame, kernel=np.ones((3,3,), dtype=np.uint8)):
+        if self.options:
+            if 'dilate kernel' in self.options:
+                kernel = (self.options['dilate kernel'],
+                          self.options['dilate kernel'])
+        new_frame = cv2.dilate(frame, kernel)
+        return new_frame
+
+    def _erode(self, frame, kernel=np.ones((3,3,), dtype=np.uint8)):
+        if self.options:
+            if 'erode kernel' in self.options:
+                kernel = (self.options['erode kernel'],
+                          self.options['erode kernel'])
+        new_frame = cv2.erode(frame, kernel)
+        return new_frame
+
+    def _opening(self, frame, kernel=np.ones((3,3,), dtype=np.uint8)):
+        if self.options:
+            if 'opening kernel' in self.options:
+                kernel = (self.options['opening kernel'],
+                          self.options['opening kernel'])
+        new_frame = cv2.morphologyEx(frame, cv2.MORPH_OPEN, kernel)
+        return new_frame
+
+    def _closing(self, frame, kernel=np.ones((3,3,), dtype=np.uint8)):
+        if self.options:
+            if 'closing kernel' in self.options:
+                kernel = (self.options['closing kernel'],
+                          self.options['closing kernel'])
+        new_frame = cv2.morphologyEx(frame, cv2.MORPH_CLOSE, kernel)
+        return new_frame
+
+    def _distance_transform(self, frame):
+        new_frame = cv2.distanceTransform(frame, cv2.DIST_L2, 3)
         return new_frame
 
 
@@ -322,8 +371,7 @@ if __name__ == "__main__":
     process_config = config.GLASS_BEAD_PROCESS_LIST
     config_df = config.ConfigDataframe()
     options = config_df.get_options('Glass_Bead')
-    IP = ImagePreprocessor(vid, process_config,
-                           options)
+    IP = ImagePreprocessor(process_config, options)
     for f in range(2):
         frame = vid.read_next_frame()
         new_frame, crop_frame, boundary = IP.process_image(frame)
