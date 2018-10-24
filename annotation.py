@@ -12,7 +12,8 @@ class VideoAnnotator:
     def __init__(self,
                  dataframe_inst,
                  input_video_filename,
-                 output_video_filename):
+                 output_video_filename,
+                 shrink_factor=1):
         """
         Initialise VideoAnnotator
 
@@ -31,10 +32,11 @@ class VideoAnnotator:
         self.td = dataframe_inst
         print(self.td.dataframe.head())
         self.input_video = video.ReadVideo(input_video_filename)
+        self.shrink_factor = shrink_factor
         self.output_video = video.WriteVideo(
                 output_video_filename,
-                frame_size=(int(self.input_video.height),
-                            int(self.input_video.width),
+                frame_size=(int(self.input_video.height/self.shrink_factor),
+                            int(self.input_video.width/self.shrink_factor),
                             int(3)))
 
     def add_tracking_circles(self):
@@ -42,9 +44,16 @@ class VideoAnnotator:
         for f in range(self.input_video.num_frames):
             frame = self.input_video.read_next_frame()
             circles = self.td.return_circles_for_frame(f)
+            if self.shrink_factor is not 1:
+                frame = cv2.resize(frame,
+                                   None,
+                                   fx=1/self.shrink_factor,
+                                   fy=1/self.shrink_factor,
+                                   interpolation=cv2.INTER_CUBIC)
+                circles /= self.shrink_factor
             for x, y, size in circles:
                 cv2.circle(frame, (int(x), int(y)),
-                           int(size), (0, 255, 255), 2)
+                           int(size), (0, 255, 255), 1)
             self.output_video.add_frame(frame)
         self.output_video.close()
 
