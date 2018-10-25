@@ -75,8 +75,6 @@ def concatenate_dataframe(dataframe_list, new_filename):
         boundaries_save = pd.concat([boundaries_save, boundaries])
         store.close()
 
-    print(data_save.head())
-    print(new_filename)
     if os.path.exists(new_filename):
         os.remove(new_filename)
     store_out = pd.HDFStore(new_filename)

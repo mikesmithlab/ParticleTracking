@@ -6,8 +6,10 @@ import os
 import ParticleTracking.preprocessing as prepro
 import ParticleTracking.dataframes as dataframes
 import ParticleTracking.configuration as config
+import ParticleTracking.annotation as anno
 from operator import methodcaller
 import Generic.video as vid
+import trackpy as tp
 
 class ParticleTrackerMulti:
 
@@ -17,6 +19,7 @@ class ParticleTrackerMulti:
                  method_order):
         self.video_filename = input_video_filename
         self.video_corename = os.path.splitext(input_video_filename)[0]
+        self.data_store_filename = self.video_corename + '_data.hdf5'
         self.options = options
         self.method_order = method_order
         self.ip = prepro.ImagePreprocessor(self.method_order, self.options)
@@ -32,13 +35,33 @@ class ParticleTrackerMulti:
 
         self.cleanup_intermediate_files()
         self.cleanup_intermediate_dataframes()
+        self.link_trajectories()
+        self._check_video_tracking()
 
+    def _check_video_tracking(self):
+        va = anno.VideoAnnotator(
+                self.data_store,
+                self.video_corename + "_crop.{}".format(self.extension),
+                self.video_corename + "_annotated.{}".format(self.extension))
+        va.add_tracking_circles()
+
+
+    def link_trajectories(self):
+        self.data_store = dataframes.TrackingDataframe(self.data_store_filename,
+                                                       load=True)
+        self.data_store.dataframe = tp.link_df(
+                self.data_store.dataframe,
+                self.options['max frame displacement'])
+        self.data_store.dataframe = tp.filter_stubs(
+                self.data_store.dataframe,
+                self.options['min frame life'])
+        self.data_store.save_dataframe()
 
     def cleanup_intermediate_dataframes(self):
         dataframe_list = ["{}.hdf5".format(i) for i in
                           range(self.num_processes)]
         dataframes.concatenate_dataframe(dataframe_list,
-                                         self.video_corename + '_data.hdf5')
+                                         self.data_store_filename)
         for file in dataframe_list:
             os.remove(file)
 
@@ -134,10 +157,10 @@ class ParticleTrackerMulti:
 
 
 if __name__=="__main__":
-    vid_name = "/home/ppxjd3/Videos/test_video.avi"
-    process_config = config.GLASS_BEAD_PROCESS_LIST
+    vid_name = "/home/ppxjd3/Videos/12240002.MP4"
+    process_config = config.RUBBER_BEAD_PROCESS_LIST
     config_df = config.ConfigDataframe()
-    options = config_df.get_options('Glass_Bead')
+    options = config_df.get_options('Rubber_Bead')
     PT = ParticleTrackerMulti(vid_name, options, process_config)
     import time
     start = time.time()

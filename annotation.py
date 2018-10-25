@@ -1,8 +1,5 @@
 import cv2
-import numpy as np
-import ParticleTracking.preprocessing as preprocessing
 import ParticleTracking.dataframes as dataframes
-import ParticleTracking.particle_tracking as particle_tracking
 import Generic.video as video
 
 
@@ -30,14 +27,14 @@ class VideoAnnotator:
             will be saved
         """
         self.td = dataframe_inst
-        print(self.td.dataframe.head())
         self.input_video = video.ReadVideo(input_video_filename)
         self.shrink_factor = shrink_factor
         self.output_video = video.WriteVideo(
                 output_video_filename,
                 frame_size=(int(self.input_video.height/self.shrink_factor),
                             int(self.input_video.width/self.shrink_factor),
-                            int(3)))
+                            int(3)),
+                codec='mp4v')
 
     def add_tracking_circles(self):
         """Annotates a video with the tracked circles to check tracking"""
