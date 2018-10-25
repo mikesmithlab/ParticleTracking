@@ -40,6 +40,7 @@ class TrackingDataframe:
         store = pd.HDFStore(self.filename)
         self.dataframe = store['data']
         self.boundary_df = store['boundary']
+        store.close()
 
     def return_circles_for_frame(self, frame):
         """
