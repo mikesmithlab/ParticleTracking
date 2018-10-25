@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import trackpy as tp
+import os
 
 
 class TrackingDataframe:
@@ -29,11 +30,15 @@ class TrackingDataframe:
         self.boundary_df = pd.concat([self.boundary_df, boundary_df_to_append])
 
     def save_dataframe(self):
+        if os.path.exists(self.filename):
+            os.remove(self.filename)
         store = pd.HDFStore(self.filename)
         store['data'] = self.dataframe
         store['boundary'] = self.boundary_df
+        store.close()
 
     def _load_dataframe(self):
+
         store = pd.HDFStore(self.filename)
         self.dataframe = store['data']
         self.boundary_df = store['boundary']
@@ -59,10 +64,29 @@ class TrackingDataframe:
 
         return circles
 
+def concatenate_dataframe(dataframe_list, new_filename):
+    data_save = pd.DataFrame()
+    boundaries_save = pd.DataFrame()
+    for file in dataframe_list:
+        store = pd.HDFStore(file)
+        data = store['data']
+        boundaries = store['boundary']
+        data_save = pd.concat([data_save, data])
+        boundaries_save = pd.concat([boundaries_save, boundaries])
+        store.close()
+
+    print(data_save.head())
+    print(new_filename)
+    if os.path.exists(new_filename):
+        os.remove(new_filename)
+    store_out = pd.HDFStore(new_filename)
+    store_out['data'] = data_save
+    store_out['boundary'] = boundaries_save
+    store_out.close()
+
 
 if __name__=="__main__":
     store = pd.HDFStore("/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5")
     dataframe = store['data']
     circles = dataframe.loc[dataframe['frame'] == 1,
                                  ['x', 'y', 'size']].as_matrix()
-    a =1

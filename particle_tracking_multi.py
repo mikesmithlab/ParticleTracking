@@ -7,6 +7,7 @@ import ParticleTracking.preprocessing as prepro
 import ParticleTracking.dataframes as dataframes
 import ParticleTracking.configuration as config
 from operator import methodcaller
+import Generic.video as vid
 
 class ParticleTrackerMulti:
 
@@ -15,31 +16,65 @@ class ParticleTrackerMulti:
                  options,
                  method_order):
         self.video_filename = input_video_filename
+        self.video_corename = os.path.splitext(input_video_filename)[0]
         self.options = options
         self.method_order = method_order
         self.ip = prepro.ImagePreprocessor(self.method_order, self.options)
 
-    def track_process(self, group_number):
-        cap = cv2.VideoCapture(self.video_filename)
-        cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_jump_unit * group_number)
+    def track(self):
+        self.num_processes = mp.cpu_count()
+        self.extension = "mp4"
+        self.fourcc = "mp4v"
+        self.find_video_info()
 
-        out = cv2.VideoWriter("{}.{}".format(group_number, self.extension),
-                              cv2.VideoWriter_fourcc(*self.fourcc),
-                              self.fps,
-                              (self.width, self.height))
+        p = mp.Pool(self.num_processes)
+        p.map(self.track_process, range(self.num_processes))
+
+        self.cleanup_intermediate_files()
+        self.cleanup_intermediate_dataframes()
+
+
+    def cleanup_intermediate_dataframes(self):
+        dataframe_list = ["{}.hdf5".format(i) for i in
+                          range(self.num_processes)]
+        dataframes.concatenate_dataframe(dataframe_list,
+                                         self.video_corename + '_data.hdf5')
+        for file in dataframe_list:
+            os.remove(file)
+
+    def find_video_info(self):
+        cap = vid.ReadVideo(self.video_filename)
+        self.frame_jump_unit = cap.num_frames // self.num_processes
+        self.fps = cap.fps
+        frame = cap.read_next_frame()
+        _, cropped_frame, _ = self.ip.process_image(frame)
+        self.width = int(np.shape(cropped_frame)[1])
+        self.height = int(np.shape(cropped_frame)[0])
+
+    def track_process(self, group_number):
+        data = dataframes.TrackingDataframe(str(group_number)+'.hdf5')
+        cap = vid.ReadVideo(self.video_filename)
+        frame_no_start = self.frame_jump_unit * group_number
+        cap.set_frame(frame_no_start)
+        out_crop = vid.WriteVideo("{}.{}".format(group_number, self.extension),
+                                  frame_size=(self.height, self.width, 3),
+                                  codec=self.fourcc,
+                                  fps=self.fps)
 
         proc_frames = 0
         while proc_frames < self.frame_jump_unit:
-            ret, frame = cap.read()
-            if ret == False:
-                break
-            new_frame, cropped_frame, _ = self.ip.process_image(frame)
+            frame = cap.read_next_frame()
+            new_frame, cropped_frame, boundary = self.ip.process_image(frame)
             circles = self.find_circles(new_frame)
-            anno_frame = self.annotate_frame_with_circles(cropped_frame, circles)
-            out.write(anno_frame)
+            data.add_tracking_data(frame_no_start+proc_frames, circles, boundary)
+            anno_frame = self.annotate_frame_with_circles(cropped_frame.copy(),
+                                                          circles)
+            out_crop.add_frame(cropped_frame)
             proc_frames += 1
-        cap.release()
-        out.release()
+        data.save_dataframe()
+        cap.close()
+        out_crop.close()
+        data
 
     @staticmethod
     def annotate_frame_with_circles(frame, circles):
@@ -82,21 +117,6 @@ class ParticleTrackerMulti:
                                    maxRadius=self.options['max_rad'])
         return circles
 
-    def start_multi_track(self):
-        self.num_processes = mp.cpu_count()
-        self.extension = "mp4"
-        cap = cv2.VideoCapture(self.video_filename)
-        self.frame_jump_unit = cap.get(cv2.CAP_PROP_FRAME_COUNT) // self.num_processes
-        self.fps = cap.get(cv2.CAP_PROP_FPS)
-        self.fourcc = "mp4v"
-        _, frame = cap.read()
-        _, cropped_frame, _ = self.ip.process_image(frame)
-        self.width = int(np.shape(cropped_frame)[1])
-        self.height = int(np.shape(cropped_frame)[0])
-        p = mp.Pool(self.num_processes)
-        p.map(self.track_process, range(self.num_processes))
-        self.cleanup_intermediate_files()
-
     def cleanup_intermediate_files(self):
         intermediate_files = ["{}.{}".format(i, self.extension) for i in range(self.num_processes)]
         with open("intermediate_files.txt", "w") as f:
@@ -104,8 +124,8 @@ class ParticleTrackerMulti:
                 f.write("file {} \n".format(t))
 
         ffmepg_command =  "ffmpeg -y -loglevel error -f concat -safe 0 -i intermediate_files.txt "
-        ffmepg_command += " -vcodec copy"
-        ffmepg_command += "/home/ppxjd3/Videos/12240002_out.{}".format(self.extension)
+        ffmepg_command += " -vcodec copy "
+        ffmepg_command += self.video_corename+"_crop.{}".format(self.extension)
         sp.Popen(ffmepg_command, shell=True).wait()
 
         for f in intermediate_files:
@@ -114,12 +134,12 @@ class ParticleTrackerMulti:
 
 
 if __name__=="__main__":
-    vid_name = "/home/ppxjd3/Videos/12240002.MP4"
-    process_config = config.RUBBER_BEAD_PROCESS_LIST
+    vid_name = "/home/ppxjd3/Videos/test_video.avi"
+    process_config = config.GLASS_BEAD_PROCESS_LIST
     config_df = config.ConfigDataframe()
-    options = config_df.get_options('Rubber_Bead')
+    options = config_df.get_options('Glass_Bead')
     PT = ParticleTrackerMulti(vid_name, options, process_config)
     import time
     start = time.time()
-    PT.start_multi_track()
+    PT.track()
     print(time.time()-start)
