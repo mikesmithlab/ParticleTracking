@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import trackpy as tp
 import os
 
 
@@ -64,6 +62,7 @@ class TrackingDataframe:
 
         return circles
 
+
 def concatenate_dataframe(dataframe_list, new_filename):
     data_save = pd.DataFrame()
     boundaries_save = pd.DataFrame()
@@ -84,7 +83,8 @@ def concatenate_dataframe(dataframe_list, new_filename):
 
 
 if __name__=="__main__":
-    store = pd.HDFStore("/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5")
+    store = pd.HDFStore("/home/ppxjd3/Code/ParticleTracking/test_data/"
+                        "test_video.hdf5")
     dataframe = store['data']
     circles = dataframe.loc[dataframe['frame'] == 1,
                                  ['x', 'y', 'size']].values
