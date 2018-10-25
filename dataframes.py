@@ -60,7 +60,7 @@ class TrackingDataframe:
              circles[p, size] contains size
         """
         circles = self.dataframe.loc[self.dataframe['frame'] == frame,
-                                     ['x', 'y', 'size']].as_matrix()
+                                     ['x', 'y', 'size']].values
 
         return circles
 
@@ -87,4 +87,4 @@ if __name__=="__main__":
     store = pd.HDFStore("/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5")
     dataframe = store['data']
     circles = dataframe.loc[dataframe['frame'] == 1,
-                                 ['x', 'y', 'size']].as_matrix()
+                                 ['x', 'y', 'size']].values
