@@ -88,7 +88,7 @@ class ParticleTrackerMulti:
         while proc_frames < self.frame_jump_unit:
             frame = cap.read_next_frame()
             new_frame, cropped_frame, boundary = self.ip.process_image(frame)
-            circles = self._find_circles(new_frame)
+            circles = self.find_circles(new_frame)
             data.add_tracking_data(frame_no_start+proc_frames,
                                    circles,
                                    boundary)
@@ -98,7 +98,7 @@ class ParticleTrackerMulti:
         cap.close()
         out_crop.close()
 
-    def _find_circles(self, frame):
+    def find_circles(self, frame):
         """
         Uses cv2.HoughCircles to detect circles in a image
 
@@ -181,7 +181,7 @@ class ParticleTrackerMulti:
         va.add_tracking_circles()
 
     @staticmethod
-    def _annotate_frame_with_circles(frame, circles):
+    def annotate_frame_with_circles(frame, circles):
         """
         Annotates a particular frame with the detected circles
 
@@ -200,10 +200,7 @@ class ParticleTrackerMulti:
             contains annotated video frame
         """
         if len(circles) > 0:
-            for i in range(np.shape(circles)[1]):
-                x = circles[:, i, 0]
-                y = circles[:, i, 1]
-                size = circles[:, i, 2]
+            for x, y, size in circles:
                 cv2.circle(frame, (int(x), int(y)),
                            int(size), (0, 255, 255), 2)
         return frame

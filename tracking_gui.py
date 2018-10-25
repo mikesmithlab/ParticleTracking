@@ -16,6 +16,8 @@ import particle_tracking as pt
 import numpy as np
 import pyperclip
 import dataframes as df
+import particle_tracking_multi as ptm
+
 
 class MainWindow(QMainWindow):
 
@@ -108,8 +110,10 @@ class MainWindow(QMainWindow):
 
     def detect_button_clicked(self):
         self.check_method_list()
-        self.pt = pt.ParticleTracker(self.video, None, self.options,
-                                     self.methods)
+        #self.pt = pt.ParticleTracker(self.video, None, self.options,
+        #                             self.methods)
+        self.pt = ptm.ParticleTrackerMulti(self.filename[0], self.options,
+                                           self.methods)
         circles = self.pt.find_circles(self.new_frame)
         circles = np.array(circles).squeeze()
         annotated_frame = \
@@ -432,12 +436,15 @@ class MainWindow(QMainWindow):
         self.video = vid.ReadVideo(self.filename[0])
         # create dataframe
         dataframe = df.TrackingDataframe(self.name+'.hdf5')
-        new_pt = pt.ParticleTracker(self.video,
-                                    dataframe,
-                                    self.options,
-                                    self.methods,
-                                    self.name+'_crop.avi',
-                                    self.name+'_test.avi')
+        #new_pt = pt.ParticleTracker(self.video,
+        #                            dataframe,
+        #                            self.options,
+        #                            self.methods,
+        #                            self.name+'_crop.avi',
+        #                            self.name+'_test.avi')
+        new_pt = ptm.ParticleTrackerMulti(self.filename[0],
+                                          self.options,
+                                          self.methods)
         qApp.quit()
         new_pt.track()
 
