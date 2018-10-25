@@ -9,6 +9,8 @@ import ParticleTracking.configuration as config
 import ParticleTracking.annotation as anno
 import Generic.video as vid
 import trackpy as tp
+import time
+
 
 
 class ParticleTrackerMulti:
@@ -208,12 +210,18 @@ class ParticleTrackerMulti:
 
 
 if __name__ == "__main__":
-    vid_name = "/home/ppxjd3/Videos/12240002.MP4"
-    process_config = config.RUBBER_BEAD_PROCESS_LIST
+    choice = 'glass'
     config_df = config.ConfigDataframe()
-    options_in = config_df.get_options('Rubber_Bead')
+    if choice == 'rubber':
+        vid_name = "/home/ppxjd3/Videos/12240002.MP4"
+        process_config = config.RUBBER_BEAD_PROCESS_LIST
+        options_in = config_df.get_options('Rubber_Bead')
+    else:
+        vid_name = "/home/ppxjd3/Videos/test_video.avi"
+        process_config = config.GLASS_BEAD_PROCESS_LIST
+        options_in = config_df.get_options('Glass_Bead')
+
     PT = ParticleTrackerMulti(vid_name, options_in, process_config)
-    import time
     start = time.time()
     PT.track()
     print(time.time()-start)
