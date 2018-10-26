@@ -112,8 +112,9 @@ class MainWindow(QMainWindow):
         self.check_method_list()
         #self.pt = pt.ParticleTracker(self.video, None, self.options,
         #                             self.methods)
-        self.pt = ptm.ParticleTrackerMulti(self.filename[0], self.options,
-                                           self.methods)
+        self.pt = pt.ParticleTracker(self.filename[0],
+                                     self.options,
+                                     self.methods)
         circles = self.pt.find_circles(self.new_frame)
         circles = np.array(circles).squeeze()
         annotated_frame = \
@@ -442,9 +443,12 @@ class MainWindow(QMainWindow):
         #                            self.methods,
         #                            self.name+'_crop.avi',
         #                            self.name+'_test.avi')
-        new_pt = ptm.ParticleTrackerMulti(self.filename[0],
-                                          self.options,
-                                          self.methods)
+        new_pt = pt.ParticleTracker(self.filename[0],
+                                    self.options,
+                                    self.methods,
+                                    multiprocess=True,
+                                    save_crop_video=True,
+                                    save_check_video=True)
         qApp.quit()
         new_pt.track()
 
