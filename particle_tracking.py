@@ -11,6 +11,7 @@ import dataframes
 import configuration as config
 import annotation as anno
 
+
 class ParticleTracker:
     """Class to track the locations of the particles in a video."""
 
@@ -214,134 +215,31 @@ class ParticleTracker:
                 self.video_corename + "_annotated.mp4")
         va.add_tracking_circles()
 
-'''  
-class ParticleTracker:
-    """Class to track the locations of the particles in a video."""
-
-    def __init__(self,
-                 input_video,
-                 dataframe_inst,
-                 options,
-                 method_order,
-                 crop_vid_filename=None,
-                 test_vid_filename=None):
+    @staticmethod
+    def annotate_frame_with_circles(frame, circles):
         """
-        Init
+        Annotates a particular frame with the detected circles
 
         Parameters
         ----------
-        vid: class instance
-            Instance of class Generic.video.ReadVideo containing the input video
+        frame: numpy array
+            numpy array containing video frame
+        circles: (1, N, 3) array
+            (:, :, 0) contains x coordinates
+            (:, :, 1) contains y coordinates
+            (:, :, 2) contains size
 
-        dataframe: class instance
-            Instance of class ParticleTracking.dataframes.TrackingDataframe
-
-        options: dictionary
-            A dictionary containing all the parameters needed for functions
-
-        method_order: list
-            A list containing string associated with methods in the order they
-            will be used
-
-        crop_vid_filename: string
-            A string containing the filepath to save the cropped video
-                If None don't make video
-
-        test_vid_filename: string
-            A string containing the filepath to save the video with the tracked
-            circles annotated on top.
-                If None, don't make video
+        Returns
+        -------
+        frame: numpy array
+            contains annotated video frame
         """
-        self.video = input_video
-        self.td = dataframe_inst
-        self.options = options
-        self.ip = preprocessing.ImagePreprocessor(method_order, self.options)
-        self.crop_vid_filename = crop_vid_filename
-        self.test_vid_filename = test_vid_filename
-
-    def track(self):
-        """Call this to start the tracking"""
-        for f in range(self.video.num_frames):
-            print(f+1, " of ", self.video.num_frames)
-            frame = self.video.read_next_frame()
-            new_frame, cropped_frame, boundary = self.ip.process_image(frame)
-            circles = self.find_circles(new_frame)
-            if self.crop_vid_filename:
-                self._save_cropped_video(cropped_frame)
-            self.td.add_tracking_data(f, circles, boundary)
-        self._filter_trajectories()
-        self.td.save_dataframe()
-        if self.test_vid_filename:
-            self._check_video_tracking()
-
-    def _check_video_tracking(self):
-        va = anno.VideoAnnotator(self.td,
-                                 self.crop_vid_filename,
-                                 self.test_vid_filename)
-        va.add_tracking_circles()
-
-    def annotate_frame_with_circles(self, frame, circles):
         if len(circles) > 0:
             for x, y, size in circles:
                 cv2.circle(frame, (int(x), int(y)),
                            int(size), (0, 255, 255), 2)
         return frame
 
-    def _save_cropped_video(self, frame):
-        if self.video.frame_num == 1:
-            self.crop_video = video.WriteVideo(
-                    self.crop_vid_filename,
-                    frame_size=np.shape(frame))
-        self.crop_video.add_frame(frame)
-
-        if self.video.frame_num == self.video.num_frames:
-            self.crop_video.close()
-
-    def _filter_trajectories(self):
-        """
-        Use trackpy to filter trajectories
-
-        Class Options
-        -------------
-        Uses the following keys from self.options:
-            'max frame displacement'
-            'min frame life'
-        """
-        self.td.dataframe = tp.link_df(self.td.dataframe,
-                                       self.options['max frame displacement'])
-        self.td.dataframe = tp.filter_stubs(self.td.dataframe,
-                                            self.options['min frame life'])
-
-    def find_circles(self, frame):
-        """
-        Uses cv2.HoughCircles to detect circles in a image
-
-        Parameters
-        ----------
-        frame: numpy array
-
-        Class Options
-        -------------
-        Uses the following keys from self.options:
-            'min_dist'
-            'p_1'
-            'p_2'
-            'min_rad'
-            'max_rad'
-
-        Returns
-        -------
-        circles: numpy array
-            Contains the x, y, and radius of each detected circle
-        """
-        circles = cv2.HoughCircles(frame, cv2.HOUGH_GRADIENT, 1,
-                                   self.options['min_dist'],
-                                   param1=self.options['p_1'],
-                                   param2=self.options['p_2'],
-                                   minRadius=self.options['min_rad'],
-                                   maxRadius=self.options['max_rad'])
-        return circles
-'''
 
 if __name__ == "__main__":
     choice = 'glass'
