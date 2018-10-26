@@ -370,7 +370,8 @@ class CropShape:
 if __name__ == "__main__":
     vid = video.ReadVideo(
         "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
-    process_config = config.GLASS_BEAD_PROCESS_LIST
+    ml = config.MethodsList('Glass_Bead', load=True)
+    process_config = ml.extract_methods()
     config_df = config.ConfigDataframe()
     options = config_df.get_options('Glass_Bead')
     IP = ImagePreprocessor(process_config, options)

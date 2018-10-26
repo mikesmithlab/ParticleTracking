@@ -1,9 +1,26 @@
 import pandas as pd
 import numpy as np
+import pickle
 
-GLASS_BEAD_PROCESS_LIST = ['simple threshold',
-                             'adaptive threshold',
-                             'gaussian blur', 'closing', 'opening']
+GLASS_BEAD_PROCESS_LIST = [['simple threshold', True],
+                           ['adaptive threshold', False],
+                           ['gaussian blur', False],
+                           ['closing', False],
+                           ['opening', False]]
+
+RED_BEAD_PROCESS_LIST = [['simple threshold', True],
+                           ['adaptive threshold', False],
+                           ['gaussian blur', False],
+                           ['closing', False],
+                           ['opening', False]]
+
+RUBBER_BEAD_PROCESS_LIST = [['simple threshold', False],
+                           ['adaptive threshold', True],
+                           ['gaussian blur', True],
+                           ['closing', False],
+                           ['opening', False]]
+
+
 
 GLASS_BEAD_OPTIONS_DICT = {'config': 1,
                            'title': 'Glass_Bead',
@@ -35,12 +52,6 @@ RED_BEAD_OPTIONS_DICT = {'config': 0,
                          'max frame displacement': 5,
                          'min frame life': 2}
 
-RED_BEAD_PROCESS_LIST = ['gaussian blur',
-                         'simple threshold',
-                         'adaptive threshold']
-
-RUBBER_BEAD_PROCESS_LIST = ['adaptive threshold', 'gaussian blur']
-
 PARTICLE_LIST = ['Glass_Bead',
                  'Red_Bead', 'Rubber_Bead']
 
@@ -66,9 +77,50 @@ class ConfigDataframe:
     def print_head(self):
         print(self.dataframe.head())
 
+
+class MethodsList:
+    filenames = {'Red_Bead': 'configs/red_bead_options.p',
+                 'Glass_Bead': 'configs/glass_bead_options.p',
+                 'Rubber_Bead': 'configs/rubber_bead_options.p'}
+
+    def __init__(self, particle_type, load=True):
+        self.filename = self.filenames[particle_type]
+        if load:
+            self.load_list()
+
+    def load_list(self):
+        with open(self.filename, 'rb') as fp:
+            self.methods_list = pickle.load(fp)
+
+    def write_list(self):
+        with open(self.filename, 'wb') as fp:
+            pickle.dump(self.methods_list, fp)
+
+    def extract_methods(self):
+        self.methods = []
+        for a, b in self.methods_list:
+            if b:
+                self.methods.append(a)
+        return self.methods
+
+
+
+
 if __name__=="__main__":
     cd = ConfigDataframe()
     options = cd.get_options('Red_Bead')
     print(options)
-    #methods = cd.get_methods('Red_Bead')
-    #print(methods)
+
+    '''
+    ml = MethodsList('Rubber_Bead', load=False)
+    ml.methods_list = RUBBER_BEAD_PROCESS_LIST
+    ml.write_list()
+
+    ml = MethodsList('Glass_Bead', load=False)
+    ml.methods_list = GLASS_BEAD_PROCESS_LIST
+    ml.write_list()
+
+    ml = MethodsList('Red_Bead', load=False)
+    ml.methods_list = RED_BEAD_PROCESS_LIST
+    ml.write_list()
+    '''

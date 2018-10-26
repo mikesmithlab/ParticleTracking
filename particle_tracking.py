@@ -234,7 +234,7 @@ class ParticleTracker:
         frame: numpy array
             contains annotated video frame
         """
-        if len(circles) > 0:
+        if circles is not None:
             for x, y, size in circles:
                 cv2.circle(frame, (int(x), int(y)),
                            int(size), (0, 255, 255), 2)
@@ -246,11 +246,13 @@ if __name__ == "__main__":
     config_df = config.ConfigDataframe()
     if choice == 'rubber':
         vid_name = "/home/ppxjd3/Videos/12240002.MP4"
-        process_config = config.RUBBER_BEAD_PROCESS_LIST
+        ml = config.MethodsList('Rubber_Bead', load=True)
+        process_config = ml.extract_methods()
         options_in = config_df.get_options('Rubber_Bead')
     else:
         vid_name = "/home/ppxjd3/Videos/test_video.avi"
-        process_config = config.GLASS_BEAD_PROCESS_LIST
+        ml = config.MethodsList('Glass_Bead', load=True)
+        process_config = ml.extract_methods()
         options_in = config_df.get_options('Glass_Bead')
 
     PT = ParticleTracker(vid_name,

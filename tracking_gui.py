@@ -16,7 +16,6 @@ import particle_tracking as pt
 import numpy as np
 import pyperclip
 import dataframes as df
-import particle_tracking_multi as ptm
 
 
 class MainWindow(QMainWindow):
@@ -29,10 +28,11 @@ class MainWindow(QMainWindow):
             self.load_vid()
         self.frame = self.video.read_next_frame()
         cv2.imwrite('frame.png', self.frame)
-        self.methods = con.GLASS_BEAD_PROCESS_LIST
+        self.methods = con.MethodsList('Glass_Bead', load=True)
         self.config_dataframe = con.ConfigDataframe()
         self.options = self.config_dataframe.get_options('Glass_Bead')
-        self.pp = pp.ImagePreprocessor(self.methods, self.options)
+        self.pp = pp.ImagePreprocessor(self.methods.extract_methods(),
+                                       self.options)
         self.init_ui()
 
     def init_ui(self):
@@ -98,7 +98,7 @@ class MainWindow(QMainWindow):
 
     def process_button_clicked(self):
         self.check_method_list()
-        self.pp.update_options(self.options, self.methods)
+        self.pp.update_options(self.options, self.methods.extract_methods())
         self.new_frame, self.cropped_frame, _ = \
             self.pp.process_image(self.frame)
         cv2.imwrite('frame.png', self.new_frame)
@@ -110,11 +110,9 @@ class MainWindow(QMainWindow):
 
     def detect_button_clicked(self):
         self.check_method_list()
-        #self.pt = pt.ParticleTracker(self.video, None, self.options,
-        #                             self.methods)
         self.pt = pt.ParticleTracker(self.filename[0],
                                      self.options,
-                                     self.methods)
+                                     self.methods.extract_methods())
         circles = self.pt.find_circles(self.new_frame)
         circles = np.array(circles).squeeze()
         annotated_frame = \
@@ -123,7 +121,7 @@ class MainWindow(QMainWindow):
         self.update_main_image()
 
     def create_save_config_button(self):
-        self.save_config_button = QPushButton("Save config to clipboard")
+        self.save_config_button = QPushButton("Save configs")
         self.save_config_button.clicked.connect(self.save_config_button_clicked)
 
     def save_config_button_clicked(self):
@@ -131,6 +129,7 @@ class MainWindow(QMainWindow):
         pyperclip.copy(str(self.options))
         text = self.config_choice_combo.currentText()
         self.config_dataframe.replace_row(self.options, text)
+        self.methods.write_list()
 
     def create_track_button(self):
         self.track_button = QPushButton("Start Track")
@@ -272,13 +271,16 @@ class MainWindow(QMainWindow):
         self.methods_list.setWindowTitle('Method Order')
 
         self.methods_model = QtGui.QStandardItemModel(self.methods_list)
-        for method in self.methods:
+        for method, check in self.methods.methods_list:
             item = QtGui.QStandardItem(method)
             item.setData(method)
             item.setCheckable(True)
             item.setDragEnabled(True)
             item.setDropEnabled(False)
-            item.setCheckState(Qt.Checked)
+            if check:
+                item.setCheckState(Qt.Checked)
+            else:
+                item.setCheckState(Qt.Unchecked)
 
             self.methods_model.appendRow(item)
 
@@ -291,9 +293,13 @@ class MainWindow(QMainWindow):
         new_methods = []
         for i in range(self.methods_model.rowCount()):
             it = self.methods_model.item(i)
-            if it is not None and it.checkState() == Qt.Checked:
-                new_methods.append(it.text())
-        self.methods = new_methods
+            if it is not None:
+                if it.checkState() == Qt.Checked:
+                    check = True
+                else:
+                    check = False
+                new_methods.append([it.text(), check])
+        self.methods.methods_list = new_methods
 
     """Track options and their callbacks"""
 
@@ -437,15 +443,9 @@ class MainWindow(QMainWindow):
         self.video = vid.ReadVideo(self.filename[0])
         # create dataframe
         dataframe = df.TrackingDataframe(self.name+'.hdf5')
-        #new_pt = pt.ParticleTracker(self.video,
-        #                            dataframe,
-        #                            self.options,
-        #                            self.methods,
-        #                            self.name+'_crop.avi',
-        #                            self.name+'_test.avi')
         new_pt = pt.ParticleTracker(self.filename[0],
                                     self.options,
-                                    self.methods,
+                                    self.methods.extract_methods(),
                                     multiprocess=True,
                                     save_crop_video=True,
                                     save_check_video=True)
@@ -454,10 +454,7 @@ class MainWindow(QMainWindow):
 
     def reload_configs(self, config):
         self.options = self.config_dataframe.get_options(config)
-        if config == 'Glass_Bead':
-            self.methods = con.GLASS_BEAD_PROCESS_LIST
-        elif config == 'Red_Bead':
-            self.methods = con.RED_BEAD_PROCESS_LIST
+        self.methods = con.MethodsList(config)
         self.update_all_sliders()
         self.update_method_list()
 
@@ -496,13 +493,16 @@ class MainWindow(QMainWindow):
 
     def update_method_list(self):
         self.methods_model = QtGui.QStandardItemModel(self.methods_list)
-        for method in self.methods:
+        for method, check in self.methods.methods_list:
             item = QtGui.QStandardItem(method)
             item.setData(method)
             item.setCheckable(True)
             item.setDragEnabled(True)
             item.setDropEnabled(False)
-            item.setCheckState(Qt.Checked)
+            if check:
+                item.setCheckState(Qt.Checked)
+            else:
+                item.setCheckState(Qt.Unchecked)
 
             self.methods_model.appendRow(item)
         self.methods_list.setModel(self.methods_model)
