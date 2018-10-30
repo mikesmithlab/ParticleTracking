@@ -27,6 +27,15 @@ class TrackingDataframe:
                 "boundary": [boundary]})
         self.boundary_df = pd.concat([self.boundary_df, boundary_df_to_append])
 
+    def extract_points_for_frame(self, frame_no):
+        x_coordinates = self.dataframe.loc[
+            self.dataframe['frame'] == frame_no, 'x']
+        y_coordinates = self.dataframe.loc[
+            self.dataframe['frame'] == frame_no, 'y']
+
+        points = np.vstack((x_coordinates, y_coordinates))
+        return np.transpose(points)
+
     def save_dataframe(self):
         if os.path.exists(self.filename):
             os.remove(self.filename)
