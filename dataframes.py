@@ -36,6 +36,10 @@ class TrackingDataframe:
         points = np.vstack((x_coordinates, y_coordinates))
         return np.transpose(points)
 
+    def add_property_to_dataframe(self, property_string, property):
+        self.dataframe[property_string] = property
+        self.save_dataframe()
+
     def save_dataframe(self):
         if os.path.exists(self.filename):
             os.remove(self.filename)

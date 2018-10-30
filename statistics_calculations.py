@@ -11,6 +11,8 @@ class PropertyCalculator:
 
     def calculate_hexatic_order_parameter(self):
         num_frames = int(np.max(self.td.dataframe['frame']))
+        count = 0
+        order_param_array = np.zeros(len(self.td.dataframe['x']))
         for n in range(num_frames+1):
             points = self.td.extract_points_for_frame(n)
 
@@ -35,8 +37,10 @@ class PropertyCalculator:
                 neighbors = points[neighbors_indices]
                 vectors = neighbors - point
                 angles = self._calculate_angles(vectors)
-                orders.append(self._calc_order_parameter_from_angles(angles))
+                order_param_array[count] = \
+                    self._calc_order_parameter_from_angles(angles)
                 no_of_neighbors.append(len(neighbors))
+                count += 1
 
             if n == 0:
                 ordered_indices = np.nonzero(np.array(orders) > .3)
@@ -45,6 +49,7 @@ class PropertyCalculator:
                 plt.plot(points[:, 0], points[:, 1], 'x')
                 plt.plot(ordered_points[:, 0], ordered_points[:, 1], 'o')
                 plt.show()
+        self.td.add_property_to_dataframe('order', order_param_array)
 
     @staticmethod
     def _calculate_angles(vectors):
@@ -66,3 +71,4 @@ if __name__ == "__main__":
             load=True)
     PC = PropertyCalculator(dataframe)
     PC.calculate_hexatic_order_parameter()
+    print(dataframe.dataframe.head())
