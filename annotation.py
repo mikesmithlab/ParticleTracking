@@ -55,14 +55,18 @@ class VideoAnnotator:
             self.output_video.add_frame(frame)
         self.output_video.close()
 
-    def add_order_circles(self):
+    def add_coloured_circles(self, parameter='order'):
         for f in range(int(self.input_video.num_frames/18)):
             print(f, ' of ', self.input_video.num_frames)
             frame = self.input_video.read_next_frame()
-            out = self.td.return_order_for_frame(f)
-            for xi, yi, r, o in out:
-                col = np.multiply(cm.jet(o)[0:3], 255)
-                cv2.circle(frame, (int(xi), int(yi)), int(r), (col[0], col[1], col[2]), -1)
+            out = self.td.return_property_and_circles_for_frame(f, parameter)
+            for xi, yi, r, param in out:
+                col = np.multiply(cm.jet(param)[0:3], 255)
+                cv2.circle(frame,
+                           (int(xi), int(yi)),
+                           int(r),
+                           (col[0], col[1], col[2]),
+                           -1)
             if self.shrink_factor is not 1:
                 frame = cv2.resize(frame,
                                    None,
@@ -81,5 +85,5 @@ if __name__=="__main__":
     VA = VideoAnnotator(dataframe,
             "/home/ppxjd3/Videos/12240002_crop.mp4",
             "/home/ppxjd3/Videos/12240002_crop_order.mp4",
-            shrink_factor=4)
-    VA.add_order_circles()
+            shrink_factor=2)
+    VA.add_coloured_circles()

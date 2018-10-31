@@ -71,9 +71,9 @@ class TrackingDataframe:
                                      ['x', 'y', 'size']].values
         return circles
 
-    def return_order_for_frame(self, frame):
+    def return_property_and_circles_for_frame(self, frame, property):
         out = self.dataframe.loc[self.dataframe['frame'] == frame,
-                                               ['x', 'y', 'size', 'order']].values
+                                               ['x', 'y', 'size', property]].values
         return out
 
 
