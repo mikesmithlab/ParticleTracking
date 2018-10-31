@@ -12,28 +12,26 @@ class PropertyCalculator:
 
     def calculate_hexatic_order_parameter(self):
         num_frames = int(np.max(self.td.dataframe['frame']))
-        count = 0
-        print(len(self.td.dataframe['x']))
         order_params = np.array([])
-
         for n in range(num_frames+1):
             points = self.td.extract_points_for_frame(n)
             list_indices, point_indices = self._find_delaunay_indices(points)
-            vectors = np.zeros((len(point_indices), 2))
             # The indices of neighbouring vertices of vertex k are
             # point_indices[list_indices[k]:list_indices[k+1]].
-
-            for p in range(len(points)):
-                point = points[p, :]
-                neighbors_indices = point_indices[list_indices[p]:
-                                                  list_indices[p+1]]
-                neighbors = points[neighbors_indices]
-                vectors[list_indices[p]:list_indices[p+1], :] = neighbors - point
-
+            vectors = self._find_vectors(points, list_indices, point_indices)
             angles = self._calculate_angles(vectors)
             orders = self._calculate_orders(angles, list_indices)
             order_params = np.append(order_params, orders)
         self.td.add_property_to_dataframe('order2', order_params)
+
+    @staticmethod
+    def _find_vectors(points, list_indices, point_indices):
+        neighbors = points[point_indices]
+        points_to_subtract = np.zeros(np.shape(neighbors))
+        for p in range(len(points)):
+            points_to_subtract[list_indices[p]:list_indices[p+1], :] = points[p]
+        vectors = neighbors - points_to_subtract
+        return vectors
 
     @staticmethod
     def _calculate_orders(angles, list_indices):
@@ -55,16 +53,6 @@ class PropertyCalculator:
         coses = np.dot(vectors, (0, 1))/np.linalg.norm(vectors, axis=1)
         return np.arccos(coses)
 
-    @staticmethod
-    def _calc_order_parameter_from_angles(angles):
-        tot = 0
-        for ang in angles:
-            part = np.exp(6j * ang)
-            tot += part
-        tot /= 6
-        return abs(tot) ** 2
-
-
 if __name__ == "__main__":
     dataframe = dataframes.TrackingDataframe(
             "/home/ppxjd3/Videos/12240002_data.hdf5",
@@ -72,5 +60,5 @@ if __name__ == "__main__":
     PC = PropertyCalculator(dataframe)
     PC.calculate_hexatic_order_parameter()
     print(dataframe.dataframe.head())
-    print(dataframe.dataframe['order1'].mean())
+    print(dataframe.dataframe['order'].mean())
     print(dataframe.dataframe['order2'].mean())
