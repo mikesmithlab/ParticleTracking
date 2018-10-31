@@ -16,7 +16,7 @@ class VideoAnnotator:
                  input_video_filename,
                  output_video_filename,
                  shrink_factor=1,
-                 multiprocess=False):
+                 multiprocess=True):
         """
         Initialise VideoAnnotator
 
@@ -44,50 +44,38 @@ class VideoAnnotator:
         self.shrink_factor = shrink_factor
         self.multiprocess = multiprocess
 
-    def add_tracking_circles(self):
-        """Annotates a video with the tracked circles to check tracking"""
-        self._find_video_info()
-        input_video = video.ReadVideo(self.input_video_filename)
-        out = video.WriteVideo(self.output_video_filename,
-                               frame_size=(self.height, self.width, 3),
-                               codec='mp4v')
-        for f in range(int(input_video.num_frames/18)):
-            frame = input_video.read_next_frame()
-            circles = self.td.return_circles_for_frame(f)
-            for x, y, size in circles:
-                cv2.circle(frame, (int(x), int(y)),
-                           int(size), (0, 255, 255), 1)
-            if self.shrink_factor is not 1:
-                frame = cv2.resize(frame,
-                                   None,
-                                   fx=1 / self.shrink_factor,
-                                   fy=1 / self.shrink_factor,
-                                   interpolation=cv2.INTER_CUBIC)
-            out.add_frame(frame)
-        out.close()
+    def add_coloured_circles(self, parameter=None):
+        self.parameter = parameter
+        if not parameter:
+            self.dataframe_columns = ['x', 'y', 'size', 'particle']
+            self.circle_type = 2
+        else:
+            self.dataframe_columns = ['x', 'y', 'size', parameter]
+            self.circle_type = -1
 
-    def add_coloured_circles(self, parameter='order'):
         if self.multiprocess:
             self.add_coloured_circles_multi(parameter)
         else:
-            self.add_coloured_circles_single()
+            self.add_coloured_circles_single(parameter)
 
-    def add_coloured_circles_single(self, parameter='order'):
+    def add_coloured_circles_single(self, parameter):
         self._find_video_info()
         input_video = video.ReadVideo(self.input_video_filename)
         out = video.WriteVideo(self.output_video_filename,
                                frame_size=(self.height, self.width, 3),
                                codec='mp4v')
+        col = (0, 255, 255)
         for f in range(int(input_video.num_frames)):
             frame = input_video.read_next_frame()
-            info = self.td.return_property_and_circles_for_frame(f, parameter)
+            info = self.td.return_property_and_circles_for_frame(f, self.dataframe_columns)
             for xi, yi, r, param in info:
-                col = np.multiply(cm.jet(param)[0:3], 255)
+                if self.parameter:
+                    col = np.multiply(cm.jet(param)[0:3], 255)
                 cv2.circle(frame,
                            (int(xi), int(yi)),
                            int(r),
                            (col[0], col[1], col[2]),
-                           -1)
+                           self.circle_type)
             if self.shrink_factor is not 1:
                 frame = cv2.resize(frame,
                                    None,
@@ -135,18 +123,21 @@ class VideoAnnotator:
                                codec=self.fourcc,
                                fps=self.fps)
         proc_frames = 0
+        col = (0, 255, 255)
         while proc_frames < self.frame_jump_unit:
             frame_no = frame_no_start + proc_frames
-            info = self.td.return_property_and_circles_for_frame(frame_no,
-                                                                 self.parameter)
+            info = self.td.return_property_and_circles_for_frame(
+                    frame_no, self.dataframe_columns)
             frame = cap.read_next_frame()
+
             for xi, yi, r, param in info:
-                col = np.multiply(cm.jet(param)[0:3], 255)
+                if self.parameter:
+                    col = np.multiply(cm.jet(param)[0:3], 255)
                 cv2.circle(frame,
                            (int(xi), int(yi)),
                            int(r),
                            (col[0], col[1], col[2]),
-                           -1)
+                           self.circle_type)
             if self.shrink_factor is not 1:
                 frame = cv2.resize(frame,
                                    None,
@@ -177,5 +168,5 @@ if __name__ == "__main__":
             "/home/ppxjd3/Videos/12240002_crop.mp4",
             "/home/ppxjd3/Videos/12240002_crop_annotate.mp4",
             shrink_factor=1,
-            multiprocess=False)
-    VA.add_tracking_circles()
+            multiprocess=True)
+    VA.add_coloured_circles()

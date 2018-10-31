@@ -213,7 +213,7 @@ class ParticleTracker:
                 data_store,
                 self.video_corename + "_crop.mp4",
                 self.video_corename + "_annotated.mp4")
-        va.add_tracking_circles()
+        va.add_coloured_circles()
 
     @staticmethod
     def annotate_frame_with_circles(frame, circles):
