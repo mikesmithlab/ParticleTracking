@@ -1,7 +1,8 @@
 import cv2
 import ParticleTracking.dataframes as dataframes
 import Generic.video as video
-
+from matplotlib import cm
+import numpy as np
 
 class VideoAnnotator:
     """Class to annotate videos with information"""
@@ -54,13 +55,31 @@ class VideoAnnotator:
             self.output_video.add_frame(frame)
         self.output_video.close()
 
+    def add_order_circles(self):
+        for f in range(int(self.input_video.num_frames/18)):
+            print(f, ' of ', self.input_video.num_frames)
+            frame = self.input_video.read_next_frame()
+            out = self.td.return_order_for_frame(f)
+            for xi, yi, r, o in out:
+                col = np.multiply(cm.jet(o)[0:3], 255)
+                cv2.circle(frame, (int(xi), int(yi)), int(r), (col[0], col[1], col[2]), -1)
+            if self.shrink_factor is not 1:
+                frame = cv2.resize(frame,
+                                   None,
+                                   fx=1/self.shrink_factor,
+                                   fy=1/self.shrink_factor,
+                                   interpolation=cv2.INTER_CUBIC)
+            self.output_video.add_frame(frame)
+        self.output_video.close()
+
 
 if __name__=="__main__":
 
     dataframe = dataframes.TrackingDataframe(
-            "/home/ppxjd3/Code/ParticleTracking/test_data/test_video.hdf5",
+            "/home/ppxjd3/Videos/12240002_data.hdf5",
             load=True)
     VA = VideoAnnotator(dataframe,
-            "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_crop.avi",
-            "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_crop_annotated.avi")
-    VA.add_tracking_circles()
+            "/home/ppxjd3/Videos/12240002_crop.mp4",
+            "/home/ppxjd3/Videos/12240002_crop_order.mp4",
+            shrink_factor=4)
+    VA.add_order_circles()

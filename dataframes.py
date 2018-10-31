@@ -69,8 +69,12 @@ class TrackingDataframe:
         """
         circles = self.dataframe.loc[self.dataframe['frame'] == frame,
                                      ['x', 'y', 'size']].values
-
         return circles
+
+    def return_order_for_frame(self, frame):
+        out = self.dataframe.loc[self.dataframe['frame'] == frame,
+                                               ['x', 'y', 'size', 'order']].values
+        return out
 
 
 def concatenate_dataframe(dataframe_list, new_filename):
