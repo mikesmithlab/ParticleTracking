@@ -215,31 +215,6 @@ class ParticleTracker:
                 self.video_corename + "_annotated.mp4")
         va.add_coloured_circles()
 
-    @staticmethod
-    def annotate_frame_with_circles(frame, circles):
-        """
-        Annotates a particular frame with the detected circles
-
-        Parameters
-        ----------
-        frame: numpy array
-            numpy array containing video frame
-        circles: (1, N, 3) array
-            (:, :, 0) contains x coordinates
-            (:, :, 1) contains y coordinates
-            (:, :, 2) contains size
-
-        Returns
-        -------
-        frame: numpy array
-            contains annotated video frame
-        """
-        if circles is not None:
-            for x, y, size in circles:
-                cv2.circle(frame, (int(x), int(y)),
-                           int(size), (0, 255, 255), 2)
-        return frame
-
 
 if __name__ == "__main__":
     choice = 'glass'

@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
 import Generic.video as vid
+import Generic.images as im
 import cv2
 import preprocessing as pp
 import configuration as con
@@ -115,8 +116,7 @@ class MainWindow(QMainWindow):
                                      self.methods.extract_methods())
         circles = self.pt.find_circles(self.new_frame)
         circles = np.array(circles).squeeze()
-        annotated_frame = \
-            self.pt.annotate_frame_with_circles(self.cropped_frame, circles)
+        annotated_frame = im.draw_circles(self.cropped_frame, circles)
         cv2.imwrite('frame.png', annotated_frame)
         self.update_main_image()
 
