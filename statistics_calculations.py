@@ -1,8 +1,6 @@
 import numpy as np
 import dataframes
 import scipy.spatial as sp
-import matplotlib.pyplot as plt
-import math as m
 
 class PropertyCalculator:
     """Class to calculate the properties associated with tracking"""
@@ -51,10 +49,6 @@ class PropertyCalculator:
     def _calculate_angles(vectors):
         coses = vectors[:, 1]/ np.linalg.norm(vectors, axis=1)
         return np.arccos(coses)
-
-def calculate_angles(vectors):
-    coses = vectors[:, 1] / np.linalg.norm(vectors, axis=1)
-    return np.arccos(coses)
 
 
 if __name__ == "__main__":
