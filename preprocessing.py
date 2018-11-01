@@ -185,10 +185,9 @@ class CropShape:
         self.refPt = []
         self.image = input_image
         self.no_of_sides = no_of_sides
-        self.scale = 1280/np.shape(self.image)[1]
+        self.scale = 1280/im.get_height(self.image)
         self.original_image = self.image.copy()
-        self.image = cv2.resize(self.image, None, fx=self.scale, fy=self.scale,
-                                interpolation=cv2.INTER_CUBIC)
+        self.image = im.resize(self.image, self.scale*100)
 
     def _click_and_crop(self, event, x, y, flags, param):
         """Internal method to manage the user cropping"""
