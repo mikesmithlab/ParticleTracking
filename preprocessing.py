@@ -2,8 +2,7 @@ import Generic.video as video
 import cv2
 import numpy as np
 import ParticleTracking.configuration as config
-import Generic.simple_funcs as sf
-
+import Generic.images as im
 
 class ImagePreprocessor:
     """Class to manage the frame by frame processing of videos"""
@@ -60,20 +59,57 @@ class ImagePreprocessor:
             self._find_crop_and_mask_for_first_frame(frame)
         cropped_frame = self._crop_and_mask_frame(frame)
         new_frame = cropped_frame.copy()
-        new_frame = self._grayscale_frame(new_frame)
+        new_frame = im.bgr_2_grayscale(new_frame)
         for method in method_order:
             if method == 'opening':
-                new_frame = self._opening(new_frame)
+                new_frame = im.opening(
+                    new_frame,
+                    kernel=(self.options['opening kernel'],
+                            self.options['opening kernel']))
+
             elif method == 'simple threshold':
-                new_frame = self._simple_threshold(new_frame)
+                new_frame = im.threshold(
+                    new_frame,
+                    self.options['grayscale threshold'])
+
             elif method == 'adaptive threshold':
-                new_frame = self._adaptive_threshold(new_frame)
+                new_frame = im.adaptive_threshold(
+                    new_frame,
+                    block_size=(self.options['adaptive threshold block size']))
+
             elif method == 'gaussian blur':
-                new_frame = self._gaussian_blur(new_frame)
+                new_frame = im.gaussian_blur(
+                    new_frame,
+                    kernel=(self.options['blur kernel'],
+                            self.options['blur kernel']))
+
             elif method == 'distance transform':
-                new_frame = self._distance_transform(new_frame)
+                new_frame = im.distance_transform(new_frame)
+
             elif method == 'closing':
-                new_frame = self._closing(new_frame)
+                new_frame = im.closing(
+                    new_frame,
+                    kernel=(self.options['closing kernel'],
+                            self.options['closing kernel']))
+
+            elif method == 'opening':
+                new_frame = im.opening(
+                    new_frame,
+                    kernel=(self.options['opening kernel'],
+                            self.options['opening kernel']))
+
+            elif method == 'dilation':
+                new_frame = im.dilate(
+                    new_frame,
+                    kernel=(self.options['dilate kernel'],
+                            self.options['dilate kernel']))
+
+            elif method == 'erosion':
+                new_frame = im.erode(
+                    new_frame,
+                    kernel=(self.options['erode kernel'],
+                            self.options['erode kernel']))
+
 
         self.process_calls += 1
         return new_frame, cropped_frame, self.boundary
@@ -120,149 +156,10 @@ class ImagePreprocessor:
         cropped_frame: numpy array
             A numpy array containing an image which has been cropped and masked
         """
-        masked_frame = cv2.bitwise_and(frame, frame, mask=self.mask_img)
-        cropped_frame = masked_frame[self.crop[0][0]:self.crop[0][1],
-                                     self.crop[1][0]:self.crop[1][1],
-                                     :]
+        masked_frame = im.mask_img(frame, self.mask_img)
+        cropped_frame = im.crop_img(masked_frame, self.crop)
         return cropped_frame
 
-    def _grayscale_frame(self, frame):
-        """
-        Convert a frame to grayscale.
-
-        Uses cv2.cvtColor with cv2.COLOR_BGR2GRAY for the conversion
-
-        Parameters
-        ----------
-        frame: numpy array
-            A numpy array of a colour image of type uint8
-
-        Returns
-        -------
-        new_frame: numpy array
-            A numpy array of a grayscale image of type uint8
-        """
-
-        new_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        return new_frame
-
-    def _simple_threshold(self, frame, threshold=100):
-        """
-        Perform a binary threshold of a frame
-
-        Parameters
-        ----------
-        frame: numpy array
-            A numpy array of a grayscale image of type uint8
-
-        Class Options
-        -------------
-        Uses the key 'grayscale threshold' from self.options
-
-        Returns
-        -------
-        new_frame: numpy array
-            A numpy array of a binary image of type uint8
-        """
-        if self.options:
-            threshold = self.options['grayscale threshold']
-        ret, new_frame = cv2.threshold(frame,
-                                       threshold,
-                                       255,
-                                       cv2.THRESH_BINARY)
-        return new_frame
-
-    def _adaptive_threshold(self, frame, block_size=13, constant=0):
-        """
-        Perform an adaptive threshold of a frame
-
-        Parameters
-        ----------
-        frame: numpy array
-            A numpy array of a grayscale image of type uint8
-
-        Class Options
-        -------------
-        Uses the following keys from self.options:
-            'adaptive threshold block size'
-            'adaptive threshold C'
-
-        Returns
-        -------
-        new_frame: numpy array
-            A numpy array of a binary image of type uint8
-        """
-        if self.options:
-            block_size = self.options['adaptive threshold block size']
-            constant = self.options['adaptive threshold C']
-        new_frame = cv2.adaptiveThreshold(
-                frame,
-                255,
-                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY,
-                block_size,
-                constant)
-        return new_frame
-
-    def _gaussian_blur(self, frame, kernel=(3, 3)):
-        """
-        Perform a gaussian blur of a frame
-
-        Parameters
-        ----------
-        frame: numpy array
-            A numpy array of an image of type uint8
-
-        Class Options
-        -------------
-        Uses the following keys from self.options:
-            'blur kernel'
-
-        Returns
-        -------
-        new_frame: numpy array
-            A numpy array of an image of type uint8
-        """
-        if self.options:
-            kernel = (self.options['blur kernel'], self.options['blur kernel'])
-        new_frame = cv2.GaussianBlur(frame, kernel, 0)
-        return new_frame
-
-    def _dilate(self, frame, kernel=np.ones((3,3), dtype=np.uint8)):
-        if self.options:
-            if 'dilate kernel' in self.options:
-                kernel = (self.options['dilate kernel'],
-                          self.options['dilate kernel'])
-        new_frame = cv2.dilate(frame, kernel)
-        return new_frame
-
-    def _erode(self, frame, kernel=np.ones((3,3), dtype=np.uint8)):
-        if self.options:
-            if 'erode kernel' in self.options:
-                kernel = (self.options['erode kernel'],
-                          self.options['erode kernel'])
-        new_frame = cv2.erode(frame, kernel)
-        return new_frame
-
-    def _opening(self, frame, kernel=np.ones((3,3), dtype=np.uint8)):
-        if self.options:
-            if 'opening kernel' in self.options:
-                kernel = (self.options['opening kernel'],
-                          self.options['opening kernel'])
-        new_frame = cv2.morphologyEx(frame, cv2.MORPH_OPEN, kernel)
-        return new_frame
-
-    def _closing(self, frame, kernel=np.ones((3,3), dtype=np.uint8)):
-        if self.options:
-            if 'closing kernel' in self.options:
-                kernel = (self.options['closing kernel'],
-                          self.options['closing kernel'])
-        new_frame = cv2.morphologyEx(frame, cv2.MORPH_CLOSE, kernel)
-        return new_frame
-
-    def _distance_transform(self, frame):
-        new_frame = cv2.distanceTransform(frame, cv2.DIST_L2, 3)
-        return new_frame
 
 
 class CropShape:
@@ -389,6 +286,4 @@ if __name__ == "__main__":
             boundary = boundary.reshape((-1, 1, 2))
             boundary = boundary.astype(np.int32)
             cv2.polylines(new_frame, [boundary], True, (0, 0, 255))
-        cv2.imshow("new_frame", new_frame)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        im.display(new_frame)
