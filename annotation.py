@@ -36,7 +36,7 @@ class VideoAnnotator:
             if delaunay:
                 frame = im.draw_delaunay_tess(frame, points)
             if voronoi:
-                frame = im.add_voronoi_cells(frame, points)
+                frame = im.draw_voronoi_cells(frame, points)
             out.add_frame(frame)
         cap.close()
         out.close()
