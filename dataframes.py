@@ -97,8 +97,7 @@ def concatenate_dataframe(dataframe_list, new_filename):
 
 
 if __name__=="__main__":
-    store = pd.HDFStore("/home/ppxjd3/Code/ParticleTracking/test_data/"
-                        "test_video.hdf5")
-    dataframe = store['data']
-    circles = dataframe.loc[dataframe['frame'] == 1,
-                                 ['x', 'y', 'size']].values
+    filename = "/home/ppxjd3/Videos/12240002_data.hdf5"
+    td = TrackingDataframe(filename, load=True)
+    circles = td.return_circles_for_frame(5)
+    print(np.shape(circles))
