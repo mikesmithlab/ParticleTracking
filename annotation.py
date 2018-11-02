@@ -34,7 +34,7 @@ class VideoAnnotator:
             points = self.td.extract_points_for_frame(f)
             frame = cap.read_next_frame()
             if delaunay:
-                frame = im.add_delaunay_tess(frame, points)
+                frame = im.draw_delaunay_tess(frame, points)
             if voronoi:
                 frame = im.add_voronoi_cells(frame, points)
             out.add_frame(frame)
