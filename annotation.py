@@ -1,13 +1,16 @@
 import cv2
 import ParticleTracking.dataframes as dataframes
 import Generic.video as video
+import Generic.images as im
 from matplotlib import cm
 import numpy as np
 import multiprocessing as mp
 import subprocess as sp
 import os
+import scipy.spatial as spatial
+import time
 
-class VideoAnnotator2:
+class VideoAnnotator:
 
     def __init__(self,
                  dataframe_inst,
@@ -20,6 +23,21 @@ class VideoAnnotator2:
         self.output_video_filename = output_video_filename
         self.shrink_factor = shrink_factor
         self.multiprocess = multiprocess
+
+    def add_delaunay_network(self):
+        cap = video.ReadVideo(self.input_video_filename)
+        out = video.WriteVideo(self.output_video_filename,
+                               (cap.height, cap.width, 3),
+                               codec='mp4v')
+        for f in range(cap.num_frames):
+            print(f)
+            points = self.td.extract_points_for_frame(f)
+            frame = cap.read_next_frame()
+            tess = spatial.Delaunay(points)
+            frame = im.draw_triangles(frame, points[tess.simplices])
+            out.add_frame(frame)
+        cap.close()
+        out.close()
 
     def add_coloured_circles(self, parameter=None):
         self.parameter = parameter
@@ -119,10 +137,13 @@ if __name__ == "__main__":
     dataframe = dataframes.TrackingDataframe(
             "/home/ppxjd3/Videos/12240002_data.hdf5",
             load=True)
-    VA = VideoAnnotator2(
+    input_video = "/home/ppxjd3/Videos/12240002_crop.mp4"
+    output_video = "/home/ppxjd3/Videos/12240002_crop_tri.mp4"
+    VA = VideoAnnotator(
             dataframe,
-            "/home/ppxjd3/Videos/12240002_crop.mp4",
-            "/home/ppxjd3/Videos/12240002_crop_annotate.mp4",
+            input_video,
+            output_video,
             shrink_factor=1,
             multiprocess=True)
-    VA.add_coloured_circles('order')
+    # VA.add_coloured_circles('order')
+    VA.add_delaunay_network()
