@@ -27,14 +27,13 @@ class VideoAnnotator:
     def add_delaunay_network(self):
         cap = video.ReadVideo(self.input_video_filename)
         out = video.WriteVideo(self.output_video_filename,
-                               (cap.height, cap.width, 3),
-                               codec='mp4v')
+                               (cap.height, cap.width, 3))
         for f in range(cap.num_frames):
             print(f)
             points = self.td.extract_points_for_frame(f)
             frame = cap.read_next_frame()
             tess = spatial.Delaunay(points)
-            frame = im.draw_triangles(frame, points[tess.simplices])
+            frame = im.draw_polygons(frame, points[tess.simplices])
             out.add_frame(frame)
         cap.close()
         out.close()
