@@ -34,31 +34,12 @@ class VideoAnnotator:
             points = self.td.extract_points_for_frame(f)
             frame = cap.read_next_frame()
             if delaunay:
-                frame = self.add_delaunay_tess(frame, points)
+                frame = im.add_delaunay_tess(frame, points)
             if voronoi:
-                frame = self.add_voronoi_cells(frame, points)
+                frame = im.add_voronoi_cells(frame, points)
             out.add_frame(frame)
         cap.close()
         out.close()
-
-    def add_delaunay_tess(self, frame, points):
-        tess = spatial.Delaunay(points)
-        frame = im.draw_polygons(frame,
-                                 points[tess.simplices],
-                                 color=im.LIME)
-        return frame
-
-    def add_voronoi_cells(self, frame, points):
-        voro = spatial.Voronoi(points)
-        ridge_vertices = voro.ridge_vertices
-        new_ridge_vertices = []
-        for ridge in ridge_vertices:
-            if -1 not in ridge:
-                new_ridge_vertices.append(ridge)
-        frame = im.draw_polygons(frame,
-                                 voro.vertices[new_ridge_vertices],
-                                 color=im.PINK)
-        return frame
 
     def add_coloured_circles(self, parameter=None):
         self.parameter = parameter
