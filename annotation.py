@@ -10,6 +10,7 @@ import os
 import scipy.spatial as spatial
 import time
 
+
 class VideoAnnotator:
 
     def __init__(self,
@@ -24,19 +25,40 @@ class VideoAnnotator:
         self.shrink_factor = shrink_factor
         self.multiprocess = multiprocess
 
-    def add_delaunay_network(self):
+    def add_annotations(self, voronoi=False, delaunay=False):
         cap = video.ReadVideo(self.input_video_filename)
         out = video.WriteVideo(self.output_video_filename,
                                (cap.height, cap.width, 3))
-        for f in range(cap.num_frames):
+        for f in range(cap.num_frames//18):
             print(f)
             points = self.td.extract_points_for_frame(f)
             frame = cap.read_next_frame()
-            tess = spatial.Delaunay(points)
-            frame = im.draw_polygons(frame, points[tess.simplices])
+            if delaunay:
+                frame = self.add_delaunay_tess(frame, points)
+            if voronoi:
+                frame = self.add_voronoi_cells(frame, points)
             out.add_frame(frame)
         cap.close()
         out.close()
+
+    def add_delaunay_tess(self, frame, points):
+        tess = spatial.Delaunay(points)
+        frame = im.draw_polygons(frame,
+                                 points[tess.simplices],
+                                 color=im.LIME)
+        return frame
+
+    def add_voronoi_cells(self, frame, points):
+        voro = spatial.Voronoi(points)
+        ridge_vertices = voro.ridge_vertices
+        new_ridge_vertices = []
+        for ridge in ridge_vertices:
+            if -1 not in ridge:
+                new_ridge_vertices.append(ridge)
+        frame = im.draw_polygons(frame,
+                                 voro.vertices[new_ridge_vertices],
+                                 color=im.PINK)
+        return frame
 
     def add_coloured_circles(self, parameter=None):
         self.parameter = parameter
@@ -145,4 +167,4 @@ if __name__ == "__main__":
             shrink_factor=1,
             multiprocess=True)
     # VA.add_coloured_circles('order')
-    VA.add_delaunay_network()
+    VA.add_annotations(voronoi=True, delaunay=True)
