@@ -115,10 +115,16 @@ class ImagePreprocessor:
         return new_frame, cropped_frame, self.boundary
 
     def update_options(self, options, methods):
+        """Updates class variables"""
         self.options = options
         self.method_order = methods
 
     def _find_crop_and_mask_for_first_frame(self, frame, no_of_sides=1):
+        """
+        Opens a crop shape instance with the input frame and no_of_sides
+
+        Sets the class variables self.mask_img, self.crop and self.boundary
+        """
         if self.options:
             no_of_sides = self.options['number of tray sides']
         crop_inst = im.CropShape(frame, no_of_sides)
