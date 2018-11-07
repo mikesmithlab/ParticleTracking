@@ -6,10 +6,10 @@ import trackpy as tp
 import multiprocessing as mp
 import subprocess as sp
 import Generic.video as vid
-import preprocessing as prepro
-import dataframes
-import configuration as config
-import annotation as anno
+import ParticleTracking.preprocessing as prepro
+import ParticleTracking.dataframes as dataframes
+import ParticleTracking.configuration as config
+import ParticleTracking.annotation as anno
 
 
 class ParticleTracker:

@@ -11,11 +11,11 @@ from PyQt5 import QtGui
 import Generic.video as vid
 import Generic.images as im
 import cv2
-import preprocessing as pp
-import configuration as con
-import particle_tracking as pt
+import ParticleTracking.preprocessing as pp
+import ParticleTracking.configuration as con
+import ParticleTracking.tracking as pt
 import numpy as np
-import dataframes as df
+import ParticleTracking.dataframes as df
 
 
 class MainWindow(QMainWindow):
