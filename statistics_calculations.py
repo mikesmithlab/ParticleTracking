@@ -43,11 +43,11 @@ class PropertyCalculator:
                 else:
                     circle = plt.Circle((boundary[0], boundary[1]), boundary[2], color='r', fill=False)
                     plt.gcf().gca().add_artist(circle)
-
                 plt.show()
         self.td.add_property_to_dataframe('on_edge', edges_array)
 
-    def is_point_on_edge(self, vor, vertices_outside):
+    @staticmethod
+    def is_point_on_edge(vor, vertices_outside):
         edges = np.zeros(len(vor.points), dtype=bool)
         for point_index, region_index in enumerate(vor.point_region):
             region = vor.regions[region_index]
@@ -55,7 +55,8 @@ class PropertyCalculator:
                 edges[point_index] = True
         return edges
 
-    def voronoi_vertices_outside(self, vor, boundary):
+    @staticmethod
+    def voronoi_vertices_outside(vor, boundary):
         if len(np.shape(boundary)) == 1:
             vertices_from_centre = vor.vertices - boundary[0:2]
             vertices_outside = np.linalg.norm(vertices_from_centre, axis=1) > boundary[2]
