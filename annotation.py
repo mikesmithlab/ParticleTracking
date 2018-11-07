@@ -13,18 +13,20 @@ class VideoAnnotator:
     def __init__(self,
                  dataframe_inst,
                  input_video_filename,
-                 output_video_filename,
                  shrink_factor=1,
                  multiprocess=True):
         self.td = dataframe_inst
         self.input_video_filename = input_video_filename
-        self.output_video_filename = output_video_filename
+        self.core_filename, self.extension = \
+            os.path.splitext(self.input_video_filename)
         self.shrink_factor = shrink_factor
         self.multiprocess = multiprocess
 
     def add_annotations(self, voronoi=False, delaunay=False):
         cap = video.ReadVideo(self.input_video_filename)
-        out = video.WriteVideo(self.output_video_filename,
+        output_video_filename = self.core_filename + '_network' + \
+                                self.extension
+        out = video.WriteVideo(output_video_filename,
                                (cap.height, cap.width, 3))
         for f in range(cap.num_frames//18):
             print(f)
@@ -43,9 +45,14 @@ class VideoAnnotator:
         if not parameter:
             self.dataframe_columns = ['x', 'y', 'size', 'particle']
             self.circle_type = 2
+            self.output_video_filename = self.core_filename + '_circles' + \
+                                         self.extension
         else:
             self.dataframe_columns = ['x', 'y', 'size', parameter]
             self.circle_type = -1
+            self.output_video_filename = self.core_filename + '_' + \
+                                         self.parameter + self.extension
+
 
         if self.multiprocess:
             self._add_coloured_circles_multi()
@@ -139,11 +146,9 @@ if __name__ == "__main__":
             "/home/ppxjd3/Videos/test_data.hdf5",
             load=True)
     input_video = "/home/ppxjd3/Videos/test_crop.mp4"
-    output_video = "/home/ppxjd3/Videos/test_crop_order.mp4"
     VA = VideoAnnotator(
             dataframe,
             input_video,
-            output_video,
             shrink_factor=1,
             multiprocess=True)
     VA.add_coloured_circles('order')

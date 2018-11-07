@@ -212,7 +212,6 @@ class ParticleTracker:
         va = anno.VideoAnnotator(
                 data_store,
                 self.video_corename + "_crop.mp4",
-                self.video_corename + "_annotated.mp4",
                 multiprocess=False)
         va.add_coloured_circles()
 
