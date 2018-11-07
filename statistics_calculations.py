@@ -1,6 +1,8 @@
 import numpy as np
 import dataframes
 import scipy.spatial as sp
+import matplotlib.pyplot as plt
+import matplotlib.path as mpltPath
 
 class PropertyCalculator:
     """Class to calculate the properties associated with tracking"""
@@ -21,19 +23,46 @@ class PropertyCalculator:
             order_params = np.append(order_params, orders)
         self.td.add_property_to_dataframe('order', order_params)
 
-    def find_edge_points(self):
-        edges_array = np.array([])
+    def find_edge_points(self, check=False):
+        edges_array = np.array([], dtype=bool)
         for f in range(self.num_frames+1):
             points = self.td.extract_points_for_frame(f)
             boundary = self.td.extract_boundary_for_frame(f)
             vor = sp.Voronoi(points)
             vertices_outside = self.voronoi_vertices_outside(vor, boundary)
-            print(vertices_outside)
+            edges = self.is_point_on_edge(vor, vertices_outside)
+            edges_array = np.append(edges_array, edges)
+            if check and f == 0:
+                plt.figure()
+                plt.plot(points[:, 0], points[:, 1], 'o')
+                edges_index = np.nonzero(edges == 1)
+                plt.plot(points[edges_index, 0], points[edges_index, 1], 'x')
+                if len(np.shape(boundary)) > 1:
+                    plt.plot(boundary[:, 0], boundary[:, 1], 'b-')
+                    plt.plot(boundary[[-1, 0], 0], boundary[[-1, 0], 1], 'b-')
+                else:
+                    circle = plt.Circle((boundary[0], boundary[1]), boundary[2], color='r', fill=False)
+                    plt.gcf().gca().add_artist(circle)
+
+                plt.show()
+        self.td.add_property_to_dataframe('on_edge', edges_array)
+
+    def is_point_on_edge(self, vor, vertices_outside):
+        edges = np.zeros(len(vor.points), dtype=bool)
+        for point_index, region_index in enumerate(vor.point_region):
+            region = vor.regions[region_index]
+            if np.any(vertices_outside[region]) == True:
+                edges[point_index] = True
+        return edges
 
     def voronoi_vertices_outside(self, vor, boundary):
         if len(np.shape(boundary)) == 1:
             vertices_from_centre = vor.vertices - boundary[0:2]
             vertices_outside = np.linalg.norm(vertices_from_centre, axis=1) > boundary[2]
+        else:
+            path = mpltPath.Path(boundary)
+            vertices_inside = path.contains_points(vor.vertices)
+            vertices_outside = ~vertices_inside
         return vertices_outside
 
 
@@ -74,6 +103,7 @@ if __name__ == "__main__":
             load=True)
     PC = PropertyCalculator(dataframe)
     #PC.calculate_hexatic_order_parameter()
-    #print(dataframe.dataframe.head())
+    print(dataframe.dataframe.head())
     #print(dataframe.dataframe['order'].mean())
-    PC.find_edge_points()
+    PC.find_edge_points(check=True)
+    print(dataframe.dataframe['on_edge'].mean())
