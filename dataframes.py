@@ -51,6 +51,10 @@ class TrackingDataframe:
         self.boundary_df = store['boundary']
         store.close()
 
+    def extract_boundary_for_frame(self, frame):
+        boundary = self.boundary_df.loc[self.boundary_df['frame'] == frame, 'boundary'].values
+        return boundary[0]
+
     def return_circles_for_frame(self, frame):
         """
         Returns the 'x', 'y', and 'size' data for a certain frame
