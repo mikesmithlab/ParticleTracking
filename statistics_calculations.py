@@ -6,11 +6,11 @@ class PropertyCalculator:
     """Class to calculate the properties associated with tracking"""
     def __init__(self, tracking_dataframe):
         self.td = tracking_dataframe
+        self.num_frames = int(np.max(self.td.dataframe['frame']))
 
     def calculate_hexatic_order_parameter(self):
-        num_frames = int(np.max(self.td.dataframe['frame']))
         order_params = np.array([])
-        for n in range(num_frames+1):
+        for n in range(self.num_frames+1):
             points = self.td.extract_points_for_frame(n)
             list_indices, point_indices = self._find_delaunay_indices(points)
             # The indices of neighbouring vertices of vertex k are
@@ -20,6 +20,23 @@ class PropertyCalculator:
             orders = self._calculate_orders(angles, list_indices)
             order_params = np.append(order_params, orders)
         self.td.add_property_to_dataframe('order', order_params)
+
+    def find_edge_points(self):
+        edges_array = np.array([])
+        for f in range(self.num_frames+1):
+            points = self.td.extract_points_for_frame(f)
+            boundary = self.td.extract_boundary_for_frame(f)
+            vor = sp.Voronoi(points)
+            vertices_outside = self.voronoi_vertices_outside(vor, boundary)
+            print(vertices_outside)
+
+    def voronoi_vertices_outside(self, vor, boundary):
+        if len(np.shape(boundary)) == 1:
+            vertices_from_centre = vor.vertices - boundary[0:2]
+            vertices_outside = np.linalg.norm(vertices_from_centre, axis=1) > boundary[2]
+        return vertices_outside
+
+
 
     @staticmethod
     def _find_vectors(points, list_indices, point_indices):
@@ -56,6 +73,7 @@ if __name__ == "__main__":
             "/home/ppxjd3/Videos/test_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    PC.calculate_hexatic_order_parameter()
-    print(dataframe.dataframe.head())
-    print(dataframe.dataframe['order'].mean())
+    #PC.calculate_hexatic_order_parameter()
+    #print(dataframe.dataframe.head())
+    #print(dataframe.dataframe['order'].mean())
+    PC.find_edge_points()
