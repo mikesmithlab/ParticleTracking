@@ -46,13 +46,12 @@ class VideoAnnotator:
             self.dataframe_columns = ['x', 'y', 'size', 'particle']
             self.circle_type = 2
             self.output_video_filename = self.core_filename + '_circles' + \
-                                         self.extension
+                self.extension
         else:
             self.dataframe_columns = ['x', 'y', 'size', parameter]
             self.circle_type = -1
             self.output_video_filename = self.core_filename + '_' + \
-                                         self.parameter + self.extension
-
+                self.parameter + self.extension
 
         if self.multiprocess:
             self._add_coloured_circles_multi()
@@ -80,6 +79,7 @@ class VideoAnnotator:
             if group_number + 1 == self.num_processes:
                 self.frame_jump_unit += self.remainder
         else:
+            frame_no_start = 0
             write_name = self.output_video_filename
 
         out = video.WriteVideo(write_name,
@@ -129,15 +129,15 @@ class VideoAnnotator:
         os.remove("intermediate_files.txt")
 
     def _find_video_info(self):
-        input_video = video.ReadVideo(self.input_video_filename)
+        cap = video.ReadVideo(self.input_video_filename)
         if self.multiprocess:
-            self.frame_jump_unit = input_video.num_frames // self.num_processes
-            self.remainder = input_video.num_frames % self.num_processes
+            self.frame_jump_unit = cap.num_frames // self.num_processes
+            self.remainder = cap.num_frames % self.num_processes
         else:
-            self.frame_jump_unit = input_video.num_frames
-        self.fps = input_video.fps
-        self.width = int(input_video.width/self.shrink_factor)
-        self.height = int(input_video.height/self.shrink_factor)
+            self.frame_jump_unit = cap.num_frames
+        self.fps = cap.fps
+        self.width = int(cap.width/self.shrink_factor)
+        self.height = int(cap.height/self.shrink_factor)
 
 
 if __name__ == "__main__":
@@ -152,4 +152,4 @@ if __name__ == "__main__":
             shrink_factor=1,
             multiprocess=True)
     VA.add_coloured_circles('order')
-    #VA.add_annotations(voronoi=True, delaunay=True)
+    # VA.add_annotations(voronoi=True, delaunay=True)
