@@ -7,9 +7,6 @@ import numpy as np
 import multiprocessing as mp
 import subprocess as sp
 import os
-import scipy.spatial as spatial
-import time
-
 
 class VideoAnnotator:
 
