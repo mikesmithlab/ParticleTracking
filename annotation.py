@@ -85,6 +85,7 @@ class VideoAnnotator:
         col = (0, 255, 255)
         proc_frames = 0
         for f in range(int(self.frame_jump_unit)):
+            f += frame_no_start
             frame = cap.read_next_frame()
             info = self.td.return_property_and_circles_for_frame(
                 f, self.dataframe_columns)
@@ -147,6 +148,6 @@ if __name__ == "__main__":
             input_video,
             output_video,
             shrink_factor=1,
-            multiprocess=False)
+            multiprocess=True)
     VA.add_coloured_circles('order')
     #VA.add_annotations(voronoi=True, delaunay=True)
