@@ -19,7 +19,7 @@ class PropertyCalculator:
             angles = self._calculate_angles(vectors)
             orders = self._calculate_orders(angles, list_indices)
             order_params = np.append(order_params, orders)
-        self.td.add_property_to_dataframe('order2', order_params)
+        self.td.add_property_to_dataframe('order', order_params)
 
     @staticmethod
     def _find_vectors(points, list_indices, point_indices):
@@ -47,16 +47,15 @@ class PropertyCalculator:
 
     @staticmethod
     def _calculate_angles(vectors):
-        coses = vectors[:, 1]/ np.linalg.norm(vectors, axis=1)
-        return np.arccos(coses)
+        angles = np.angle(vectors[:, 0] + 1j*vectors[:, 1])
+        return angles
 
 
 if __name__ == "__main__":
     dataframe = dataframes.TrackingDataframe(
-            "/home/ppxjd3/Videos/12240002_data.hdf5",
+            "/home/ppxjd3/Videos/test_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
     PC.calculate_hexatic_order_parameter()
     print(dataframe.dataframe.head())
     print(dataframe.dataframe['order'].mean())
-    print(dataframe.dataframe['order2'].mean())

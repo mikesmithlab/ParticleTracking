@@ -67,6 +67,7 @@ class VideoAnnotator:
 
     def _add_coloured_circles_process(self, group_number):
         cap = video.ReadVideo(self.input_video_filename)
+        self.fourcc = "mp4v"
         self._find_video_info()
         if self.multiprocess:
             frame_no_start = self.frame_jump_unit * group_number
@@ -137,15 +138,15 @@ class VideoAnnotator:
 if __name__ == "__main__":
 
     dataframe = dataframes.TrackingDataframe(
-            "/home/ppxjd3/Videos/12240002_data.hdf5",
+            "/home/ppxjd3/Videos/test_data.hdf5",
             load=True)
-    input_video = "/home/ppxjd3/Videos/12240002_crop.mp4"
-    output_video = "/home/ppxjd3/Videos/12240002_crop_tri.mp4"
+    input_video = "/home/ppxjd3/Videos/test_crop.mp4"
+    output_video = "/home/ppxjd3/Videos/test_crop_order.mp4"
     VA = VideoAnnotator(
             dataframe,
             input_video,
             output_video,
             shrink_factor=1,
-            multiprocess=True)
-    # VA.add_coloured_circles('order')
-    VA.add_annotations(voronoi=True, delaunay=True)
+            multiprocess=False)
+    VA.add_coloured_circles('order')
+    #VA.add_annotations(voronoi=True, delaunay=True)

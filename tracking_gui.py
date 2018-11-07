@@ -15,7 +15,6 @@ import preprocessing as pp
 import configuration as con
 import particle_tracking as pt
 import numpy as np
-import pyperclip
 import dataframes as df
 
 

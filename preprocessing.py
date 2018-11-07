@@ -173,7 +173,7 @@ class ImagePreprocessor:
 
 if __name__ == "__main__":
     vid = video.ReadVideo(
-        "/home/ppxjd3/Code/ParticleTracking/test_data/test_video_EDIT.avi")
+        "/home/ppxjd3/Videos/test.mp4")
     ml = config.MethodsList('Glass_Bead', load=True)
     process_config = ml.extract_methods()
     config_df = config.ConfigDataframe()
