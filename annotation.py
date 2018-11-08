@@ -10,22 +10,27 @@ import os
 
 class VideoAnnotator:
 
-    def __init__(self,
-                 dataframe_inst,
-                 input_video_filename,
-                 shrink_factor=1,
-                 multiprocess=True):
+    def __init__(
+            self,
+            dataframe_inst,
+            input_video_filename,
+            shrink_factor=1,
+            multiprocess=True
+            ):
         self.td = dataframe_inst
         self.input_video_filename = input_video_filename
-        self.core_filename, self.extension = \
-            os.path.splitext(self.input_video_filename)
+        self.core_filename, self.extension = (
+                os.path.splitext(self.input_video_filename))
         self.shrink_factor = shrink_factor
         self.multiprocess = multiprocess
 
     def add_annotations(self, voronoi=False, delaunay=False):
         cap = video.ReadVideo(self.input_video_filename)
-        output_video_filename = self.core_filename + '_network' + \
-                                self.extension
+        output_video_filename = (
+                self.core_filename +
+                '_network' +
+                self.extension
+                )
         out = video.WriteVideo(output_video_filename,
                                (cap.height, cap.width, 3))
         for f in range(cap.num_frames//18):
