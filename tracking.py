@@ -158,6 +158,7 @@ class ParticleTracker:
                                    param2=self.options['p_2'],
                                    minRadius=self.options['min_rad'],
                                    maxRadius=self.options['max_rad'])
+        circles = np.squeeze(circles)
         return circles
 
     def _cleanup_intermediate_files(self):
@@ -224,7 +225,7 @@ if __name__ == "__main__":
         process_config = ml.extract_methods()
         options_in = config_df.get_options('Rubber_Bead')
     else:
-        vid_name = "/home/ppxjd3/Videos/test_video.avi"
+        vid_name = "/home/ppxjd3/Videos/test.mp4"
         ml = config.MethodsList('Glass_Bead', load=True)
         process_config = ml.extract_methods()
         options_in = config_df.get_options('Glass_Bead')
@@ -232,7 +233,7 @@ if __name__ == "__main__":
     PT = ParticleTracker(vid_name,
                          options_in,
                          process_config,
-                         multiprocess=True,
+                         multiprocess=False,
                          save_crop_video=True,
                          save_check_video=True)
     start = time.time()

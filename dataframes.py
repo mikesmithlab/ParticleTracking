@@ -14,13 +14,13 @@ class TrackingDataframe:
             self._load_dataframe()
 
     def add_tracking_data(self, frame, circles, boundary):
-        frame_list = np.ones((np.shape(circles)[1], 1)) * frame
+        frame_list = np.ones((np.shape(circles)[0], 1)) * frame
         dataframe_to_append = pd.DataFrame({
-                "x": circles[0, :, 0],
-                "y": circles[0, :, 1],
-                "size": circles[0, :, 2],
+                "x": circles[:, 0],
+                "y": circles[:, 1],
+                "size": circles[:, 2],
                 "frame": frame_list[:, 0]},
-                index=np.arange(1, np.shape(circles)[1] + 1))
+                index=np.arange(1, np.shape(circles)[0] + 1))
         self.dataframe = pd.concat([self.dataframe, dataframe_to_append])
         boundary_df_to_append = pd.DataFrame({
                 "frame": frame,
