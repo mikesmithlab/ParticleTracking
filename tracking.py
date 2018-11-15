@@ -26,7 +26,6 @@ class ParticleTracker:
 
         self.video_filename = input_video_filename
         self.video_corename = os.path.splitext(input_video_filename)[0]
-        print(self.video_corename)
         self.data_store_filename = self.video_corename + '_data.hdf5'
         self.options = options
         self.method_order = method_order
