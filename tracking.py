@@ -6,6 +6,7 @@ import trackpy as tp
 import multiprocessing as mp
 import subprocess as sp
 import Generic.video as vid
+import Generic.images as im
 import ParticleTracking.preprocessing as prepro
 import ParticleTracking.dataframes as dataframes
 import ParticleTracking.configuration as config
@@ -93,8 +94,7 @@ class ParticleTracker:
         self.fps = cap.fps
         frame = cap.read_next_frame()
         _, cropped_frame, _ = self.ip.process_image(frame)
-        self.width = int(np.shape(cropped_frame)[1])
-        self.height = int(np.shape(cropped_frame)[0])
+        self.width, self.height = im.get_width_and_height(cropped_frame)
 
     def _track_process(self, group_number):
         """

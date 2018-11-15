@@ -130,11 +130,15 @@ class ImagePreprocessor:
         crop_inst = im.CropShape(frame, no_of_sides)
         self.mask_img, self.crop, self.boundary = crop_inst.begin_crop()
         if np.shape(self.boundary) == (3,):
-            self.boundary[0] -= self.crop[1][0]
-            self.boundary[1] -= self.crop[0][0]
+            # boundary = [xc, yc, r]
+            # crop = ([xmin, ymin], [xmax, ymax])
+            self.boundary[0] -= self.crop[0][0]
+            self.boundary[1] -= self.crop[0][1]
         else:
-            self.boundary[:, 0] -= self.crop[1][0]
-            self.boundary[:, 1] -= self.crop[0][0]
+            # boundary = ([x1, y1], [x2, y2], ...)
+            # crop = ([xmin, ymin], [xmax, ymax])
+            self.boundary[:, 0] -= self.crop[0][0]
+            self.boundary[:, 1] -= self.crop[0][1]
 
     def _crop_and_mask_frame(self, frame):
         """
