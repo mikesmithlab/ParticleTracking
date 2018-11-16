@@ -52,7 +52,7 @@ class PropertyCalculator:
         edges = np.zeros(len(vor.points), dtype=bool)
         for point_index, region_index in enumerate(vor.point_region):
             region = vor.regions[region_index]
-            if np.any(vertices_outside[region]) == True:
+            if np.any(vertices_outside[region]):
                 edges[point_index] = True
         return edges
 
@@ -66,8 +66,6 @@ class PropertyCalculator:
             vertices_inside = path.contains_points(vor.vertices)
             vertices_outside = ~vertices_inside
         return vertices_outside
-
-
 
     @staticmethod
     def _find_vectors(points, list_indices, point_indices):
