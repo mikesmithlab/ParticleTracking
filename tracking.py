@@ -4,13 +4,13 @@ import time
 import numpy as np
 import trackpy as tp
 import multiprocessing as mp
-import subprocess as sp
+import subprocess as sub
 import Generic.video as vid
 import Generic.images as im
-import ParticleTracking.preprocessing as prepro
-import ParticleTracking.dataframes as dataframes
+import ParticleTracking.preprocessing as pp
+import ParticleTracking.dataframes as df
 import ParticleTracking.configuration as config
-import ParticleTracking.annotation as anno
+import ParticleTracking.annotation as an
 
 
 class ParticleTracker:
@@ -32,7 +32,7 @@ class ParticleTracker:
         self.multiprocess = multiprocess
         self.save_crop_video = save_crop_video
         self.save_check_video = save_check_video
-        self.ip = prepro.ImagePreprocessor(self.method_order, self.options)
+        self.ip = pp.ImagePreprocessor(self.method_order, self.options)
 
     def track(self):
         if self.multiprocess==True:
@@ -61,7 +61,7 @@ class ParticleTracker:
         self.video = vid.ReadVideo(self.video_filename)
         if os.path.exists(self.data_store_filename):
             os.remove(self.data_store_filename)
-        data = dataframes.TrackingDataframe(self.data_store_filename)
+        data = df.TrackingDataframe(self.data_store_filename)
         for f in range(self.video.num_frames):
             print(f+1, " of ", self.video.num_frames)
             frame = self.video.read_next_frame()
@@ -107,7 +107,7 @@ class ParticleTracker:
         group_number: int
             Describes which fraction of the video the method should act on
         """
-        data = dataframes.TrackingDataframe(str(group_number)+'.hdf5')
+        data = df.TrackingDataframe(str(group_number) + '.hdf5')
         cap = vid.ReadVideo(self.video_filename)
         frame_no_start = self.frame_jump_unit * group_number
         cap.set_frame(frame_no_start)
@@ -178,7 +178,7 @@ class ParticleTracker:
                          "-safe 0 -i intermediate_files.txt "
         ffmepg_command += " -vcodec copy "
         ffmepg_command += self.video_corename+"_crop.{}".format(self.extension)
-        sp.Popen(ffmepg_command, shell=True).wait()
+        sub.Popen(ffmepg_command, shell=True).wait()
 
         for f in intermediate_files:
             os.remove(f)
@@ -188,15 +188,15 @@ class ParticleTracker:
         """Concatanates and removes intermediate dataframes"""
         dataframe_list = ["{}.hdf5".format(i) for i in
                           range(self.num_processes)]
-        dataframes.concatenate_dataframe(dataframe_list,
-                                         self.data_store_filename)
+        df.concatenate_dataframe(dataframe_list,
+                                 self.data_store_filename)
         for file in dataframe_list:
             os.remove(file)
 
     def _link_trajectories(self):
         """Implements the trackpy functions link_df and filter_stubs"""
-        data_store = dataframes.TrackingDataframe(self.data_store_filename,
-                                                  load=True)
+        data_store = df.TrackingDataframe(self.data_store_filename,
+                                          load=True)
         data_store.dataframe = tp.link_df(
                 data_store.dataframe,
                 self.options['max frame displacement'])
@@ -207,9 +207,9 @@ class ParticleTracker:
 
     def _check_video_tracking(self):
         """Uses the VideoAnnotator class to draw circles on the video"""
-        data_store = dataframes.TrackingDataframe(self.data_store_filename,
-                                                  load=True)
-        va = anno.VideoAnnotator(
+        data_store = df.TrackingDataframe(self.data_store_filename,
+                                          load=True)
+        va = an.VideoAnnotator(
                 data_store,
                 self.video_corename + "_crop.mp4",
                 multiprocess=False)

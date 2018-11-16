@@ -1,8 +1,9 @@
 import numpy as np
-import ParticleTracking.dataframes as dataframes
+import ParticleTracking.dataframes as df
 import scipy.spatial as sp
 import matplotlib.pyplot as plt
-import matplotlib.path as mpltPath
+import matplotlib.path as mpath
+
 
 class PropertyCalculator:
     """Class to calculate the properties associated with tracking"""
@@ -61,7 +62,7 @@ class PropertyCalculator:
             vertices_from_centre = vor.vertices - boundary[0:2]
             vertices_outside = np.linalg.norm(vertices_from_centre, axis=1) > boundary[2]
         else:
-            path = mpltPath.Path(boundary)
+            path = mpath.Path(boundary)
             vertices_inside = path.contains_points(vor.vertices)
             vertices_outside = ~vertices_inside
         return vertices_outside
@@ -99,7 +100,7 @@ class PropertyCalculator:
 
 
 if __name__ == "__main__":
-    dataframe = dataframes.TrackingDataframe(
+    dataframe = df.TrackingDataframe(
             "/home/ppxjd3/Videos/test_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)

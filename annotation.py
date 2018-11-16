@@ -1,11 +1,11 @@
 import cv2
-import ParticleTracking.dataframes as dataframes
-import Generic.video as video
+import ParticleTracking.dataframes as df
+import Generic.video as vid
 import Generic.images as im
 from matplotlib import cm
 import numpy as np
 import multiprocessing as mp
-import subprocess as sp
+import subprocess as sub
 import os
 
 class VideoAnnotator:
@@ -25,14 +25,14 @@ class VideoAnnotator:
         self.multiprocess = multiprocess
 
     def add_annotations(self, voronoi=False, delaunay=False):
-        cap = video.ReadVideo(self.input_video_filename)
+        cap = vid.ReadVideo(self.input_video_filename)
         output_video_filename = (
                 self.core_filename +
                 '_network' +
                 self.extension
                 )
-        out = video.WriteVideo(output_video_filename,
-                               (cap.height, cap.width, 3))
+        out = vid.WriteVideo(output_video_filename,
+                             (cap.height, cap.width, 3))
         for f in range(cap.num_frames//18):
             print(f)
             points = self.td.extract_points_for_frame(f)
@@ -74,7 +74,7 @@ class VideoAnnotator:
         self._cleanup_intermediate_videos()
 
     def _add_coloured_circles_process(self, group_number):
-        cap = video.ReadVideo(self.input_video_filename)
+        cap = vid.ReadVideo(self.input_video_filename)
         self.fourcc = "mp4v"
         self._find_video_info()
         if self.multiprocess:
@@ -87,10 +87,10 @@ class VideoAnnotator:
             frame_no_start = 0
             write_name = self.output_video_filename
 
-        out = video.WriteVideo(write_name,
-                               frame_size=(self.height, self.width, 3),
-                               codec=self.fourcc,
-                               fps=self.fps)
+        out = vid.WriteVideo(write_name,
+                             frame_size=(self.height, self.width, 3),
+                             codec=self.fourcc,
+                             fps=self.fps)
         col = (0, 255, 255)
         proc_frames = 0
         for f in range(int(self.frame_jump_unit)):
@@ -127,14 +127,14 @@ class VideoAnnotator:
                          "-safe 0 -i intermediate_files.txt "
         ffmepg_command += " -vcodec copy "
         ffmepg_command += self.output_video_filename
-        sp.Popen(ffmepg_command, shell=True).wait()
+        sub.Popen(ffmepg_command, shell=True).wait()
 
         for f in intermediate_files:
             os.remove(f)
         os.remove("intermediate_files.txt")
 
     def _find_video_info(self):
-        cap = video.ReadVideo(self.input_video_filename)
+        cap = vid.ReadVideo(self.input_video_filename)
         if self.multiprocess:
             self.frame_jump_unit = cap.num_frames // self.num_processes
             self.remainder = cap.num_frames % self.num_processes
@@ -147,7 +147,7 @@ class VideoAnnotator:
 
 if __name__ == "__main__":
 
-    dataframe = dataframes.TrackingDataframe(
+    dataframe = df.TrackingDataframe(
             "/home/ppxjd3/Videos/test_data.hdf5",
             load=True)
     input_video = "/home/ppxjd3/Videos/test_crop.mp4"

@@ -1,4 +1,4 @@
-import Generic.video as video
+import Generic.video as vid
 import cv2
 import numpy as np
 import ParticleTracking.configuration as config
@@ -176,7 +176,7 @@ class ImagePreprocessor:
 
 
 if __name__ == "__main__":
-    vid = video.ReadVideo(
+    input_vid = vid.ReadVideo(
         "/home/ppxjd3/Videos/test.mp4")
     ml = config.MethodsList('Glass_Bead', load=True)
     process_config = ml.extract_methods()
