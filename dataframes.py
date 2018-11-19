@@ -27,9 +27,13 @@ class TrackingDataframe:
                 "boundary": [boundary]})
         self.boundary_df = pd.concat([self.boundary_df, boundary_df_to_append])
 
-    def extract_points_for_frame(self, frame_no):
-        points = self.dataframe.loc[
-            self.dataframe['frame'] == frame_no, ['x', 'y']].values
+    def extract_points_for_frame(self, frame_no, include_size=False):
+        if include_size:
+            points = self.dataframe.loc[
+                self.dataframe['frame'] == frame_no, ['x', 'y', 'size']].values
+        else:
+            points = self.dataframe.loc[
+                self.dataframe['frame'] == frame_no, ['x', 'y']].values
         return points
 
     def add_property_to_dataframe(self, property_string, property):

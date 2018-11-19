@@ -11,6 +11,63 @@ class PropertyCalculator:
         self.td = tracking_dataframe
         self.num_frames = int(np.max(self.td.dataframe['frame']))
 
+    def calculate_local_density(self):
+        """Calculate local density from the voronoi network"""
+        local_density_all = np.array([])
+        for n in range(self.num_frames+1):
+            info = self.td.extract_points_for_frame(n, include_size=True)
+            particle_area = info[:,2].mean()**2*np.pi
+            vor = sp.Voronoi(info[:, 0:2])
+            local_density = []
+            for p, r in enumerate(vor.point_region):
+                region = vor.regions[r]
+                region_points = vor.vertices[region]
+                if -1 in region:
+                    density = None
+                else:
+                    area = self.hull_area(region_points)
+                    density = particle_area / area
+
+                local_density.append(density)
+        local_density_all = np.append(local_density_all, local_density)
+        self.show_property_with_condition(info, local_density, '==', None)
+
+    @staticmethod
+    def show_property_with_condition(points, prop, cond, val):
+        prop = np.array(prop)
+        if cond == '>':
+            points_met = np.nonzero(prop > val)
+        elif cond == '==':
+            points_met = np.nonzero(prop == val)
+        elif cond == '<':
+            points_met = np.nonzero(prop < val)
+        plt.figure()
+        plt.plot(points[:, 0], points[:, 1], 'x')
+        plt.plot(points[points_met, 0], points[points_met, 1], 'o')
+        plt.show()
+
+
+    @staticmethod
+    def polygon_area(points):
+        """Return the area of the polygon whose vertices are given by the
+        sequence points.
+
+        """
+        area = 0
+        q = points[-1]
+        for p in points:
+            area += p[0] * q[1] - p[1] * q[0]
+            q = p
+        return area / 2
+
+    @staticmethod
+    def hull_area(points):
+
+        hull = sp.ConvexHull(points)
+        area = hull.area
+        return area
+
+
     def calculate_hexatic_order_parameter(self):
         order_params = np.array([])
         for n in range(self.num_frames+1):
@@ -103,7 +160,8 @@ if __name__ == "__main__":
             load=True)
     PC = PropertyCalculator(dataframe)
     #PC.calculate_hexatic_order_parameter()
-    print(dataframe.dataframe.head())
+    # print(dataframe.dataframe.head())
     #print(dataframe.dataframe['order'].mean())
-    PC.find_edge_points(check=True)
-    print(dataframe.dataframe['on_edge'].mean())
+    # PC.find_edge_points(check=True)
+    # print(dataframe.dataframe['on_edge'].mean())
+    PC.calculate_local_density()
