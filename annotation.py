@@ -33,7 +33,7 @@ class VideoAnnotator:
                 )
         out = vid.WriteVideo(output_video_filename,
                              (cap.height, cap.width, 3))
-        for f in range(cap.num_frames//18):
+        for f in range(cap.num_frames):
             print(f)
             points = self.td.extract_points_for_frame(f)
             frame = cap.read_next_frame()
@@ -53,10 +53,13 @@ class VideoAnnotator:
             self.output_video_filename = self.core_filename + '_circles' + \
                 self.extension
         else:
-            self.dataframe_columns = ['x', 'y', 'size', parameter]
-            self.circle_type = -1
-            self.output_video_filename = self.core_filename + '_' + \
-                self.parameter + self.extension
+            if parameter in self.td.dataframe.columns:
+                self.dataframe_columns = ['x', 'y', 'size', parameter]
+                self.circle_type = -1
+                self.output_video_filename = self.core_filename + '_' + \
+                    self.parameter + self.extension
+            else:
+                print(parameter, ' not in dataframe')
 
         if self.multiprocess:
             self._add_coloured_circles_multi()
@@ -150,6 +153,7 @@ if __name__ == "__main__":
     dataframe = df.TrackingDataframe(
             "/home/ppxjd3/Videos/test_data.hdf5",
             load=True)
+    print(dataframe.dataframe.head())
     input_video = "/home/ppxjd3/Videos/test_crop.mp4"
     VA = VideoAnnotator(
             dataframe,
