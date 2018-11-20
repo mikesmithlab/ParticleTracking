@@ -160,5 +160,5 @@ if __name__ == "__main__":
             input_video,
             shrink_factor=1,
             multiprocess=True)
-    VA.add_coloured_circles('close')
+    VA.add_coloured_circles('order')
     # VA.add_annotations(voronoi=True, delaunay=True)
