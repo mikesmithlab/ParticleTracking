@@ -17,20 +17,14 @@ class PropertyCalculator:
         CropVor = CroppedVoronoi(boundary)
         local_density_all = np.array([])
         for n in range(self.num_frames+1):
-            print(n)
             info = self.td.extract_points_for_frame(n, include_size=True)
             particle_area = info[:, 2].mean()**2 * np.pi
-            print(particle_area)
-            vor = CropVor.next(info[:, :2])
-            local_density = []
-            for p in range(len(info)):
-                region = vor.regions[vor.point_region[p]]
-                region_points = vor.vertices[region]
-                area = self.hull_area(region_points)
-                density = particle_area / area
-                local_density.append(density)
-            local_density_all = np.append(local_density_all, local_density)
-        self.td.add_property_to_dataframe('local density', local_density_all)
+            vor = CropVor.add_points(info[:, :2])
+            VorArea = VoronoiArea(vor)
+            area = list(map(VorArea.area, range(len(info))))
+            density = particle_area / np.array(area)
+            local_density_all = np.append(local_density_all, density)
+        self.td.add_property_to_dataframe('local density 2', local_density_all)
 
     @staticmethod
     def show_property_with_condition(points, prop, cond, val):
@@ -45,12 +39,6 @@ class PropertyCalculator:
         plt.plot(points[:, 0], points[:, 1], 'x')
         plt.plot(points[points_met, 0], points[points_met, 1], 'o')
         plt.show()
-
-    @staticmethod
-    def hull_area(points):
-        hull = sp.ConvexHull(points)
-        area = hull.volume
-        return area
 
     def calculate_hexatic_order_parameter(self):
         order_params = np.array([])
@@ -137,6 +125,7 @@ class PropertyCalculator:
         angles = np.angle(vectors[:, 0] + 1j*vectors[:, 1])
         return angles
 
+
 def generate_circular_boundary_points(cx, cy, rad, n):
     angles = np.linspace(0, 2*np.pi, n)
     x = cx + rad * np.cos(angles)
@@ -145,7 +134,28 @@ def generate_circular_boundary_points(cx, cy, rad, n):
     return points
 
 
+def hull_area_2d(points):
+    hull = sp.ConvexHull(points)
+    area = hull.volume
+    return area
+
+
+class VoronoiArea:
+
+    def __init__(self, vor):
+        self.vor = vor
+
+    def area(self, point):
+        region = self.vor.regions[self.vor.point_region[point]]
+        region_points = self.vor.vertices[region]
+        area = hull_area_2d(region_points)
+        return area
+
+
 class CroppedVoronoi:
+    """
+    Generates extra boundary points to give realistic cells to real points
+    """
 
     def __init__(self, boundary):
         self.boundary_points = generate_circular_boundary_points(
@@ -160,16 +170,15 @@ class CroppedVoronoi:
             100)
         self.tree = sp.cKDTree(self.boundary_points)
 
-    def next(self, points):
+    def add_points(self, points):
         input_points = np.concatenate((points, self.edge_points))
         vor = sp.Voronoi(input_points)
         vertices_to_move = []
         for region in vor.regions:
             if -1 in region:
                 vertices_to_move += region
-        vertices_to_move = np.array(vertices_to_move)
-        not_negative = np.nonzero(vertices_to_move != -1)
-        vertices_to_move = vertices_to_move[not_negative]
+        vertices_to_move = [vertex for vertex in vertices_to_move
+                            if vertex != -1]
         unique_vertices_to_move = np.unique(vertices_to_move)
         new_indices = self.tree.query(vor.vertices[unique_vertices_to_move])
         new_vertices = self.boundary_points[new_indices[1]]
@@ -183,9 +192,10 @@ if __name__ == "__main__":
             load=True)
     PC = PropertyCalculator(dataframe)
     # PC.calculate_hexatic_order_parameter()
-    print(dataframe.dataframe.head())
-    print(dataframe.dataframe['local density'].values.mean())
+    # print(dataframe.dataframe.head())
+    # print(dataframe.dataframe['local density'].values.mean())
     #print(dataframe.dataframe['order'].mean())
     # PC.find_edge_points(check=True)
     # print(dataframe.dataframe['on_edge'].mean())
-    # PC.calculate_local_density()
+    PC.calculate_local_density()
+    print(dataframe.dataframe.head())
