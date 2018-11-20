@@ -95,8 +95,13 @@ class VideoAnnotator:
         for f in range(int(self.frame_jump_unit)):
             f += frame_no_start
             frame = cap.read_next_frame()
-            info = self.td.return_property_and_circles_for_frame(
-                f, self.parameter)
+            try:
+                info = self.td.return_property_and_circles_for_frame(
+                    f, self.parameter)
+            except AssertionError as error:
+                print(error)
+                self.output_video_filename = ''
+                break
             for xi, yi, r, param in info:
                 if self.parameter:
                     col = np.multiply(cm.jet(param)[0:3], 255)
@@ -149,12 +154,11 @@ if __name__ == "__main__":
     dataframe = df.TrackingDataframe(
             "/home/ppxjd3/Videos/test_data.hdf5",
             load=True)
-    print(dataframe.dataframe.head())
     input_video = "/home/ppxjd3/Videos/test_crop.mp4"
     VA = VideoAnnotator(
             dataframe,
             input_video,
             shrink_factor=1,
             multiprocess=True)
-    VA.add_coloured_circles('order')
+    VA.add_coloured_circles('close')
     # VA.add_annotations(voronoi=True, delaunay=True)
