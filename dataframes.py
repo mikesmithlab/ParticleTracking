@@ -80,12 +80,10 @@ class TrackingDataframe:
         return circles
 
     def return_property_and_circles_for_frame(self, frame, parameter):
-        if parameter in self.dataframe.columns:
-            columns = ['x', 'y', 'size', parameter]
-            out = self.dataframe.loc[self.dataframe['frame'] == frame,
-                                     columns].values
-        else:
-            raise Exception("{} is not in the dataframe".format(parameter))
+        assert (parameter in self.dataframe.columns), "{} is not in the dataframe".format(parameter)
+        columns = ['x', 'y', 'size', parameter]
+        out = self.dataframe.loc[self.dataframe['frame'] == frame,
+                                 columns].values
         return out
 
 
