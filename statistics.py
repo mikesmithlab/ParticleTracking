@@ -14,58 +14,23 @@ class PropertyCalculator:
 
     def calculate_local_density(self):
         boundary = self.td.extract_boundary_for_frame(0)
-        self.boundary_points = self.generate_circular_boundary_points(
-            boundary[0],
-            boundary[1],
-            boundary[2],
-            1000)
-        self.tree = sp.cKDTree(self.boundary_points)
+        CropVor = CroppedVoronoi(boundary)
         local_density_all = np.array([])
         for n in range(self.num_frames+1):
             print(n)
             info = self.td.extract_points_for_frame(n, include_size=True)
             particle_area = info[:, 2].mean()**2 * np.pi
             print(particle_area)
-            vor = self.clip_voronoi_to_boundary(info[:, :2], boundary)
+            vor = CropVor.next(info[:, :2])
             local_density = []
             for p in range(len(info)):
                 region = vor.regions[vor.point_region[p]]
                 region_points = vor.vertices[region]
                 area = self.hull_area(region_points)
-                print(area)
                 density = particle_area / area
                 local_density.append(density)
             local_density_all = np.append(local_density_all, local_density)
         self.td.add_property_to_dataframe('local density', local_density_all)
-
-    def clip_voronoi_to_boundary(self, points, boundary):
-        b_points = self.generate_circular_boundary_points(
-            boundary[0],
-            boundary[1],
-            boundary[2]+20,
-            100)
-        input_points = np.concatenate((points, b_points))
-        vor = sp.Voronoi(input_points)
-        vertices_to_move = []
-        for region in vor.regions:
-            if -1 in region:
-                vertices_to_move += region
-        vertices_to_move = np.array(vertices_to_move)
-        not_negative = np.nonzero(vertices_to_move != -1)
-        vertices_to_move = vertices_to_move[not_negative]
-        unique_vertices_to_move = np.unique(vertices_to_move)
-        new_indices = self.tree.query(vor.vertices[unique_vertices_to_move])
-        new_vertices = self.boundary_points[new_indices[1]]
-        vor.vertices[unique_vertices_to_move] = new_vertices
-        return vor
-
-    @staticmethod
-    def generate_circular_boundary_points(cx, cy, rad, n):
-        angles = np.linspace(0, 2*np.pi, n)
-        x = cx + rad * np.cos(angles)
-        y = cy + rad * np.sin(angles)
-        points = np.vstack((x, y)).transpose()
-        return points
 
     @staticmethod
     def show_property_with_condition(points, prop, cond, val):
@@ -172,13 +137,52 @@ class PropertyCalculator:
         angles = np.angle(vectors[:, 0] + 1j*vectors[:, 1])
         return angles
 
+def generate_circular_boundary_points(cx, cy, rad, n):
+    angles = np.linspace(0, 2*np.pi, n)
+    x = cx + rad * np.cos(angles)
+    y = cy + rad * np.sin(angles)
+    points = np.vstack((x, y)).transpose()
+    return points
+
+
+class CroppedVoronoi:
+
+    def __init__(self, boundary):
+        self.boundary_points = generate_circular_boundary_points(
+            boundary[0],
+            boundary[1],
+            boundary[2],
+            1000)
+        self.edge_points = generate_circular_boundary_points(
+            boundary[0],
+            boundary[1],
+            boundary[2]+20,
+            100)
+        self.tree = sp.cKDTree(self.boundary_points)
+
+    def next(self, points):
+        input_points = np.concatenate((points, self.edge_points))
+        vor = sp.Voronoi(input_points)
+        vertices_to_move = []
+        for region in vor.regions:
+            if -1 in region:
+                vertices_to_move += region
+        vertices_to_move = np.array(vertices_to_move)
+        not_negative = np.nonzero(vertices_to_move != -1)
+        vertices_to_move = vertices_to_move[not_negative]
+        unique_vertices_to_move = np.unique(vertices_to_move)
+        new_indices = self.tree.query(vor.vertices[unique_vertices_to_move])
+        new_vertices = self.boundary_points[new_indices[1]]
+        vor.vertices[unique_vertices_to_move] = new_vertices
+        return vor
+
 
 if __name__ == "__main__":
     dataframe = df.TrackingDataframe(
             "/home/ppxjd3/Videos/test_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    PC.calculate_hexatic_order_parameter()
+    # PC.calculate_hexatic_order_parameter()
     print(dataframe.dataframe.head())
     print(dataframe.dataframe['local density'].values.mean())
     #print(dataframe.dataframe['order'].mean())
