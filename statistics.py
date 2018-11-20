@@ -3,6 +3,8 @@ import ParticleTracking.dataframes as df
 import scipy.spatial as sp
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
+import time
+
 
 class PropertyCalculator:
     """Class to calculate the properties associated with tracking"""
@@ -11,32 +13,30 @@ class PropertyCalculator:
         self.num_frames = int(np.max(self.td.dataframe['frame']))
 
     def calculate_local_density(self):
-        """Calculate local density from the voronoi network"""
+        boundary = self.td.extract_boundary_for_frame(0)
+        self.boundary_points = self.generate_circular_boundary_points(
+            boundary[0],
+            boundary[1],
+            boundary[2],
+            1000)
+        self.tree = sp.cKDTree(self.boundary_points)
         local_density_all = np.array([])
         for n in range(self.num_frames+1):
+            print(n)
             info = self.td.extract_points_for_frame(n, include_size=True)
-            particle_area = info[:, 2].mean()**2*np.pi
-            vor = sp.Voronoi(info[:, 0:2])
+            particle_area = info[:, 2].mean()**2 * np.pi
+            print(particle_area)
+            vor = self.clip_voronoi_to_boundary(info[:, :2], boundary)
             local_density = []
-            for p, r in enumerate(vor.point_region):
-                region = vor.regions[r]
+            for p in range(len(info)):
+                region = vor.regions[vor.point_region[p]]
                 region_points = vor.vertices[region]
-                if -1 in region:
-                    density = None
-                else:
-                    area = self.hull_area(region_points)
-                    density = particle_area / area
-
+                area = self.hull_area(region_points)
+                print(area)
+                density = particle_area / area
                 local_density.append(density)
-        local_density_all = np.append(local_density_all, local_density)
-        self.show_property_with_condition(info, local_density, '==', None)
-
-    def calculate_local_density_2(self):
-        points = self.td.extract_points_for_frame(0)
-        boundary = self.td.extract_boundary_for_frame(0)
-        vor = self.clip_voronoi_to_boundary(points, boundary)
-        sp.voronoi_plot_2d(vor)
-        #plt.show()
+            local_density_all = np.append(local_density_all, local_density)
+        self.td.add_property_to_dataframe('local density', local_density_all)
 
     def clip_voronoi_to_boundary(self, points, boundary):
         b_points = self.generate_circular_boundary_points(
@@ -44,30 +44,20 @@ class PropertyCalculator:
             boundary[1],
             boundary[2]+20,
             100)
-        b_points_many = self.generate_circular_boundary_points(
-            boundary[0],
-            boundary[1],
-            boundary[2],
-            1000)
         input_points = np.concatenate((points, b_points))
         vor = sp.Voronoi(input_points)
-
         vertices_to_move = []
-        for p, r in enumerate(vor.point_region):
-            region = vor.regions[r]
+        for region in vor.regions:
             if -1 in region:
                 vertices_to_move += region
         vertices_to_move = np.array(vertices_to_move)
         not_negative = np.nonzero(vertices_to_move != -1)
         vertices_to_move = vertices_to_move[not_negative]
         unique_vertices_to_move = np.unique(vertices_to_move)
-        tree = sp.KDTree(b_points_many)
-        new_indices = tree.query(vor.vertices[unique_vertices_to_move])
-        new_vertices = b_points_many[new_indices[1]]
+        new_indices = self.tree.query(vor.vertices[unique_vertices_to_move])
+        new_vertices = self.boundary_points[new_indices[1]]
         vor.vertices[unique_vertices_to_move] = new_vertices
         return vor
-
-
 
     @staticmethod
     def generate_circular_boundary_points(cx, cy, rad, n):
@@ -76,8 +66,6 @@ class PropertyCalculator:
         y = cy + rad * np.sin(angles)
         points = np.vstack((x, y)).transpose()
         return points
-
-
 
     @staticmethod
     def show_property_with_condition(points, prop, cond, val):
@@ -95,9 +83,8 @@ class PropertyCalculator:
 
     @staticmethod
     def hull_area(points):
-
         hull = sp.ConvexHull(points)
-        area = hull.area
+        area = hull.volume
         return area
 
     def calculate_hexatic_order_parameter(self):
@@ -192,8 +179,9 @@ if __name__ == "__main__":
             load=True)
     PC = PropertyCalculator(dataframe)
     #PC.calculate_hexatic_order_parameter()
-    # print(dataframe.dataframe.head())
+    print(dataframe.dataframe.head())
+    print(dataframe.dataframe['local density'].values.mean())
     #print(dataframe.dataframe['order'].mean())
     # PC.find_edge_points(check=True)
     # print(dataframe.dataframe['on_edge'].mean())
-    PC.calculate_local_density_2()
+    # PC.calculate_local_density()
