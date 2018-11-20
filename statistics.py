@@ -4,7 +4,6 @@ import scipy.spatial as sp
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 
-
 class PropertyCalculator:
     """Class to calculate the properties associated with tracking"""
     def __init__(self, tracking_dataframe):
@@ -16,7 +15,7 @@ class PropertyCalculator:
         local_density_all = np.array([])
         for n in range(self.num_frames+1):
             info = self.td.extract_points_for_frame(n, include_size=True)
-            particle_area = info[:,2].mean()**2*np.pi
+            particle_area = info[:, 2].mean()**2*np.pi
             vor = sp.Voronoi(info[:, 0:2])
             local_density = []
             for p, r in enumerate(vor.point_region):
@@ -32,6 +31,54 @@ class PropertyCalculator:
         local_density_all = np.append(local_density_all, local_density)
         self.show_property_with_condition(info, local_density, '==', None)
 
+    def calculate_local_density_2(self):
+        points = self.td.extract_points_for_frame(0)
+        boundary = self.td.extract_boundary_for_frame(0)
+        vor = self.clip_voronoi_to_boundary(points, boundary)
+        sp.voronoi_plot_2d(vor)
+        #plt.show()
+
+    def clip_voronoi_to_boundary(self, points, boundary):
+        b_points = self.generate_circular_boundary_points(
+            boundary[0],
+            boundary[1],
+            boundary[2]+20,
+            100)
+        b_points_many = self.generate_circular_boundary_points(
+            boundary[0],
+            boundary[1],
+            boundary[2],
+            1000)
+        input_points = np.concatenate((points, b_points))
+        vor = sp.Voronoi(input_points)
+
+        vertices_to_move = []
+        for p, r in enumerate(vor.point_region):
+            region = vor.regions[r]
+            if -1 in region:
+                vertices_to_move += region
+        vertices_to_move = np.array(vertices_to_move)
+        not_negative = np.nonzero(vertices_to_move != -1)
+        vertices_to_move = vertices_to_move[not_negative]
+        unique_vertices_to_move = np.unique(vertices_to_move)
+        tree = sp.KDTree(b_points_many)
+        new_indices = tree.query(vor.vertices[unique_vertices_to_move])
+        new_vertices = b_points_many[new_indices[1]]
+        vor.vertices[unique_vertices_to_move] = new_vertices
+        return vor
+
+
+
+    @staticmethod
+    def generate_circular_boundary_points(cx, cy, rad, n):
+        angles = np.linspace(0, 2*np.pi, n)
+        x = cx + rad * np.cos(angles)
+        y = cy + rad * np.sin(angles)
+        points = np.vstack((x, y)).transpose()
+        return points
+
+
+
     @staticmethod
     def show_property_with_condition(points, prop, cond, val):
         prop = np.array(prop)
@@ -46,27 +93,12 @@ class PropertyCalculator:
         plt.plot(points[points_met, 0], points[points_met, 1], 'o')
         plt.show()
 
-
-    @staticmethod
-    def polygon_area(points):
-        """Return the area of the polygon whose vertices are given by the
-        sequence points.
-
-        """
-        area = 0
-        q = points[-1]
-        for p in points:
-            area += p[0] * q[1] - p[1] * q[0]
-            q = p
-        return area / 2
-
     @staticmethod
     def hull_area(points):
 
         hull = sp.ConvexHull(points)
         area = hull.area
         return area
-
 
     def calculate_hexatic_order_parameter(self):
         order_params = np.array([])
@@ -164,4 +196,4 @@ if __name__ == "__main__":
     #print(dataframe.dataframe['order'].mean())
     # PC.find_edge_points(check=True)
     # print(dataframe.dataframe['on_edge'].mean())
-    PC.calculate_local_density()
+    PC.calculate_local_density_2()
