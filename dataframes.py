@@ -56,7 +56,8 @@ class TrackingDataframe:
         store.close()
 
     def extract_boundary_for_frame(self, frame):
-        boundary = self.boundary_df.loc[self.boundary_df['frame'] == frame, 'boundary'].values
+        boundary = self.boundary_df.loc[self.boundary_df['frame'] == frame,
+                                        'boundary'].values
         return boundary[0]
 
     def return_circles_for_frame(self, frame):
@@ -80,7 +81,8 @@ class TrackingDataframe:
         return circles
 
     def return_property_and_circles_for_frame(self, frame, parameter):
-        assert (parameter in self.dataframe.columns), "{} is not in the dataframe".format(parameter)
+        assert (parameter in self.dataframe.columns), \
+            "{} is not in the dataframe".format(parameter)
         columns = ['x', 'y', 'size', parameter]
         out = self.dataframe.loc[self.dataframe['frame'] == frame,
                                  columns].values
