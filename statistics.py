@@ -178,7 +178,7 @@ if __name__ == "__main__":
             "/home/ppxjd3/Videos/test_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    #PC.calculate_hexatic_order_parameter()
+    PC.calculate_hexatic_order_parameter()
     print(dataframe.dataframe.head())
     print(dataframe.dataframe['local density'].values.mean())
     #print(dataframe.dataframe['order'].mean())

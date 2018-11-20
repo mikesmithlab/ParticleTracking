@@ -79,9 +79,13 @@ class TrackingDataframe:
                                      ['x', 'y', 'size']].values
         return circles
 
-    def return_property_and_circles_for_frame(self, frame, dataframe_columns):
-        out = self.dataframe.loc[self.dataframe['frame'] == frame,
-                                               dataframe_columns].values
+    def return_property_and_circles_for_frame(self, frame, parameter):
+        if parameter in self.dataframe.columns:
+            columns = ['x', 'y', 'size', parameter]
+            out = self.dataframe.loc[self.dataframe['frame'] == frame,
+                                     columns].values
+        else:
+            raise Exception("{} is not in the dataframe".format(parameter))
         return out
 
 

@@ -47,19 +47,15 @@ class VideoAnnotator:
 
     def add_coloured_circles(self, parameter=None):
         self.parameter = parameter
-        if not parameter:
-            self.dataframe_columns = ['x', 'y', 'size', 'particle']
-            self.circle_type = 2
-            self.output_video_filename = self.core_filename + '_circles' + \
-                self.extension
+        if parameter is not None:
+            self.circle_type = -1
+            self.output_video_filename = self.core_filename + '_' + \
+                                         self.parameter + self.extension
         else:
-            if parameter in self.td.dataframe.columns:
-                self.dataframe_columns = ['x', 'y', 'size', parameter]
-                self.circle_type = -1
-                self.output_video_filename = self.core_filename + '_' + \
-                    self.parameter + self.extension
-            else:
-                print(parameter, ' not in dataframe')
+            self.parameter = 'particle'
+            self.circle_type = 2
+            self.output_video_filename = self.core_filename + '_' + \
+                                         '_circles' + self.extension
 
         if self.multiprocess:
             self._add_coloured_circles_multi()
@@ -100,7 +96,7 @@ class VideoAnnotator:
             f += frame_no_start
             frame = cap.read_next_frame()
             info = self.td.return_property_and_circles_for_frame(
-                f, self.dataframe_columns)
+                f, self.parameter)
             for xi, yi, r, param in info:
                 if self.parameter:
                     col = np.multiply(cm.jet(param)[0:3], 255)
