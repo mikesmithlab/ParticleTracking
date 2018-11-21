@@ -13,6 +13,16 @@ class PropertyCalculator:
         self.num_frames = int(np.max(self.td.dataframe['frame']))
 
     def calculate_local_density(self):
+        """
+        Calculates the local density of each particle in a dataframe.
+
+        Calculates the area of the convex Hull of the voronoi vertices
+        corresponding to the cell of each particle.
+
+        Additional particles were added to the boundary of the system
+        before calculating the voronoi cell which were then used to bound
+        the cells of the outermost particles to the edge of the system.
+        """
         boundary = self.td.extract_boundary_for_frame(0)
         CropVor = CroppedVoronoi(boundary)
         local_density_all = np.array([])
@@ -71,7 +81,11 @@ class PropertyCalculator:
                     plt.plot(boundary[:, 0], boundary[:, 1], 'b-')
                     plt.plot(boundary[[-1, 0], 0], boundary[[-1, 0], 1], 'b-')
                 else:
-                    circle = plt.Circle((boundary[0], boundary[1]), boundary[2], color='r', fill=False)
+                    circle = plt.Circle(
+                            (boundary[0], boundary[1]),
+                            boundary[2],
+                            color='r',
+                            fill=False)
                     plt.gcf().gca().add_artist(circle)
                 plt.show()
         self.td.add_property_to_dataframe('on_edge', edges_array)
@@ -89,7 +103,8 @@ class PropertyCalculator:
     def voronoi_vertices_outside(vor, boundary):
         if len(np.shape(boundary)) == 1:
             vertices_from_centre = vor.vertices - boundary[0:2]
-            vertices_outside = np.linalg.norm(vertices_from_centre, axis=1) > boundary[2]
+            vertices_outside = np.linalg.norm(vertices_from_centre, axis=1) > \
+                boundary[2]
         else:
             path = mpath.Path(boundary)
             vertices_inside = path.contains_points(vor.vertices)
@@ -101,7 +116,8 @@ class PropertyCalculator:
         neighbors = points[point_indices]
         points_to_subtract = np.zeros(np.shape(neighbors))
         for p in range(len(points)):
-            points_to_subtract[list_indices[p]:list_indices[p+1], :] = points[p]
+            points_to_subtract[list_indices[p]:list_indices[p+1], :] = \
+                points[p]
         vectors = neighbors - points_to_subtract
         return vectors
 
@@ -127,6 +143,19 @@ class PropertyCalculator:
 
 
 def generate_circular_boundary_points(cx, cy, rad, n):
+    """
+    Generates an array of points around a circular boundary
+
+    Parameters
+    ----------
+    cx, cy is the center coordinate of the circle
+    rad is the radius of the circle
+    n is the number of points around the circle
+
+    Returns
+    -------
+    points: (n, 2) array of the output points
+    """
     angles = np.linspace(0, 2*np.pi, n)
     x = cx + rad * np.cos(angles)
     y = cy + rad * np.sin(angles)
@@ -135,12 +164,14 @@ def generate_circular_boundary_points(cx, cy, rad, n):
 
 
 def hull_area_2d(points):
+    """Calculates area of a 2D convex hull"""
     hull = sp.ConvexHull(points)
     area = hull.volume
     return area
 
 
 class VoronoiArea:
+    """Calculates area of a voronoi cell for a given point"""
 
     def __init__(self, vor):
         self.vor = vor
