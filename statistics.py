@@ -207,7 +207,8 @@ def calculate_polygon_area(points):
     sort_indices = np.argsort(angles)
     new_x = points[sort_indices, 0]
     new_y = points[sort_indices, 1]
-    area = 0.5 * np.abs(np.dot(new_x, np.roll(new_y, 1)) - np.dot(new_y, np.roll(new_x, 1)))
+    area = 0.5 * np.abs(np.dot(new_x, np.roll(new_y, 1)) -
+                        np.dot(new_y, np.roll(new_x, 1)))
     return area
 
 class VoronoiArea:
