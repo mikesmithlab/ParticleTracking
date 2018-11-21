@@ -4,6 +4,7 @@ import scipy.spatial as sp
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 import time
+import math
 
 
 class PropertyCalculator:
@@ -34,10 +35,10 @@ class PropertyCalculator:
             area = list(map(VorArea.area, range(len(info))))
             density = particle_area / np.array(area)
             local_density_all = np.append(local_density_all, density)
-        self.td.add_property_to_dataframe('local density 2', local_density_all)
+        self.td.add_property_to_dataframe('local_density', local_density_all)
 
     @staticmethod
-    def show_property_with_condition(points, prop, cond, val):
+    def show_property_with_condition(points, prop, cond, val, vor=None):
         prop = np.array(prop)
         if cond == '>':
             points_met = np.nonzero(prop > val)
@@ -48,6 +49,8 @@ class PropertyCalculator:
         plt.figure()
         plt.plot(points[:, 0], points[:, 1], 'x')
         plt.plot(points[points_met, 0], points[points_met, 1], 'o')
+        if vor:
+            sp.voronoi_plot_2d(vor)
         plt.show()
 
     def calculate_hexatic_order_parameter(self):
@@ -163,12 +166,49 @@ def generate_circular_boundary_points(cx, cy, rad, n):
     return points
 
 
+def generate_polygonal_boundary_points(boundary, n, add_dist=0):
+    if add_dist > 0:
+        boundary = move_points_from_center(boundary, add_dist)
+    x = np.array([])
+    y = np.array([])
+    for p in range(-1, len(boundary)-1):
+        xi = np.linspace(boundary[p, 0], boundary[p+1, 0], n//len(boundary))
+        yi = np.linspace(boundary[p, 1], boundary[p+1, 1], n//len(boundary))
+        x = np.append(x, xi)
+        y = np.append(y, yi)
+    points = np.vstack((x, y)).transpose()
+    return points
+
+
+def move_points_from_center(points, dist):
+    center = (points[:, 0].mean(), points[:, 1].mean())
+    points_from_center = points - center
+    dists = np.linalg.norm(points_from_center, axis=1)
+    dists += dist
+    angles = np.angle(points_from_center[:,0]+1j*points_from_center[:, 1])
+    new_x = dists * np.cos(angles)
+    new_y = dists * np.sin(angles)
+    new_points = np.vstack((new_x, new_y)).transpose()
+    new_points += center
+    return new_points
+
+
 def hull_area_2d(points):
     """Calculates area of a 2D convex hull"""
     hull = sp.ConvexHull(points)
     area = hull.volume
     return area
 
+
+def calculate_polygon_area(points):
+    cx = points[:,0].mean()
+    cy = points[:,1].mean()
+    angles = np.arctan2((points[:, 1]-cy), (points[:, 0]-cx))
+    sort_indices = np.argsort(angles)
+    new_x = points[sort_indices, 0]
+    new_y = points[sort_indices, 1]
+    area = 0.5 * np.abs(np.dot(new_x, np.roll(new_y, 1)) - np.dot(new_y, np.roll(new_x, 1)))
+    return area
 
 class VoronoiArea:
     """Calculates area of a voronoi cell for a given point"""
@@ -179,7 +219,7 @@ class VoronoiArea:
     def area(self, point):
         region = self.vor.regions[self.vor.point_region[point]]
         region_points = self.vor.vertices[region]
-        area = hull_area_2d(region_points)
+        area = calculate_polygon_area(region_points)
         return area
 
 
@@ -189,16 +229,22 @@ class CroppedVoronoi:
     """
 
     def __init__(self, boundary):
-        self.boundary_points = generate_circular_boundary_points(
-            boundary[0],
-            boundary[1],
-            boundary[2],
-            1000)
-        self.edge_points = generate_circular_boundary_points(
-            boundary[0],
-            boundary[1],
-            boundary[2]+20,
-            100)
+        if len(np.shape(boundary)) == 1:
+            self.boundary_points = generate_circular_boundary_points(
+                boundary[0],
+                boundary[1],
+                boundary[2],
+                1000)
+            self.edge_points = generate_circular_boundary_points(
+                boundary[0],
+                boundary[1],
+                boundary[2]+20,
+                100)
+        else:
+            self.boundary_points = generate_polygonal_boundary_points(
+                boundary, 1000, add_dist=20)
+            self.edge_points = generate_polygonal_boundary_points(
+                boundary, 100, add_dist=40)
         self.tree = sp.cKDTree(self.boundary_points)
 
     def add_points(self, points):
