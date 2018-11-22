@@ -75,7 +75,8 @@ class ImagePreprocessor:
             elif method == 'adaptive threshold':
                 new_frame = im.adaptive_threshold(
                     new_frame,
-                    block_size=(self.options['adaptive threshold block size']))
+                    block_size=(self.options['adaptive threshold block size']),
+                    constant=(self.options['adaptive threshold C']))
 
             elif method == 'gaussian blur':
                 new_frame = im.gaussian_blur(

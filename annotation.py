@@ -152,13 +152,13 @@ class VideoAnnotator:
 if __name__ == "__main__":
 
     dataframe = df.TrackingDataframe(
-            "/home/ppxjd3/Videos/test_data.hdf5",
+            "/home/ppxjd3/Videos/test2_data.hdf5",
             load=True)
-    input_video = "/home/ppxjd3/Videos/test_crop.mp4"
+    input_video = "/home/ppxjd3/Videos/test2_crop.mp4"
     VA = VideoAnnotator(
             dataframe,
             input_video,
             shrink_factor=1,
             multiprocess=True)
-    VA.add_coloured_circles('local_density')
+    VA.add_coloured_circles('order')
     # VA.add_annotations(voronoi=True, delaunay=True)

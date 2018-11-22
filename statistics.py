@@ -200,9 +200,9 @@ def hull_area_2d(points):
     area = hull.volume
     return area
 
+
 @jit
-def calculate_polygon_area(points):
-    x, y = sort_polygon_vertices(points)
+def calculate_polygon_area(x, y):
     p1 = 0
     p2 = 0
     for i in range(len(x)):
@@ -210,6 +210,7 @@ def calculate_polygon_area(points):
         p2 += y[i] * x[i-1]
     area = 0.5 * abs(p1-p2)
     return area
+
 
 @jit
 def sort_polygon_vertices(points):
@@ -221,6 +222,7 @@ def sort_polygon_vertices(points):
     y = points[sort_indices, 1]
     return x, y
 
+
 class VoronoiArea:
     """Calculates area of a voronoi cell for a given point"""
 
@@ -230,7 +232,8 @@ class VoronoiArea:
     def area(self, point_index):
         region_index = self.vor.regions[self.vor.point_region[point_index]]
         region_points = self.vor.vertices[region_index]
-        area = calculate_polygon_area(region_points)
+        x, y = sort_polygon_vertices(region_points)
+        area = calculate_polygon_area(x, y)
         return area
 
 
@@ -276,7 +279,7 @@ class CroppedVoronoi:
 
 if __name__ == "__main__":
     dataframe = df.TrackingDataframe(
-            "/home/ppxjd3/Videos/test_data.hdf5",
+            "/home/ppxjd3/Videos/test2_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
     PC.calculate_hexatic_order_parameter()
