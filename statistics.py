@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 import time
 import math
+from numba import jit
 
 
 class PropertyCalculator:
@@ -185,7 +186,7 @@ def move_points_from_center(points, dist):
     points_from_center = points - center
     dists = np.linalg.norm(points_from_center, axis=1)
     dists += dist
-    angles = np.angle(points_from_center[:,0]+1j*points_from_center[:, 1])
+    angles = np.angle(points_from_center[:, 0]+1j*points_from_center[:, 1])
     new_x = dists * np.cos(angles)
     new_y = dists * np.sin(angles)
     new_points = np.vstack((new_x, new_y)).transpose()
@@ -199,17 +200,26 @@ def hull_area_2d(points):
     area = hull.volume
     return area
 
-
+@jit
 def calculate_polygon_area(points):
-    cx = points[:,0].mean()
-    cy = points[:,1].mean()
-    angles = np.arctan2((points[:, 1]-cy), (points[:, 0]-cx))
-    sort_indices = np.argsort(angles)
-    new_x = points[sort_indices, 0]
-    new_y = points[sort_indices, 1]
-    area = 0.5 * np.abs(np.dot(new_x, np.roll(new_y, 1)) -
-                        np.dot(new_y, np.roll(new_x, 1)))
+    x, y = sort_polygon_vertices(points)
+    p1 = 0
+    p2 = 0
+    for i in range(len(x)):
+        p1 += x[i] * y[i-1]
+        p2 += y[i] * x[i-1]
+    area = 0.5 * abs(p1-p2)
     return area
+
+@jit
+def sort_polygon_vertices(points):
+    cx = np.mean(points[:, 0])
+    cy = np.mean(points[:, 1])
+    angles = np.arctan2((points[:, 1] - cy), (points[:, 0] - cx))
+    sort_indices = np.argsort(angles)
+    x = points[sort_indices, 0]
+    y = points[sort_indices, 1]
+    return x, y
 
 class VoronoiArea:
     """Calculates area of a voronoi cell for a given point"""
@@ -217,9 +227,9 @@ class VoronoiArea:
     def __init__(self, vor):
         self.vor = vor
 
-    def area(self, point):
-        region = self.vor.regions[self.vor.point_region[point]]
-        region_points = self.vor.vertices[region]
+    def area(self, point_index):
+        region_index = self.vor.regions[self.vor.point_region[point_index]]
+        region_points = self.vor.vertices[region_index]
         area = calculate_polygon_area(region_points)
         return area
 
@@ -269,11 +279,11 @@ if __name__ == "__main__":
             "/home/ppxjd3/Videos/test_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    # PC.calculate_hexatic_order_parameter()
+    PC.calculate_hexatic_order_parameter()
     # print(dataframe.dataframe.head())
     # print(dataframe.dataframe['local density'].values.mean())
     #print(dataframe.dataframe['order'].mean())
     # PC.find_edge_points(check=True)
     # print(dataframe.dataframe['on_edge'].mean())
-    PC.calculate_local_density()
+    # PC.calculate_local_density()
     print(dataframe.dataframe.head())
