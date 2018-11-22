@@ -62,54 +62,89 @@ class ImagePreprocessor:
         new_frame = im.bgr_2_grayscale(new_frame)
         for method in method_order:
             if method == 'opening':
+                try:
+                    kernel = self.options['opening kernel']
+                except KeyError as error:
+                    print(error)
+                    print('opening kernel set to 3')
+                    kernel = 3
                 new_frame = im.opening(
                     new_frame,
-                    kernel=(self.options['opening kernel'],
-                            self.options['opening kernel']))
+                    kernel=(kernel, kernel))
 
             elif method == 'simple threshold':
+                try:
+                    threshold = self.options['grayscale threshold']
+                except KeyError as error:
+                    print(error, 'threshold set to 100')
+                    threshold = 100
                 new_frame = im.threshold(
                     new_frame,
-                    self.options['grayscale threshold'])
+                    threshold)
 
             elif method == 'adaptive threshold':
+                try:
+                    block = self.options['adaptive threshold block size']
+                except KeyError as error:
+                    print(error, 'adaptive block size set to 31')
+                    block = 31
+                try:
+                    const = self.options['adaptive threshold C']
+                except KeyError as error:
+                    print(error, 'constant set to 0')
+                    const = 0
                 new_frame = im.adaptive_threshold(
                     new_frame,
-                    block_size=(self.options['adaptive threshold block size']),
-                    constant=(self.options['adaptive threshold C']))
+                    block_size=block,
+                    constant=const)
 
             elif method == 'gaussian blur':
+                try:
+                    kernel = self.options['blur kernel']
+                except KeyError as error:
+                    print(error, 'kernel set to 3')
                 new_frame = im.gaussian_blur(
                     new_frame,
-                    kernel=(self.options['blur kernel'],
-                            self.options['blur kernel']))
+                    kernel=(kernel, kernel))
 
             elif method == 'distance transform':
                 new_frame = im.distance_transform(new_frame)
 
             elif method == 'closing':
+                try:
+                    kernel = self.options['closing kernel']
+                except KeyError as error:
+                    print(error, 'kernel set to 3')
                 new_frame = im.closing(
                     new_frame,
-                    kernel=(self.options['closing kernel'],
-                            self.options['closing kernel']))
+                    kernel=(kernel, kernel))
 
             elif method == 'opening':
+                try:
+                    kernel = self.options['opening kernel']
+                except KeyError as error:
+                    print(error, 'kernel set to 3')
                 new_frame = im.opening(
                     new_frame,
-                    kernel=(self.options['opening kernel'],
-                            self.options['opening kernel']))
+                    kernel=(kernel, kernel))
 
             elif method == 'dilation':
+                try:
+                    kernel = self.options['dilate kernel']
+                except KeyError as error:
+                    print(error, 'kernel set to 3')
                 new_frame = im.dilate(
                     new_frame,
-                    kernel=(self.options['dilate kernel'],
-                            self.options['dilate kernel']))
+                    kernel=(kernel, kernel))
 
             elif method == 'erosion':
+                try:
+                    kernel = self.options['erode kernel']
+                except KeyError as error:
+                    print(error, 'kernel set to 3')
                 new_frame = im.erode(
                     new_frame,
-                    kernel=(self.options['erode kernel'],
-                            self.options['erode kernel']))
+                    kernel=(kernel, kernel))
 
 
         self.process_calls += 1

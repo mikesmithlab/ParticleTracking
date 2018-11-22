@@ -33,6 +33,15 @@ class ParticleTracker:
         self.save_crop_video = save_crop_video
         self.save_check_video = save_check_video
         self.ip = pp.ImagePreprocessor(self.method_order, self.options)
+        self.check_options()
+
+    def check_options(self):
+        assert 'min_dist' in self.options, 'min_dist not in dictionary'
+        assert 'p_1' in self.options, 'p_1 not in dictionary'
+        assert 'p_2' in self.options, 'p_2 not in dictionary'
+        assert 'min_rad' in self.options, 'min_rad not in dictionary'
+        assert 'max_rad' in self.options, 'max rad not in dictionary'
+
 
     def track(self):
         if self.multiprocess==True:
