@@ -49,13 +49,13 @@ class VideoAnnotator:
         self.parameter = parameter
         if parameter is not None:
             self.circle_type = -1
-            self.output_video_filename = self.core_filename + '_' + \
-                                         self.parameter + self.extension
+            self.output_video_filename = \
+                self.core_filename + '_' + self.parameter + self.extension
         else:
             self.parameter = 'particle'
-            self.circle_type = 2
-            self.output_video_filename = self.core_filename + '_' + \
-                                         '_circles' + self.extension
+            self.circle_type = 5
+            self.output_video_filename = \
+                self.core_filename + '_circles' + self.extension
 
         if self.multiprocess:
             self._add_coloured_circles_multi()
@@ -90,7 +90,7 @@ class VideoAnnotator:
                              frame_size=(self.height, self.width, 3),
                              codec=self.fourcc,
                              fps=self.fps)
-        col = (0, 255, 255)
+        col = (255, 0, 0)
         proc_frames = 0
         for f in range(int(self.frame_jump_unit)):
             f += frame_no_start
@@ -104,7 +104,7 @@ class VideoAnnotator:
                 break
             for xi, yi, r, param in info:
                 if self.parameter:
-                    col = np.multiply(cm.jet(param)[0:3], 255)
+                    col = np.multiply(cm.spring(param)[0:3], 255)
                 cv2.circle(frame,
                            (int(xi), int(yi)),
                            int(r),

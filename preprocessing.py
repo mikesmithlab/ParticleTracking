@@ -72,6 +72,17 @@ class ImagePreprocessor:
                     new_frame,
                     kernel=(kernel, kernel))
 
+            elif method == 'flip':
+                new_frame = ~new_frame
+
+            elif method == 'threshold tozero':
+                try:
+                    threshold = self.options['grayscale threshold']
+                except KeyError as error:
+                    print(error, 'threshold set to 100')
+                    threshold = 100
+                new_frame = im.threshold(new_frame, threshold, cv2.THRESH_TOZERO)
+
             elif method == 'simple threshold':
                 try:
                     threshold = self.options['grayscale threshold']
@@ -115,15 +126,19 @@ class ImagePreprocessor:
                     kernel = self.options['closing kernel']
                 except KeyError as error:
                     print(error, 'kernel set to 3')
+                    kernel = 3
+                kernel_arr = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,
+                                                       (kernel, kernel))
                 new_frame = im.closing(
                     new_frame,
-                    kernel=(kernel, kernel))
+                    kernel=kernel_arr)
 
             elif method == 'opening':
                 try:
                     kernel = self.options['opening kernel']
                 except KeyError as error:
                     print(error, 'kernel set to 3')
+                    kernel = 3
                 new_frame = im.opening(
                     new_frame,
                     kernel=(kernel, kernel))
@@ -145,6 +160,8 @@ class ImagePreprocessor:
                 new_frame = im.erode(
                     new_frame,
                     kernel=(kernel, kernel))
+            elif method == 'distance':
+                new_frame = im.distance_transform(new_frame)
 
 
         self.process_calls += 1

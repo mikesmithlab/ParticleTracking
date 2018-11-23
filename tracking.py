@@ -206,6 +206,18 @@ class ParticleTracker:
         """Implements the trackpy functions link_df and filter_stubs"""
         data_store = df.TrackingDataframe(self.data_store_filename,
                                           load=True)
+        try:
+            a = self.options['max frame displacement']
+        except KeyError as error:
+            print(error)
+            print('max frame displacement set to 10')
+            self.options['max frame displacement'] = 10
+        try:
+            a = self.options['min frame life']
+        except KeyError as error:
+            print(error)
+            print('min frame life set to 10')
+            self.options['min frame life'] = 10
         data_store.dataframe = tp.link_df(
                 data_store.dataframe,
                 self.options['max frame displacement'])
@@ -221,7 +233,7 @@ class ParticleTracker:
         va = an.VideoAnnotator(
                 data_store,
                 self.video_corename + "_crop.mp4",
-                multiprocess=False)
+                multiprocess=True)
         va.add_coloured_circles()
 
 
