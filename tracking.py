@@ -218,9 +218,16 @@ class ParticleTracker:
             print(error)
             print('min frame life set to 10')
             self.options['min frame life'] = 10
+        try:
+            a = self.options['memory']
+        except KeyError as error:
+            print(error)
+            print('memory set to 3')
+            self.options['memory'] = 3
         data_store.dataframe = tp.link_df(
                 data_store.dataframe,
-                self.options['max frame displacement'])
+                self.options['max frame displacement'],
+                memory=self.options['memory'])
         data_store.dataframe = tp.filter_stubs(
                 data_store.dataframe,
                 self.options['min frame life'])

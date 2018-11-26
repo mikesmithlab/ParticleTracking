@@ -141,7 +141,8 @@ class ImagePreprocessor:
                     kernel = 3
                 new_frame = im.opening(
                     new_frame,
-                    kernel=(kernel, kernel))
+                    kernel=(kernel, kernel),
+                    kernel_type=cv2.MORPH_ELLIPSE)
 
             elif method == 'dilation':
                 try:
