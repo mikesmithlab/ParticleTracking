@@ -48,6 +48,7 @@ class VideoAnnotator:
             output_video_filename = \
                 self.core_filename + '_' + self.parameter + self.extension
         else:
+            parameter = 'particle'
             output_video_filename = \
                 self.core_filename + '_circles' + self.extension
 
