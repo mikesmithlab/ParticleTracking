@@ -58,8 +58,7 @@ class ImagePreprocessor:
         if self.process_calls == 0:
             self._find_crop_and_mask_for_first_frame(frame)
         cropped_frame = self._crop_and_mask_frame(frame)
-        new_frame = cropped_frame.copy()
-        new_frame = im.bgr_2_grayscale(new_frame)
+        new_frame = im.bgr_2_grayscale(cropped_frame)
         for method in method_order:
             if method == 'opening':
                 try:
@@ -166,7 +165,7 @@ class ImagePreprocessor:
 
 
         self.process_calls += 1
-        return new_frame, cropped_frame, self.boundary
+        return new_frame, self.boundary
 
     def update_options(self, options, methods):
         """Updates class variables"""

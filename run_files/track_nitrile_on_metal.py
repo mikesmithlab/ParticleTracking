@@ -20,5 +20,5 @@ options = {
     'memory': 3,
     'opening kernel': 29
     }
-pt = tracking.ParticleTracker(file, options, methods, True, True, True)
+pt = tracking.ParticleTracker(file, options, methods, False, True, True)
 pt.track()

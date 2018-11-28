@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import os
+import warnings
+warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 
 
 class TrackingDataframe:
