@@ -49,6 +49,13 @@ class ParticleTracker:
         else:
             self.track_singleprocess()
 
+    def save_crop_video_2(self, crop):
+        vid.crop_video(self.video_filename,
+                       crop[0][0],
+                       crop[1][0],
+                       crop[0][1],
+                       crop[1][1])
+
     def track_multiprocess(self):
         """Call this to start tracking"""
         self.num_processes = mp.cpu_count()
@@ -59,8 +66,10 @@ class ParticleTracker:
         p = mp.Pool(self.num_processes)
         p.map(self._track_process, range(self.num_processes))
 
-        self._cleanup_intermediate_files()
+        # self._cleanup_intermediate_files()
         self._cleanup_intermediate_dataframes()
+
+        self.save_crop_video_2(self.ip.crop)
         self._link_trajectories()
         if self.save_check_video:
             self._check_video_tracking()
@@ -76,13 +85,19 @@ class ParticleTracker:
             frame = self.video.read_next_frame()
             new_frame, cropped_frame, boundary = self.ip.process_image(frame)
             circles = self.find_circles(new_frame)
-            if self.save_crop_video:
-                self._save_cropped_video(cropped_frame)
+            # if self.save_crop_video:
+            #     self._save_cropped_video(cropped_frame)
             data.add_tracking_data(f, circles, boundary)
         data.save_dataframe()
         self._link_trajectories()
         if self.save_check_video:
             self._check_video_tracking()
+        if self.save_crop_video:
+            vid.crop_video(self.video_filename,
+                           self.ip.crop[0][0],
+                           self.ip.crop[0][1],
+                           self.ip.crop[1][0],
+                           self.ip.crop[1][1])
 
     def _save_cropped_video(self, frame):
         if self.video.frame_num == 1:
@@ -120,10 +135,10 @@ class ParticleTracker:
         cap = vid.ReadVideo(self.video_filename)
         frame_no_start = self.frame_jump_unit * group_number
         cap.set_frame(frame_no_start)
-        out_crop = vid.WriteVideo("{}.{}".format(group_number, self.extension),
-                                  frame_size=(self.height, self.width, 3),
-                                  codec=self.fourcc,
-                                  fps=self.fps)
+        # out_crop = vid.WriteVideo("{}.{}".format(group_number, self.extension),
+        #                           frame_size=(self.height, self.width, 3),
+        #                           codec=self.fourcc,
+        #                           fps=self.fps)
 
         proc_frames = 0
         while proc_frames < self.frame_jump_unit:
@@ -133,11 +148,11 @@ class ParticleTracker:
             data.add_tracking_data(frame_no_start+proc_frames,
                                    circles,
                                    boundary)
-            out_crop.add_frame(cropped_frame)
+            # out_crop.add_frame(cropped_frame)
             proc_frames += 1
         data.save_dataframe()
         cap.close()
-        out_crop.close()
+        # out_crop.close()
 
     def find_circles(self, frame):
         """
