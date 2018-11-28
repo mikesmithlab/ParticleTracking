@@ -279,11 +279,11 @@ class CroppedVoronoi:
 
 if __name__ == "__main__":
     dataframe = df.TrackingDataframe(
-            "/home/ppxjd3/Videos/test2_data.hdf5",
+            "/home/ppxjd3/Videos/short_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    PC.calculate_hexatic_order_parameter()
-    # print(dataframe.dataframe.head())
+    # PC.calculate_hexatic_order_parameter()
+    print(dataframe.dataframe.head())
     # print(dataframe.dataframe['local density'].values.mean())
     #print(dataframe.dataframe['order'].mean())
     # PC.find_edge_points(check=True)
