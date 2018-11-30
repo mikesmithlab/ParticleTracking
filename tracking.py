@@ -11,9 +11,8 @@ import ParticleTracking.preprocessing as pp
 import ParticleTracking.dataframes as df
 import ParticleTracking.configuration as config
 import ParticleTracking.annotation as an
-
-
-
+import matplotlib.pyplot as plt
+import matplotlib.path as mpath
 
 class ParticleTracker:
     """Class to track the locations of the particles in a video."""
@@ -69,7 +68,6 @@ class ParticleTracker:
         p = mp.Pool(self.num_processes)
         p.map(self._track_process, range(self.num_processes))
 
-        # self._cleanup_intermediate_files()
         self._cleanup_intermediate_dataframes()
 
         self.save_cropped_video()
@@ -88,8 +86,8 @@ class ParticleTracker:
             frame = self.video.read_next_frame()
             new_frame, boundary = self.ip.process_image(frame)
             circles = self.find_circles(new_frame)
-            # if self.save_crop_video:
-            #     self._save_cropped_video(cropped_frame)
+            circles = return_points_inside_boundary(circles, boundary)
+            circles = check_circles_bg_color(circles, new_frame)
             data.add_tracking_data(f, circles, boundary)
         data.save_dataframe()
         self._link_trajectories()
@@ -129,6 +127,8 @@ class ParticleTracker:
             frame = cap.read_next_frame()
             new_frame, boundary = self.ip.process_image(frame)
             circles = self.find_circles(new_frame)
+            circles = return_points_inside_boundary(circles, boundary)
+            circles = check_circles_bg_color(circles, new_frame)
             data.add_tracking_data(frame_no_start+proc_frames,
                                    circles,
                                    boundary)
@@ -167,31 +167,8 @@ class ParticleTracker:
         circles = np.squeeze(circles)
         return circles
 
-    def _cleanup_intermediate_files(self):
-        """
-        Concatenates the intermediate videos using ffmpeg.
-
-        Concatenates the videos whose filepath are in intermediate_files.txt
-        then removes the intermediate videos and the text file.
-        """
-        intermediate_files = ["{}.{}".format(i, self.extension)
-                              for i in range(self.num_processes)]
-        with open("intermediate_files.txt", "w") as f:
-            for t in intermediate_files:
-                f.write("file {} \n".format(t))
-
-        ffmepg_command = "ffmpeg -y -loglevel error -f concat " \
-                         "-safe 0 -i intermediate_files.txt "
-        ffmepg_command += " -vcodec copy "
-        ffmepg_command += self.video_corename+"_crop.{}".format(self.extension)
-        sub.Popen(ffmepg_command, shell=True).wait()
-
-        for f in intermediate_files:
-            os.remove(f)
-        os.remove("intermediate_files.txt")
-
     def _cleanup_intermediate_dataframes(self):
-        """Concatanates and removes intermediate dataframes"""
+        """Concatenates and removes intermediate dataframes"""
         dataframe_list = ["{}.hdf5".format(i) for i in
                           range(self.num_processes)]
         df.concatenate_dataframe(dataframe_list,
@@ -225,19 +202,48 @@ class ParticleTracker:
                 data_store.dataframe,
                 self.options['max frame displacement'],
                 memory=self.options['memory'])
-        data_store.dataframe = tp.filter_stubs(
-                data_store.dataframe,
-                self.options['min frame life'])
+        # data_store.dataframe = tp.filter_stubs(
+        #         data_store.dataframe,
+        #         self.options['min frame life'])
         data_store.save_dataframe()
 
     def _check_video_tracking(self):
         """Uses the VideoAnnotator class to draw circles on the video"""
         data_store = df.TrackingDataframe(self.data_store_filename,
                                           load=True)
+        # plt.figure()
+        # tp.plot_traj(data_store.dataframe)
+        # plt.show()
         va = an.VideoAnnotator(
                 data_store,
                 self.video_corename + "_crop.mp4")
         va.add_coloured_circles()
+
+
+def return_points_inside_boundary(points, boundary):
+    centers = points[:, :2]
+    if len(np.shape(boundary)) == 1:
+        vertices_from_centre = centers - boundary[0:2]
+        points_inside_index = np.linalg.norm(vertices_from_centre, axis=1) < \
+            boundary[2]
+    else:
+        path = mpath.Path(boundary)
+        points_inside_index = path.contains_points(centers)
+    points = points[points_inside_index, :]
+    return points
+
+
+def check_circles_bg_color(circles, image):
+    x = circles[:, 0]
+    y = circles[:, 1]
+    r = circles[:, 2].mean()
+    mean_color = []
+    for i in range(len(x)):
+        circle_im = image[int(y[i]-r/4):int(y[i]+r/4), int(x[i]-r/4):int(x[i]+r/4)]
+        mean_color.append(circle_im[:].mean())
+    white_particles = np.array(mean_color) > 200
+    return circles[white_particles, :]
+
 
 
 if __name__ == "__main__":

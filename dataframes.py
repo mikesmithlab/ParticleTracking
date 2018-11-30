@@ -14,6 +14,10 @@ class TrackingDataframe:
         self.filename = filename
         if load:
             self._load_dataframe()
+            self._find_properties()
+
+    def _find_properties(self):
+        self.num_frames = self.dataframe['frame'].max()
 
     def add_tracking_data(self, frame, circles, boundary):
         frame_list = np.ones((np.shape(circles)[0], 1)) * frame

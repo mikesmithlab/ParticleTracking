@@ -58,15 +58,13 @@ class VideoAnnotator:
         for f in range(cap.num_frames):
             frame = cap.read_frame_PIL()
             info = self.td.return_property_and_circles_for_frame(f, parameter)
+            draw = ImageDraw.Draw(frame)
             for xi, yi, r, param in info:
                 if parameter == 'particle':
-                    if f == 0:
-                        r0 = info[:, 2].mean()
-                        circle, mask = init_circle(r0, fill=False)
-                    frame.paste(circle, [int(xi-r), int(yi-r)], mask=mask)
+                    draw.ellipse([xi-r, yi-r, xi+r, yi+r],
+                                 outline=col, width=5)
                 else:
                     col = np.multiply(cm.viridis(param), 255)
-                    draw = ImageDraw.Draw(frame)
                     draw.ellipse([xi-r, yi-r, xi+r, yi+r],
                                  fill=(int(col[0]), int(col[1]), int(col[2])))
             if self.shrink_factor > 1:
@@ -94,15 +92,15 @@ def init_circle(r, col=(255, 0, 0), fill=False):
 if __name__ == "__main__":
 
     dataframe = df.TrackingDataframe(
-            "/home/ppxjd3/Videos/short_data.hdf5",
+            "/home/ppxjd3/Videos/packed_data.hdf5",
             load=True)
-    input_video = "/home/ppxjd3/Videos/short_crop.mp4"
+    input_video = "/home/ppxjd3/Videos/packed_crop.mp4"
     VA = VideoAnnotator(
             dataframe,
             input_video,
             shrink_factor=1)
-    # VA.add_coloured_circles()
-    VA.add_annotations(voronoi=True, delaunay=True)
+    VA.add_coloured_circles()
+    # VA.add_annotations(voronoi=True, delaunay=True)
     # image = Image.new('RGB', [1000, 1000], (255, 0, 255))
     # circle, mask = init_circle(20)
     # image.paste(circle.convert('RGB', (0, 255, 0, 0)), (100, 100, 140, 140), mask)
