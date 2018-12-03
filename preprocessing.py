@@ -7,7 +7,7 @@ import Generic.images as im
 class ImagePreprocessor:
     """Class to manage the frame by frame processing of videos"""
 
-    def __init__(self, method_order=None, options=None):
+    def __init__(self, method_order=None, options=None, crop_points=None):
         """
         Parameters
         ----------
@@ -23,6 +23,7 @@ class ImagePreprocessor:
         """
 
         self.mask_img = np.array([])
+        self.crop_points = crop_points
         self.crop = []
         self.method_order = method_order
         self.options = options
@@ -181,7 +182,12 @@ class ImagePreprocessor:
         if self.options:
             no_of_sides = self.options['number of tray sides']
         crop_inst = im.CropShape(frame, no_of_sides)
-        self.mask_img, self.crop, self.boundary = crop_inst.begin_crop()
+        if self.crop_points is None:
+            self.mask_img, self.crop, self.boundary, _ = \
+                crop_inst.begin_crop()
+        else:
+            self.mask_img, self.crop, self.boundary, _ = \
+                crop_inst.find_crop_and_mask(self.crop_points)
         if np.shape(self.boundary) == (3,):
             # boundary = [xc, yc, r]
             # crop = ([xmin, ymin], [xmax, ymax])
@@ -229,16 +235,15 @@ class ImagePreprocessor:
 
 
 if __name__ == "__main__":
-    input_vid = vid.ReadVideo(
-        "/home/ppxjd3/Videos/test.mp4")
-    ml = config.MethodsList('Glass_Bead', load=True)
-    process_config = ml.extract_methods()
-    config_df = config.ConfigDataframe()
-    options = config_df.get_options('Glass_Bead')
-    IP = ImagePreprocessor(process_config, options)
+    import Generic.filedialogs as fd
+    input_vid_name = fd.load_filename('Choose a video')
+    input_vid = vid.ReadVideo(input_vid_name)
+    methods = []
+    options = {}
+    IP = ImagePreprocessor(methods, options, crop_points)
     for f in range(2):
-        frame = vid.read_next_frame()
-        new_frame, crop_frame, boundary = IP.process_image(frame)
+        frame = input_vid.read_next_frame()
+        new_frame, boundary = IP.process_image(frame)
         if np.shape(boundary) == (3,):
             new_frame = cv2.circle(new_frame,
                                    (boundary[0], boundary[1]),

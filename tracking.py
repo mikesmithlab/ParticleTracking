@@ -23,17 +23,20 @@ class ParticleTracker:
                  method_order,
                  multiprocess=False,
                  save_crop_video=True,
-                 save_check_video=False):
+                 save_check_video=False,
+                 crop_points=None):
 
         self.video_filename = input_video_filename
         self.video_corename = os.path.splitext(input_video_filename)[0]
         self.data_store_filename = self.video_corename + '_data.hdf5'
+        self.crop_points=crop_points
         self.options = options
         self.method_order = method_order
         self.multiprocess = multiprocess
         self.save_crop_video = save_crop_video
         self.save_check_video = save_check_video
-        self.ip = pp.ImagePreprocessor(self.method_order, self.options)
+        self.ip = pp.ImagePreprocessor(
+            self.method_order, self.options, self.crop_points)
         self.check_options()
 
     def check_options(self):
@@ -247,22 +250,26 @@ def check_circles_bg_color(circles, image):
 
 
 if __name__ == "__main__":
-    choice = 'glass'
-    config_df = config.ConfigDataframe()
-    if choice == 'rubber':
-        vid_name = "/home/ppxjd3/Videos/12240002.MP4"
-        ml = config.MethodsList('Rubber_Bead', load=True)
-        process_config = ml.extract_methods()
-        options_in = config_df.get_options('Rubber_Bead')
-    else:
-        vid_name = "/home/ppxjd3/Videos/test.mp4"
-        ml = config.MethodsList('Glass_Bead', load=True)
-        process_config = ml.extract_methods()
-        options_in = config_df.get_options('Glass_Bead')
+    import Generic.filedialogs as fd
+    vid_name = fd.load_filename('Choose a video')
+    methods = ['flip', 'threshold tozero', 'opening']
+    options = {
+        'grayscale threshold': None,
+        'number of tray sides': 6,
+        'min_dist': 30,
+        'p_1': 200,
+        'p_2': 3,
+        'min_rad': 15,
+        'max_rad': 19,
+        'max frame displacement': 25,
+        'min frame life': 10,
+        'memory': 8,
+        'opening kernel': 23
+    }
 
     PT = ParticleTracker(vid_name,
-                         options_in,
-                         process_config,
+                         options,
+                         methods,
                          multiprocess=False,
                          save_crop_video=True,
                          save_check_video=True)
