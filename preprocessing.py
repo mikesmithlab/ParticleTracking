@@ -240,7 +240,7 @@ if __name__ == "__main__":
     input_vid = vid.ReadVideo(input_vid_name)
     methods = []
     options = {}
-    IP = ImagePreprocessor(methods, options, crop_points)
+    IP = ImagePreprocessor(methods, options)
     for f in range(2):
         frame = input_vid.read_next_frame()
         new_frame, boundary = IP.process_image(frame)

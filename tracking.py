@@ -13,6 +13,7 @@ import ParticleTracking.configuration as config
 import ParticleTracking.annotation as an
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
+from numba import jit
 
 class ParticleTracker:
     """Class to track the locations of the particles in a video."""
@@ -239,12 +240,20 @@ def return_points_inside_boundary(points, boundary):
 def check_circles_bg_color(circles, image):
     x = circles[:, 0]
     y = circles[:, 1]
-    r = circles[:, 2].mean()
-    mean_color = []
-    for i in range(len(x)):
-        circle_im = image[int(y[i]-r/4):int(y[i]+r/4), int(x[i]-r/4):int(x[i]+r/4)]
-        mean_color.append(circle_im[:].mean())
-    white_particles = np.array(mean_color) > 200
+    r = circles[:, 2].mean()/4
+    white_particles = []
+    ymin = y - r
+    ymin[ymin < 0] = 0
+    ymax = y + r
+    ymax[ymax > np.shape(image)[0]] = np.shape(image)[0] - 1
+    xmin = x - r
+    xmin[xmin < 0] = 0
+    xmax = x + r
+    xmax[xmax > np.shape(image)[1]] = np.shape(image)[1] - 1
+    for ymx, ymn, xmx, xmn in zip(ymax, ymin, xmax, xmin):
+        circle_im = image[int(ymn):int(ymx), int(xmn):int(xmx)]
+        im_mean = np.mean(circle_im)
+        white_particles.append(im_mean > 200)
     return circles[white_particles, :]
 
 
