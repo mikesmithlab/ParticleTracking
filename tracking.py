@@ -71,12 +71,11 @@ class ParticleTracker:
 
         p = mp.Pool(self.num_processes)
         p.map(self._track_process, range(self.num_processes))
-
         self._cleanup_intermediate_dataframes()
-
-        self.save_cropped_video()
+        if self.save_crop_video:
+            self.save_cropped_video()
         self._link_trajectories()
-        if self.save_check_video:
+        if self.save_check_video and self.save_crop_video:
             self._check_video_tracking()
 
     def track_singleprocess(self):
@@ -86,7 +85,6 @@ class ParticleTracker:
             os.remove(self.data_store_filename)
         data = df.TrackingDataframe(self.data_store_filename)
         for f in range(self.video.num_frames):
-            print(f+1, " of ", self.video.num_frames)
             frame = self.video.read_next_frame()
             new_frame, boundary = self.ip.process_image(frame)
             circles = self.find_circles(new_frame)
@@ -240,7 +238,7 @@ def return_points_inside_boundary(points, boundary):
 def check_circles_bg_color(circles, image):
     x = circles[:, 0]
     y = circles[:, 1]
-    r = circles[:, 2].mean()/4
+    r = circles[:, 2].mean()/2
     white_particles = []
     ymin = y - r
     ymin[ymin < 0] = 0
