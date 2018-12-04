@@ -87,7 +87,13 @@ class ParticleTracker:
         for f in range(self.video.num_frames):
             frame = self.video.read_next_frame()
             new_frame, boundary = self.ip.process_image(frame)
-            circles = self.find_circles(new_frame)
+            circles = im.find_circles(
+                new_frame,
+                self.options['min_dist'],
+                self.options['p_1'],
+                self.options['p_2'],
+                self.options['min_rad'],
+                self.options['max_rad'])
             circles = return_points_inside_boundary(circles, boundary)
             circles = check_circles_bg_color(circles, new_frame)
             data.add_tracking_data(f, circles, boundary)
@@ -128,7 +134,13 @@ class ParticleTracker:
         while proc_frames < self.frame_jump_unit:
             frame = cap.read_next_frame()
             new_frame, boundary = self.ip.process_image(frame)
-            circles = self.find_circles(new_frame)
+            circles = im.find_circles(
+                new_frame,
+                self.options['min_dist'],
+                self.options['p_1'],
+                self.options['p_2'],
+                self.options['min_rad'],
+                self.options['max_rad'])
             circles = return_points_inside_boundary(circles, boundary)
             circles = check_circles_bg_color(circles, new_frame)
             data.add_tracking_data(frame_no_start+proc_frames,
@@ -137,37 +149,6 @@ class ParticleTracker:
             proc_frames += 1
         data.save_dataframe()
         cap.close()
-
-    def find_circles(self, frame):
-        """
-        Uses cv2.HoughCircles to detect circles in a image
-
-        Parameters
-        ----------
-        frame: numpy array
-
-        Class Options
-        -------------
-        Uses the following keys from self.options:
-            'min_dist'
-            'p_1'
-            'p_2'
-            'min_rad'
-            'max_rad'
-
-        Returns
-        -------
-        circles: numpy array
-            Contains the x, y, and radius of each detected circle
-        """
-        circles = cv2.HoughCircles(frame, cv2.HOUGH_GRADIENT, 1,
-                                   self.options['min_dist'],
-                                   param1=self.options['p_1'],
-                                   param2=self.options['p_2'],
-                                   minRadius=self.options['min_rad'],
-                                   maxRadius=self.options['max_rad'])
-        circles = np.squeeze(circles)
-        return circles
 
     def _cleanup_intermediate_dataframes(self):
         """Concatenates and removes intermediate dataframes"""
