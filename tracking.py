@@ -4,16 +4,13 @@ import time
 import numpy as np
 import trackpy as tp
 import multiprocessing as mp
-import subprocess as sub
 import Generic.video as vid
 import Generic.images as im
 import ParticleTracking.preprocessing as pp
 import ParticleTracking.dataframes as df
-import ParticleTracking.configuration as config
 import ParticleTracking.annotation as an
-import matplotlib.pyplot as plt
 import matplotlib.path as mpath
-from numba import jit
+
 
 class ParticleTracker:
     """Class to track the locations of the particles in a video."""
@@ -21,7 +18,7 @@ class ParticleTracker:
     def __init__(self,
                  input_video_filename,
                  options,
-                 method_order,
+                 methods,
                  multiprocess=False,
                  save_crop_video=True,
                  save_check_video=False,
@@ -30,14 +27,12 @@ class ParticleTracker:
         self.video_filename = input_video_filename
         self.video_corename = os.path.splitext(input_video_filename)[0]
         self.data_store_filename = self.video_corename + '_data.hdf5'
-        self.crop_points=crop_points
         self.options = options
-        self.method_order = method_order
         self.multiprocess = multiprocess
         self.save_crop_video = save_crop_video
         self.save_check_video = save_check_video
         self.ip = pp.ImagePreprocessor(
-            self.method_order, self.options, self.crop_points)
+            methods, self.options, crop_points)
         self.check_options()
 
     def check_options(self):
@@ -194,9 +189,6 @@ class ParticleTracker:
         """Uses the VideoAnnotator class to draw circles on the video"""
         data_store = df.TrackingDataframe(self.data_store_filename,
                                           load=True)
-        # plt.figure()
-        # tp.plot_traj(data_store.dataframe)
-        # plt.show()
         va = an.VideoAnnotator(
                 data_store,
                 self.video_corename + "_crop.mp4")
@@ -217,18 +209,15 @@ def return_points_inside_boundary(points, boundary):
 
 
 def check_circles_bg_color(circles, image):
-    x = circles[:, 0]
-    y = circles[:, 1]
-    r = circles[:, 2].mean()/2
-    white_particles = []
-    ymin = y - r
+    (x, y, r) = np.split(circles, 3, axis=1)
+    (ymin, ymax) = (y - r/2, y + r/2)
+    (xmin, xmax) = (x - r/2, x + r/2)
     ymin[ymin < 0] = 0
-    ymax = y + r
     ymax[ymax > np.shape(image)[0]] = np.shape(image)[0] - 1
-    xmin = x - r
     xmin[xmin < 0] = 0
-    xmax = x + r
     xmax[xmax > np.shape(image)[1]] = np.shape(image)[1] - 1
+
+    white_particles = []
     for ymx, ymn, xmx, xmn in zip(ymax, ymin, xmax, xmin):
         circle_im = image[int(ymn):int(ymx), int(xmn):int(xmx)]
         im_mean = np.mean(circle_im)
