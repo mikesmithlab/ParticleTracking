@@ -1,8 +1,8 @@
 import Generic.video as vid
 import cv2
 import numpy as np
-import ParticleTracking.configuration as config
 import Generic.images as im
+
 
 class ImagePreprocessor:
     """Class to manage the frame by frame processing of videos"""
@@ -12,7 +12,7 @@ class ImagePreprocessor:
         Parameters
         ----------
         method_order: list
-            A list containing string assoicated with methods in the order they
+            A list containing string associated with methods in the order they
             will be used.
             If None, process_image will only perform a grayscale of the image.
 
@@ -81,7 +81,8 @@ class ImagePreprocessor:
                 except KeyError as error:
                     print(error, 'threshold set to 100')
                     threshold = 100
-                new_frame = im.threshold(new_frame, threshold, cv2.THRESH_TOZERO)
+                new_frame = im.threshold(
+                    new_frame, threshold, cv2.THRESH_TOZERO)
 
             elif method == 'simple threshold':
                 try:
@@ -114,6 +115,7 @@ class ImagePreprocessor:
                     kernel = self.options['blur kernel']
                 except KeyError as error:
                     print(error, 'kernel set to 3')
+                    kernel = 3
                 new_frame = im.gaussian_blur(
                     new_frame,
                     kernel=(kernel, kernel))
@@ -149,6 +151,7 @@ class ImagePreprocessor:
                     kernel = self.options['dilate kernel']
                 except KeyError as error:
                     print(error, 'kernel set to 3')
+                    kernel = 3
                 new_frame = im.dilate(
                     new_frame,
                     kernel=(kernel, kernel))
@@ -158,12 +161,12 @@ class ImagePreprocessor:
                     kernel = self.options['erode kernel']
                 except KeyError as error:
                     print(error, 'kernel set to 3')
+                    kernel = 3
                 new_frame = im.erode(
                     new_frame,
                     kernel=(kernel, kernel))
             elif method == 'distance':
                 new_frame = im.distance_transform(new_frame)
-
 
         self.process_calls += 1
         return new_frame, self.boundary
@@ -212,14 +215,6 @@ class ImagePreprocessor:
         frame: numpy array
             A numpy array of an image of type uint8
 
-        crop: a int list
-            A list in the format [ymin, ymax], [xmin, xmax] where x and y are
-            the points selected when you click during manual cropping
-
-        mask_img: numpy array
-            A 2D array with the same dimensions as frame which is used to mask
-            the image
-
         Returns
         -------
         cropped_frame: numpy array
@@ -228,10 +223,6 @@ class ImagePreprocessor:
         masked_frame = im.mask_img(frame, self.mask_img)
         cropped_frame = im.crop_img(masked_frame, self.crop)
         return cropped_frame
-
-
-
-
 
 
 if __name__ == "__main__":
