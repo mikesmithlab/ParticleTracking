@@ -6,6 +6,7 @@ import matplotlib.path as mpath
 import time
 import math
 from numba import jit
+import os
 
 
 class PropertyCalculator:
@@ -13,6 +14,37 @@ class PropertyCalculator:
     def __init__(self, tracking_dataframe):
         self.td = tracking_dataframe
         self.num_frames = int(np.max(self.td.dataframe['frame']))
+        self.corename = os.path.splitext(self.td.filename)[0]
+
+    def calculate_pair_correlation(self, frame_no):
+        fig_name = self.corename + '_pair_correlation_{}.png'.format(frame_no)
+        r_name = self.corename + '_pair_correlation_{}_r.txt'.format(frame_no)
+        g_name = self.corename + '_pair_correlation_{}_g.txt'.format(frame_no)
+
+        data = self.td.extract_points_for_frame(frame_no, include_size=True)
+        pos = data[:, :2]
+        diameter = data[:, 2].mean() * 2
+
+        boundary = self.td.extract_boundary_for_frame(frame_no)
+        area = calculate_area_from_boundary(boundary) / diameter**2
+        n = len(pos)
+        density = n / area
+
+        dists = sp.distance.pdist(pos) / diameter
+        g, r = np.histogram(dists, bins=np.arange(1, 10, 0.01))
+        dr = r[1] - r[0]
+        r = r[:-1] + dr/2
+        g = g / (2*np.pi*r*dr*density*(n-1))
+
+        plt.figure()
+        plt.loglog(r, g-1, '-')
+        plt.loglog(r, (g.max()-1)*r**(-1/3))
+        plt.xlabel('$r/d$')
+        plt.ylabel('$g(r) - 1$')
+        plt.savefig(fig_name)
+
+        np.savetxt(r_name, r)
+        np.savetxt(g_name, g)
 
     def calculate_local_density(self):
         """
@@ -223,6 +255,14 @@ def sort_polygon_vertices(points):
     return x, y
 
 
+def calculate_area_from_boundary(boundary):
+    if len(np.shape(boundary))==1:
+        area = np.pi * boundary[2]**2
+    else:
+        x, y = sort_polygon_vertices(boundary)
+        area = calculate_polygon_area(x, y)
+    return area
+
 class VoronoiArea:
     """Calculates area of a voronoi cell for a given point"""
 
@@ -279,14 +319,15 @@ class CroppedVoronoi:
 
 if __name__ == "__main__":
     dataframe = df.TrackingDataframe(
-            "/home/ppxjd3/Videos/short_data.hdf5",
+            "/home/ppxjd3/Videos/liquid_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
+    PC.calculate_pair_correlation(1)
     # PC.calculate_hexatic_order_parameter()
-    print(dataframe.dataframe.head())
+    # print(dataframe.dataframe.head())
     # print(dataframe.dataframe['local density'].values.mean())
     #print(dataframe.dataframe['order'].mean())
     # PC.find_edge_points(check=True)
     # print(dataframe.dataframe['on_edge'].mean())
     # PC.calculate_local_density()
-    print(dataframe.dataframe.head())
+    # print(dataframe.dataframe.head())

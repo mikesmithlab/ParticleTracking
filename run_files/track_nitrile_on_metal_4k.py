@@ -4,7 +4,7 @@ import numpy as np
 
 # file = filedialogs.load_filename('Load a video')
 # file = "/home/ppxjd3/Videos/15410003.MP4"
-file = "/home/ppxjd3/Videos/packed.mp4"
+file = "/home/ppxjd3/Videos/solid.MP4"
 # outfile = "/home/ppxjd3/Videos/packed_4.mp4"
 crop_points = np.array([(1074, 99), (2186, 108), (2743, 1067), (2187, 2026), (1080, 2024), (520, 1064)])
 # crop_points = None
@@ -22,5 +22,5 @@ options = {
     'memory': 8,
     'opening kernel': 23
     }
-pt = tracking.ParticleTracker(file, options, methods, False, False, False, crop_points=crop_points)
+pt = tracking.ParticleTracker(file, options, methods, False, True, True, crop_points=None)
 pt.track()

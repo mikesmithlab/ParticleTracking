@@ -56,6 +56,7 @@ class VideoAnnotator:
         out = vid.WriteVideoFFMPEG(output_video_filename)
         col = (255, 0, 0)
         for f in range(cap.num_frames):
+            print('Annotating frame ', f+1, ' of ', cap.num_frames)
             frame = cap.read_frame_PIL()
             info = self.td.return_property_and_circles_for_frame(f, parameter)
             draw = ImageDraw.Draw(frame)
