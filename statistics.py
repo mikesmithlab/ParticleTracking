@@ -16,6 +16,43 @@ class PropertyCalculator:
         self.num_frames = int(np.max(self.td.dataframe['frame']))
         self.corename = os.path.splitext(self.td.filename)[0]
 
+    def calculate_orientational_correlation(self, frame_no):
+        fig_name = self.corename + \
+            '_orientational_correlation_{}.png'.format(frame_no)
+        r_name = self.corename + \
+            '_orientational_correlation_{}_r.txt'.format(frame_no)
+        g6_name = self.corename + \
+            '_orientational_correlation_{}_g.txt'.format(frame_no)
+
+        data = self.td.extract_points_for_frame(
+            frame_no,
+            include_size=True,
+            property='order')
+        diameter = np.mean(np.real(data[:, 2])) * 2
+
+        dists = sp.distance.pdist(np.real(data[:, :2])/diameter)
+        dists = sp.distance.squareform(dists)
+
+        dr = 0.02 # diameters
+        r_values = np.arange(1, 20, dr)
+        G6 = np.zeros(r_values.shape)
+        for i, r in enumerate(r_values):
+            indices = np.argwhere(abs(dists-r) <= dr/2)
+            order1s = data[indices[:, 0], 3]
+            order2s = data[indices[:, 1], 3]
+            G6[i] = np.abs(np.vdot(order1s, order2s)) / len(indices)
+
+        plt.figure()
+        plt.loglog(r_values, G6, '-')
+        plt.loglog(r_values, max(G6)*r_values**(-1/4), 'r-')
+        plt.xlabel('$r/d$')
+        plt.ylabel('$G_6(r)$')
+        plt.savefig(fig_name)
+
+        np.savetxt(r_name, r_values)
+        np.savetxt(g6_name, G6)
+
+
     def calculate_pair_correlation(self, frame_no):
         fig_name = self.corename + '_pair_correlation_{}.png'.format(frame_no)
         r_name = self.corename + '_pair_correlation_{}_r.txt'.format(frame_no)
@@ -85,6 +122,11 @@ class PropertyCalculator:
         if vor:
             sp.voronoi_plot_2d(vor)
         plt.show()
+
+    def calculate_local_rotational_invarient(self):
+        orders = self.td.dataframe['order'].values
+        loc_rot_invar = np.abs(orders)**2
+        self.td.add_property_to_dataframe('loc_rot_invar', loc_rot_invar)
 
     def calculate_hexatic_order_parameter(self):
         order_params = np.array([])
@@ -159,12 +201,13 @@ class PropertyCalculator:
 
     @staticmethod
     def _calculate_orders(angles, list_indices):
-        step = np.exp(6j * angles)/6
+        step = np.exp(6j * angles)
         orders = []
         for p in range(len(list_indices)-1):
             part = step[list_indices[p]:list_indices[p+1]]
-            total = sum(part)
-            orders.append(abs(total)**2)
+            total = sum(part)/len(part)
+            # orders.append(abs(total)**2)
+            orders.append(total)
         return orders
 
     @staticmethod
@@ -322,11 +365,13 @@ if __name__ == "__main__":
             "/home/ppxjd3/Videos/liquid_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    PC.calculate_pair_correlation(1)
+    # PC.calculate_pair_correlation(1)
     # PC.calculate_hexatic_order_parameter()
-    # print(dataframe.dataframe.head())
+    # PC.calculate_local_rotational_invarient()
+    PC.calculate_orientational_correlation(1)
+    print(dataframe.dataframe.head())
     # print(dataframe.dataframe['local density'].values.mean())
-    #print(dataframe.dataframe['order'].mean())
+    print(dataframe.dataframe['loc_rot_invar'].mean())
     # PC.find_edge_points(check=True)
     # print(dataframe.dataframe['on_edge'].mean())
     # PC.calculate_local_density()
