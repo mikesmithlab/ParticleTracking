@@ -34,7 +34,7 @@ class VideoAnnotator:
                                    bitrate='MEDIUM4K')
         for f in range(cap.num_frames):
             print(f)
-            points = self.td.extract_points_for_frame(f)
+            points = self.td.get_info(f)
             frame = cap.read_frame()
             if delaunay:
                 frame = im.draw_delaunay_tess(frame, points)
@@ -58,7 +58,7 @@ class VideoAnnotator:
         for f in range(cap.num_frames):
             print('Annotating frame ', f+1, ' of ', cap.num_frames)
             frame = cap.read_frame_PIL()
-            info = self.td.return_property_and_circles_for_frame(f, parameter)
+            info = self.td.get_info(f, include_size=True, prop=parameter)
             draw = ImageDraw.Draw(frame)
             for xi, yi, r, param in info:
                 if parameter == 'particle':
@@ -92,7 +92,7 @@ def init_circle(r, col=(255, 0, 0), fill=False):
 
 if __name__ == "__main__":
 
-    dataframe = df.TrackingDataframe(
+    dataframe = df.DataStore(
             "/home/ppxjd3/Videos/packed_data.hdf5",
             load=True)
     input_video = "/home/ppxjd3/Videos/packed_crop.mp4"

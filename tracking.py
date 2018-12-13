@@ -78,7 +78,7 @@ class ParticleTracker:
         self.video = vid.ReadVideo(self.video_filename)
         if os.path.exists(self.data_store_filename):
             os.remove(self.data_store_filename)
-        data = df.TrackingDataframe(self.data_store_filename)
+        data = df.DataStore(self.data_store_filename)
         for f in range(self.video.num_frames):
             frame = self.video.read_next_frame()
             new_frame, boundary = self.ip.process_image(frame)
@@ -120,7 +120,7 @@ class ParticleTracker:
         group_number: int
             Describes which fraction of the video the method should act on
         """
-        data = df.TrackingDataframe(str(group_number) + '.hdf5')
+        data = df.DataStore(str(group_number) + '.hdf5')
         cap = vid.ReadVideo(self.video_filename)
         frame_no_start = self.frame_jump_unit * group_number
         cap.set_frame(frame_no_start)
@@ -156,8 +156,8 @@ class ParticleTracker:
 
     def _link_trajectories(self):
         """Implements the trackpy functions link_df and filter_stubs"""
-        data_store = df.TrackingDataframe(self.data_store_filename,
-                                          load=True)
+        data_store = df.DataStore(self.data_store_filename,
+                                  load=True)
         try:
             a = self.options['max frame displacement']
         except KeyError as error:
@@ -187,8 +187,8 @@ class ParticleTracker:
 
     def _check_video_tracking(self):
         """Uses the VideoAnnotator class to draw circles on the video"""
-        data_store = df.TrackingDataframe(self.data_store_filename,
-                                          load=True)
+        data_store = df.DataStore(self.data_store_filename,
+                                  load=True)
         va = an.VideoAnnotator(
                 data_store,
                 self.video_corename + "_crop.mp4")

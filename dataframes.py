@@ -5,7 +5,7 @@ import warnings
 warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 
 
-class TrackingDataframe:
+class DataStore:
     """Class to manage dataframes associated with tracking"""
 
     def __init__(self, filename, load=False):
@@ -33,25 +33,25 @@ class TrackingDataframe:
                 "boundary": [boundary]})
         self.boundary_df = pd.concat([self.boundary_df, boundary_df_to_append])
 
-    def extract_points_for_frame(self, frame_no, include_size=False, property=None):
-        if include_size and property is None:
+    def get_info(self, frame_no, include_size=False, prop=None):
+        if include_size and prop is None:
             points = self.dataframe.loc[
                 self.dataframe['frame'] == frame_no, ['x', 'y', 'size']].values
-        elif include_size and property is not None:
+        elif include_size and prop is not None:
             points = self.dataframe.loc[
                 self.dataframe['frame'] == frame_no, ['x', 'y', 'size',
-                                                      property]].values
-        elif not include_size and property is None:
+                                                      prop]].values
+        elif not include_size and prop is None:
             points = self.dataframe.loc[
                 self.dataframe['frame'] == frame_no, ['x', 'y']].values
         else:
             points = self.dataframe.loc[
                 self.dataframe['frame'] == frame_no, ['x', 'y',
-                                                      property]].values
+                                                      prop]].values
         return points
 
-    def add_property_to_dataframe(self, property_string, property):
-        self.dataframe[property_string] = property
+    def add_property(self, prop_string, prop):
+        self.dataframe[prop_string] = prop
         self.save_dataframe()
 
     def save_dataframe(self):
@@ -69,38 +69,10 @@ class TrackingDataframe:
         self.boundary_df = store['boundary']
         store.close()
 
-    def extract_boundary_for_frame(self, frame):
+    def get_boundary(self, frame):
         boundary = self.boundary_df.loc[self.boundary_df['frame'] == frame,
                                         'boundary'].values
         return boundary[0]
-
-    def return_circles_for_frame(self, frame):
-        """
-        Returns the 'x', 'y', and 'size' data for a certain frame
-
-        Parameters
-        ----------
-        frame: int
-
-        Returns
-        -------
-        circles: ndarray
-            Array of shape (p, 3) where for each particle p:
-             circles[p, 0] contains x coordinates
-             circles[p, 1] contains y coordinate
-             circles[p, size] contains size
-        """
-        circles = self.dataframe.loc[self.dataframe['frame'] == frame,
-                                     ['x', 'y', 'size']].values
-        return circles
-
-    def return_property_and_circles_for_frame(self, frame, parameter):
-        assert (parameter in self.dataframe.columns), \
-            "{} is not in the dataframe".format(parameter)
-        columns = ['x', 'y', 'size', parameter]
-        out = self.dataframe.loc[self.dataframe['frame'] == frame,
-                                 columns].values
-        return out
 
 
 def concatenate_dataframe(dataframe_list, new_filename):
@@ -123,7 +95,8 @@ def concatenate_dataframe(dataframe_list, new_filename):
 
 
 if __name__=="__main__":
-    filename = "/home/ppxjd3/Videos/12240002_data.hdf5"
-    td = TrackingDataframe(filename, load=True)
-    circles = td.return_circles_for_frame(5)
-    print(np.shape(circles))
+    from Generic import filedialogs
+    filename = filedialogs.load_filename('Select a dataframe', directory="/home/ppxjd3/Videos", file_filter='*.hdf5')
+    data = DataStore(filename, load=True)
+    info = data.get_info(1, include_size=True, prop='order')
+

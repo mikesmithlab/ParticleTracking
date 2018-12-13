@@ -441,7 +441,7 @@ class MainWindow(QMainWindow):
         # reload video
         self.video = vid.ReadVideo(self.filename[0])
         # create dataframe
-        dataframe = df.TrackingDataframe(self.name+'.hdf5')
+        dataframe = df.DataStore(self.name + '.hdf5')
         new_pt = pt.ParticleTracker(self.filename[0],
                                     self.options,
                                     self.methods.extract_methods(),

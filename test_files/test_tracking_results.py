@@ -7,7 +7,7 @@ import numpy as np
 
 
 dataframe_name = fd.load_filename('Choose a dataframe')
-dataframe_store = dataframes.TrackingDataframe(dataframe_name, True)
+dataframe_store = dataframes.DataStore(dataframe_name, True)
 vid_name = fd.load_filename('Choose a video')
 vid = video.ReadVideo(vid_name)
 """Test number detected"""

@@ -3,8 +3,6 @@ import ParticleTracking.dataframes as df
 import scipy.spatial as sp
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
-import time
-import math
 from numba import jit
 import os
 
@@ -24,16 +22,16 @@ class PropertyCalculator:
         g6_name = self.corename + \
             '_orientational_correlation_{}_g.txt'.format(frame_no)
 
-        data = self.td.extract_points_for_frame(
+        data = self.td.get_info(
             frame_no,
             include_size=True,
-            property='order')
+            prop='order')
         diameter = np.mean(np.real(data[:, 2])) * 2
 
         dists = sp.distance.pdist(np.real(data[:, :2])/diameter)
         dists = sp.distance.squareform(dists)
 
-        dr = 0.02 # diameters
+        dr = 0.02  # diameters
         r_values = np.arange(1, 20, dr)
         G6 = np.zeros(r_values.shape)
         for i, r in enumerate(r_values):
@@ -52,17 +50,16 @@ class PropertyCalculator:
         np.savetxt(r_name, r_values)
         np.savetxt(g6_name, G6)
 
-
     def calculate_pair_correlation(self, frame_no):
         fig_name = self.corename + '_pair_correlation_{}.png'.format(frame_no)
         r_name = self.corename + '_pair_correlation_{}_r.txt'.format(frame_no)
         g_name = self.corename + '_pair_correlation_{}_g.txt'.format(frame_no)
 
-        data = self.td.extract_points_for_frame(frame_no, include_size=True)
+        data = self.td.get_info(frame_no, include_size=True)
         pos = data[:, :2]
         diameter = data[:, 2].mean() * 2
 
-        boundary = self.td.extract_boundary_for_frame(frame_no)
+        boundary = self.td.get_boundary(frame_no)
         area = calculate_area_from_boundary(boundary) / diameter**2
         n = len(pos)
         density = n / area
@@ -94,18 +91,18 @@ class PropertyCalculator:
         before calculating the voronoi cell which were then used to bound
         the cells of the outermost particles to the edge of the system.
         """
-        boundary = self.td.extract_boundary_for_frame(0)
+        boundary = self.td.get_boundary(0)
         CropVor = CroppedVoronoi(boundary)
         local_density_all = np.array([])
         for n in range(self.num_frames+1):
-            info = self.td.extract_points_for_frame(n, include_size=True)
+            info = self.td.get_info(n, include_size=True)
             particle_area = info[:, 2].mean()**2 * np.pi
             vor = CropVor.add_points(info[:, :2])
             VorArea = VoronoiArea(vor)
             area = list(map(VorArea.area, range(len(info))))
             density = particle_area / np.array(area)
             local_density_all = np.append(local_density_all, density)
-        self.td.add_property_to_dataframe('local_density', local_density_all)
+        self.td.add_property('local_density', local_density_all)
 
     @staticmethod
     def show_property_with_condition(points, prop, cond, val, vor=None):
@@ -126,12 +123,12 @@ class PropertyCalculator:
     def calculate_local_rotational_invarient(self):
         orders = self.td.dataframe['order'].values
         loc_rot_invar = np.abs(orders)**2
-        self.td.add_property_to_dataframe('loc_rot_invar', loc_rot_invar)
+        self.td.add_property('loc_rot_invar', loc_rot_invar)
 
     def calculate_hexatic_order_parameter(self):
         order_params = np.array([])
         for n in range(self.num_frames+1):
-            points = self.td.extract_points_for_frame(n)
+            points = self.td.get_info(n)
             list_indices, point_indices = self._find_delaunay_indices(points)
             # The indices of neighbouring vertices of vertex k are
             # point_indices[list_indices[k]:list_indices[k+1]].
@@ -139,13 +136,13 @@ class PropertyCalculator:
             angles = self._calculate_angles(vectors)
             orders = self._calculate_orders(angles, list_indices)
             order_params = np.append(order_params, orders)
-        self.td.add_property_to_dataframe('order', order_params)
+        self.td.add_property('order', order_params)
 
     def find_edge_points(self, check=False):
         edges_array = np.array([], dtype=bool)
         for f in range(self.num_frames+1):
-            points = self.td.extract_points_for_frame(f)
-            boundary = self.td.extract_boundary_for_frame(f)
+            points = self.td.get_info(f)
+            boundary = self.td.get_boundary(f)
             vor = sp.Voronoi(points)
             vertices_outside = self.voronoi_vertices_outside(vor, boundary)
             edges = self.is_point_on_edge(vor, vertices_outside)
@@ -166,7 +163,7 @@ class PropertyCalculator:
                             fill=False)
                     plt.gcf().gca().add_artist(circle)
                 plt.show()
-        self.td.add_property_to_dataframe('on_edge', edges_array)
+        self.td.add_property('on_edge', edges_array)
 
     @staticmethod
     def is_point_on_edge(vor, vertices_outside):
@@ -361,13 +358,13 @@ class CroppedVoronoi:
 
 
 if __name__ == "__main__":
-    dataframe = df.TrackingDataframe(
+    dataframe = df.DataStore(
             "/home/ppxjd3/Videos/liquid_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    # PC.calculate_pair_correlation(1)
-    # PC.calculate_hexatic_order_parameter()
-    # PC.calculate_local_rotational_invarient()
+    PC.calculate_pair_correlation(1)
+    PC.calculate_hexatic_order_parameter()
+    PC.calculate_local_rotational_invarient()
     PC.calculate_orientational_correlation(1)
     print(dataframe.dataframe.head())
     # print(dataframe.dataframe['local density'].values.mean())
