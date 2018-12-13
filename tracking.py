@@ -92,7 +92,7 @@ class ParticleTracker:
             circles = return_points_inside_boundary(circles, boundary)
             circles = check_circles_bg_color(circles, new_frame)
             data.add_tracking_data(f, circles, boundary)
-        data.save_dataframe()
+        data.save()
         self._link_trajectories()
         if self.save_crop_video:
             self.save_cropped_video()
@@ -142,7 +142,7 @@ class ParticleTracker:
                                    circles,
                                    boundary)
             proc_frames += 1
-        data.save_dataframe()
+        data.save()
         cap.close()
 
     def _cleanup_intermediate_dataframes(self):
@@ -176,14 +176,14 @@ class ParticleTracker:
             print(error)
             print('memory set to 3')
             self.options['memory'] = 3
-        data_store.dataframe = tp.link_df(
-                data_store.dataframe,
+        data_store.particle_data = tp.link_df(
+                data_store.particle_data,
                 self.options['max frame displacement'],
                 memory=self.options['memory'])
         # data_store.dataframe = tp.filter_stubs(
         #         data_store.dataframe,
         #         self.options['min frame life'])
-        data_store.save_dataframe()
+        data_store.save()
 
     def _check_video_tracking(self):
         """Uses the VideoAnnotator class to draw circles on the video"""

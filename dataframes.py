@@ -9,68 +9,67 @@ class DataStore:
     """Class to manage dataframes associated with tracking"""
 
     def __init__(self, filename, load=False):
-        self.dataframe = pd.DataFrame()
-        self.boundary_df = pd.DataFrame()
+        self.particle_data = pd.DataFrame()
+        self.boundary_data = pd.DataFrame()
         self.filename = filename
         if load:
-            self._load_dataframe()
+            self._load()
             self._find_properties()
 
     def _find_properties(self):
-        self.num_frames = self.dataframe['frame'].max()
+        self.num_frames = self.particle_data['frame'].max()
 
     def add_tracking_data(self, frame, circles, boundary):
         frame_list = np.ones((np.shape(circles)[0], 1)) * frame
-        dataframe_to_append = pd.DataFrame({
+        new_particles = pd.DataFrame({
                 "x": circles[:, 0],
                 "y": circles[:, 1],
                 "size": circles[:, 2],
                 "frame": frame_list[:, 0]},
                 index=np.arange(1, np.shape(circles)[0] + 1))
-        self.dataframe = pd.concat([self.dataframe, dataframe_to_append])
-        boundary_df_to_append = pd.DataFrame({
+        self.particle_data = pd.concat([self.particle_data, new_particles])
+        new_boundary = pd.DataFrame({
                 "frame": frame,
                 "boundary": [boundary]})
-        self.boundary_df = pd.concat([self.boundary_df, boundary_df_to_append])
+        self.boundary_data = pd.concat([self.boundary_data, new_boundary])
 
     def get_info(self, frame_no, include_size=False, prop=None):
         if include_size and prop is None:
-            points = self.dataframe.loc[
-                self.dataframe['frame'] == frame_no, ['x', 'y', 'size']].values
+            points = self.particle_data.loc[
+                self.particle_data['frame'] == frame_no, ['x', 'y', 'size']].values
         elif include_size and prop is not None:
-            points = self.dataframe.loc[
-                self.dataframe['frame'] == frame_no, ['x', 'y', 'size',
-                                                      prop]].values
+            points = self.particle_data.loc[
+                self.particle_data['frame'] == frame_no, ['x', 'y', 'size',
+                                                          prop]].values
         elif not include_size and prop is None:
-            points = self.dataframe.loc[
-                self.dataframe['frame'] == frame_no, ['x', 'y']].values
+            points = self.particle_data.loc[
+                self.particle_data['frame'] == frame_no, ['x', 'y']].values
         else:
-            points = self.dataframe.loc[
-                self.dataframe['frame'] == frame_no, ['x', 'y',
-                                                      prop]].values
+            points = self.particle_data.loc[
+                self.particle_data['frame'] == frame_no, ['x', 'y',
+                                                          prop]].values
         return points
 
     def add_property(self, prop_string, prop):
-        self.dataframe[prop_string] = prop
-        self.save_dataframe()
+        self.particle_data[prop_string] = prop
+        self.save()
 
-    def save_dataframe(self):
+    def save(self):
         if os.path.exists(self.filename):
             os.remove(self.filename)
         store = pd.HDFStore(self.filename)
-        store['data'] = self.dataframe
-        store['boundary'] = self.boundary_df
+        store['data'] = self.particle_data
+        store['boundary'] = self.boundary_data
         store.close()
 
-    def _load_dataframe(self):
-
+    def _load(self):
         store = pd.HDFStore(self.filename)
-        self.dataframe = store['data']
-        self.boundary_df = store['boundary']
+        self.particle_data = store['data']
+        self.boundary_data = store['boundary']
         store.close()
 
     def get_boundary(self, frame):
-        boundary = self.boundary_df.loc[self.boundary_df['frame'] == frame,
+        boundary = self.boundary_data.loc[self.boundary_data['frame'] == frame,
                                         'boundary'].values
         return boundary[0]
 
