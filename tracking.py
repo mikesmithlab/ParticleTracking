@@ -14,8 +14,8 @@ class ParticleTracker:
 
     def __init__(self,
                  input_video_filename,
-                 options,
                  methods,
+                 parameters,
                  multiprocess=False,
                  save_crop_video=True,
                  save_check_video=False,
@@ -24,26 +24,26 @@ class ParticleTracker:
         self.video_filename = input_video_filename
         self.video_corename = os.path.splitext(input_video_filename)[0]
         self.data_store_filename = self.video_corename + '_data.hdf5'
-        self.options = options
+        self.parameters = parameters
         self.multiprocess = multiprocess
         self.save_crop_video = save_crop_video
         self.save_check_video = save_check_video
         self.ip = preprocessing.ImagePreprocessor(
-            methods, self.options, crop_points)
-        self.check_options()
+            methods, self.parameters, crop_points)
+        self._check_parameters()
 
-    def check_options(self):
-        assert 'min_dist' in self.options, 'min_dist not in dictionary'
-        assert 'p_1' in self.options, 'p_1 not in dictionary'
-        assert 'p_2' in self.options, 'p_2 not in dictionary'
-        assert 'min_rad' in self.options, 'min_rad not in dictionary'
-        assert 'max_rad' in self.options, 'max rad not in dictionary'
+    def _check_parameters(self):
+        assert 'min_dist' in self.parameters, 'min_dist not in dictionary'
+        assert 'p_1' in self.parameters, 'p_1 not in dictionary'
+        assert 'p_2' in self.parameters, 'p_2 not in dictionary'
+        assert 'min_rad' in self.parameters, 'min_rad not in dictionary'
+        assert 'max_rad' in self.parameters, 'max rad not in dictionary'
 
     def track(self):
         if self.multiprocess:
-            self.track_multiprocess()
+            self._track_multiprocess()
         else:
-            self.track_singleprocess()
+            self._track_singleprocess()
 
     def save_cropped_video(self):
         print('saving cropped video')
@@ -54,12 +54,12 @@ class ParticleTracker:
                          crop[0][1],
                          crop[1][1])
 
-    def track_multiprocess(self):
+    def _track_multiprocess(self):
         """Call this to start tracking"""
         self.num_processes = mp.cpu_count()
         self.extension = "mp4"
         self.fourcc = "mp4v"
-        self._find_video_info()
+        self._get_video_info()
 
         p = mp.Pool(self.num_processes)
         p.map(self._track_process, range(self.num_processes))
@@ -70,7 +70,7 @@ class ParticleTracker:
         if self.save_check_video and self.save_crop_video:
             self._check_video_tracking()
 
-    def track_singleprocess(self):
+    def _track_singleprocess(self):
         """Call this to start the tracking"""
         self.video = video.ReadVideo(self.video_filename)
         if os.path.exists(self.data_store_filename):
@@ -81,12 +81,12 @@ class ParticleTracker:
             new_frame, boundary = self.ip.process_image(frame)
             circles = images.find_circles(
                 new_frame,
-                self.options['min_dist'],
-                self.options['p_1'],
-                self.options['p_2'],
-                self.options['min_rad'],
-                self.options['max_rad'])
-            circles = return_points_inside_boundary(circles, boundary)
+                self.parameters['min_dist'],
+                self.parameters['p_1'],
+                self.parameters['p_2'],
+                self.parameters['min_rad'],
+                self.parameters['max_rad'])
+            circles = get_points_inside_boundary(circles, boundary)
             circles = check_circles_bg_color(circles, new_frame)
             data.add_tracking_data(f, circles, boundary)
         data.save()
@@ -96,7 +96,7 @@ class ParticleTracker:
         if self.save_check_video:
             self._check_video_tracking()
 
-    def _find_video_info(self):
+    def _get_video_info(self):
         """From the video reads properties for other methods"""
         cap = video.ReadVideo(self.video_filename)
         self.frame_jump_unit = cap.num_frames // self.num_processes
@@ -128,12 +128,12 @@ class ParticleTracker:
             new_frame, boundary = self.ip.process_image(frame)
             circles = images.find_circles(
                 new_frame,
-                self.options['min_dist'],
-                self.options['p_1'],
-                self.options['p_2'],
-                self.options['min_rad'],
-                self.options['max_rad'])
-            circles = return_points_inside_boundary(circles, boundary)
+                self.parameters['min_dist'],
+                self.parameters['p_1'],
+                self.parameters['p_2'],
+                self.parameters['min_rad'],
+                self.parameters['max_rad'])
+            circles = get_points_inside_boundary(circles, boundary)
             circles = check_circles_bg_color(circles, new_frame)
             data.add_tracking_data(frame_no_start+proc_frames,
                                    circles,
@@ -156,27 +156,27 @@ class ParticleTracker:
         data_store = dataframes.DataStore(self.data_store_filename,
                                           load=True)
         try:
-            a = self.options['max frame displacement']
+            a = self.parameters['max frame displacement']
         except KeyError as error:
             print(error)
             print('max frame displacement set to 10')
-            self.options['max frame displacement'] = 10
+            self.parameters['max frame displacement'] = 10
         try:
-            a = self.options['min frame life']
+            a = self.parameters['min frame life']
         except KeyError as error:
             print(error)
             print('min frame life set to 10')
-            self.options['min frame life'] = 10
+            self.parameters['min frame life'] = 10
         try:
-            a = self.options['memory']
+            a = self.parameters['memory']
         except KeyError as error:
             print(error)
             print('memory set to 3')
-            self.options['memory'] = 3
+            self.parameters['memory'] = 3
         data_store.particle_data = tp.link_df(
                 data_store.particle_data,
-                self.options['max frame displacement'],
-                memory=self.options['memory'])
+                self.parameters['max frame displacement'],
+                memory=self.parameters['memory'])
         # data_store.dataframe = tp.filter_stubs(
         #         data_store.dataframe,
         #         self.options['min frame life'])
@@ -192,7 +192,7 @@ class ParticleTracker:
         va.add_coloured_circles()
 
 
-def return_points_inside_boundary(points, boundary):
+def get_points_inside_boundary(points, boundary):
     centers = points[:, :2]
     if len(np.shape(boundary)) == 1:
         vertices_from_centre = centers - boundary[0:2]

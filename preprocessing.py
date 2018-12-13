@@ -6,16 +6,16 @@ from Generic import images, video
 class ImagePreprocessor:
     """Class to manage the frame by frame processing of videos"""
 
-    def __init__(self, method_order=None, options=None, crop_points=None):
+    def __init__(self, methods=None, parameters=None, crop_points=None):
         """
         Parameters
         ----------
-        method_order: list
+        methods: list
             A list containing string associated with methods in the order they
             will be used.
             If None, process_image will only perform a grayscale of the image.
 
-        options: dictionary
+        parameters: dictionary
             A dictionary containing all the parameters needed for functions.
             If None, methods will use their keyword parameters
 
@@ -24,8 +24,8 @@ class ImagePreprocessor:
         self.mask_img = np.array([])
         self.crop_points = crop_points
         self.crop = []
-        self.method_order = method_order
-        self.options = options
+        self.methods = methods
+        self.parameters = parameters
         self.process_calls = 0
 
     def process_image(self, frame):
@@ -50,19 +50,19 @@ class ImagePreprocessor:
         self.boundary: numpy array
             Contains information about the boundary points
         """
-        if self.method_order:
-            method_order = self.method_order
+        if self.methods:
+            method_order = self.methods
         else:
             method_order = []
 
         if self.process_calls == 0:
-            self._find_crop_and_mask_for_first_frame(frame)
+            self._find_crop_and_mask(frame)
         cropped_frame = self._crop_and_mask_frame(frame)
         new_frame = images.bgr_2_grayscale(cropped_frame)
         for method in method_order:
             if method == 'opening':
                 try:
-                    kernel = self.options['opening kernel']
+                    kernel = self.parameters['opening kernel']
                 except KeyError as error:
                     print(error)
                     print('opening kernel set to 3')
@@ -76,7 +76,7 @@ class ImagePreprocessor:
 
             elif method == 'threshold tozero':
                 try:
-                    threshold = self.options['grayscale threshold']
+                    threshold = self.parameters['grayscale threshold']
                 except KeyError as error:
                     print(error, 'threshold set to 100')
                     threshold = 100
@@ -85,7 +85,7 @@ class ImagePreprocessor:
 
             elif method == 'simple threshold':
                 try:
-                    threshold = self.options['grayscale threshold']
+                    threshold = self.parameters['grayscale threshold']
                 except KeyError as error:
                     print(error, 'threshold set to 100')
                     threshold = 100
@@ -95,12 +95,12 @@ class ImagePreprocessor:
 
             elif method == 'adaptive threshold':
                 try:
-                    block = self.options['adaptive threshold block size']
+                    block = self.parameters['adaptive threshold block size']
                 except KeyError as error:
                     print(error, 'adaptive block size set to 31')
                     block = 31
                 try:
-                    const = self.options['adaptive threshold C']
+                    const = self.parameters['adaptive threshold C']
                 except KeyError as error:
                     print(error, 'constant set to 0')
                     const = 0
@@ -111,7 +111,7 @@ class ImagePreprocessor:
 
             elif method == 'gaussian blur':
                 try:
-                    kernel = self.options['blur kernel']
+                    kernel = self.parameters['blur kernel']
                 except KeyError as error:
                     print(error, 'kernel set to 3')
                     kernel = 3
@@ -124,7 +124,7 @@ class ImagePreprocessor:
 
             elif method == 'closing':
                 try:
-                    kernel = self.options['closing kernel']
+                    kernel = self.parameters['closing kernel']
                 except KeyError as error:
                     print(error, 'kernel set to 3')
                     kernel = 3
@@ -136,7 +136,7 @@ class ImagePreprocessor:
 
             elif method == 'opening':
                 try:
-                    kernel = self.options['opening kernel']
+                    kernel = self.parameters['opening kernel']
                 except KeyError as error:
                     print(error, 'kernel set to 3')
                     kernel = 3
@@ -147,7 +147,7 @@ class ImagePreprocessor:
 
             elif method == 'dilation':
                 try:
-                    kernel = self.options['dilate kernel']
+                    kernel = self.parameters['dilate kernel']
                 except KeyError as error:
                     print(error, 'kernel set to 3')
                     kernel = 3
@@ -157,7 +157,7 @@ class ImagePreprocessor:
 
             elif method == 'erosion':
                 try:
-                    kernel = self.options['erode kernel']
+                    kernel = self.parameters['erode kernel']
                 except KeyError as error:
                     print(error, 'kernel set to 3')
                     kernel = 3
@@ -172,17 +172,17 @@ class ImagePreprocessor:
 
     def update_options(self, options, methods):
         """Updates class variables"""
-        self.options = options
-        self.method_order = methods
+        self.parameters = options
+        self.methods = methods
 
-    def _find_crop_and_mask_for_first_frame(self, frame, no_of_sides=1):
+    def _find_crop_and_mask(self, frame, no_of_sides=1):
         """
         Opens a crop shape instance with the input frame and no_of_sides
 
         Sets the class variables self.mask_img, self.crop and self.boundary
         """
-        if self.options:
-            no_of_sides = self.options['number of tray sides']
+        if self.parameters:
+            no_of_sides = self.parameters['number of tray sides']
         crop_inst = images.CropShape(frame, no_of_sides)
         if self.crop_points is None:
             self.mask_img, self.crop, self.boundary, _ = \
