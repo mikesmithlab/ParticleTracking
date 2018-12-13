@@ -44,7 +44,7 @@ class VideoAnnotator:
     def add_coloured_circles(self, parameter=None):
         if parameter is not None:
             output_video_filename = \
-                self.core_filename + '_' + self.parameter + self.extension
+                self.core_filename + '_' + parameter + self.extension
         else:
             parameter = 'particle'
             output_video_filename = \
@@ -84,7 +84,7 @@ if __name__ == "__main__":
             dataframe,
             input_video,
             shrink_factor=1)
-    VA.add_coloured_circles()
+    VA.add_coloured_circles('loc_rot_invar')
     # VA.add_annotations(voronoi=True, delaunay=True)
     # image = Image.new('RGB', [1000, 1000], (255, 0, 255))
     # circle, mask = init_circle(20)
