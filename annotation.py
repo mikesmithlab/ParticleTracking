@@ -51,7 +51,7 @@ class VideoAnnotator:
                 self.core_filename + '_circles' + self.extension
 
         cap = video.ReadVideoFFMPEG(self.input_video_filename)
-        out = video.WriteVideoFFMPEG(output_video_filename)
+        out = video.WriteVideoFFMPEG(output_video_filename, bitrate='MEDIUM1080')
         col = (255, 0, 0)
         for f in range(cap.num_frames):
             print('Annotating frame ', f+1, ' of ', cap.num_frames)
@@ -91,9 +91,9 @@ def init_circle(r, col=(255, 0, 0), fill=False):
 if __name__ == "__main__":
 
     dataframe = dataframes.DataStore(
-            "/home/ppxjd3/Videos/packed_data.hdf5",
+            "/home/ppxjd3/Videos/solid_data.hdf5",
             load=True)
-    input_video = "/home/ppxjd3/Videos/packed_crop.mp4"
+    input_video = "/home/ppxjd3/Videos/solid_crop.mp4"
     VA = VideoAnnotator(
             dataframe,
             input_video,
