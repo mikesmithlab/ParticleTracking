@@ -1,7 +1,6 @@
-import Generic.video as vid
 import cv2
 import numpy as np
-import Generic.images as im
+from Generic import images, video
 
 
 class ImagePreprocessor:
@@ -59,7 +58,7 @@ class ImagePreprocessor:
         if self.process_calls == 0:
             self._find_crop_and_mask_for_first_frame(frame)
         cropped_frame = self._crop_and_mask_frame(frame)
-        new_frame = im.bgr_2_grayscale(cropped_frame)
+        new_frame = images.bgr_2_grayscale(cropped_frame)
         for method in method_order:
             if method == 'opening':
                 try:
@@ -68,7 +67,7 @@ class ImagePreprocessor:
                     print(error)
                     print('opening kernel set to 3')
                     kernel = 3
-                new_frame = im.opening(
+                new_frame = images.opening(
                     new_frame,
                     kernel=(kernel, kernel))
 
@@ -81,7 +80,7 @@ class ImagePreprocessor:
                 except KeyError as error:
                     print(error, 'threshold set to 100')
                     threshold = 100
-                new_frame = im.threshold(
+                new_frame = images.threshold(
                     new_frame, threshold, cv2.THRESH_TOZERO)
 
             elif method == 'simple threshold':
@@ -90,7 +89,7 @@ class ImagePreprocessor:
                 except KeyError as error:
                     print(error, 'threshold set to 100')
                     threshold = 100
-                new_frame = im.threshold(
+                new_frame = images.threshold(
                     new_frame,
                     threshold)
 
@@ -105,7 +104,7 @@ class ImagePreprocessor:
                 except KeyError as error:
                     print(error, 'constant set to 0')
                     const = 0
-                new_frame = im.adaptive_threshold(
+                new_frame = images.adaptive_threshold(
                     new_frame,
                     block_size=block,
                     constant=const)
@@ -116,12 +115,12 @@ class ImagePreprocessor:
                 except KeyError as error:
                     print(error, 'kernel set to 3')
                     kernel = 3
-                new_frame = im.gaussian_blur(
+                new_frame = images.gaussian_blur(
                     new_frame,
                     kernel=(kernel, kernel))
 
             elif method == 'distance transform':
-                new_frame = im.distance_transform(new_frame)
+                new_frame = images.distance_transform(new_frame)
 
             elif method == 'closing':
                 try:
@@ -131,7 +130,7 @@ class ImagePreprocessor:
                     kernel = 3
                 kernel_arr = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,
                                                        (kernel, kernel))
-                new_frame = im.closing(
+                new_frame = images.closing(
                     new_frame,
                     kernel=kernel_arr)
 
@@ -141,7 +140,7 @@ class ImagePreprocessor:
                 except KeyError as error:
                     print(error, 'kernel set to 3')
                     kernel = 3
-                new_frame = im.opening(
+                new_frame = images.opening(
                     new_frame,
                     kernel=(kernel, kernel),
                     kernel_type=cv2.MORPH_ELLIPSE)
@@ -152,7 +151,7 @@ class ImagePreprocessor:
                 except KeyError as error:
                     print(error, 'kernel set to 3')
                     kernel = 3
-                new_frame = im.dilate(
+                new_frame = images.dilate(
                     new_frame,
                     kernel=(kernel, kernel))
 
@@ -162,11 +161,11 @@ class ImagePreprocessor:
                 except KeyError as error:
                     print(error, 'kernel set to 3')
                     kernel = 3
-                new_frame = im.erode(
+                new_frame = images.erode(
                     new_frame,
                     kernel=(kernel, kernel))
             elif method == 'distance':
-                new_frame = im.distance_transform(new_frame)
+                new_frame = images.distance_transform(new_frame)
 
         self.process_calls += 1
         return new_frame, self.boundary
@@ -184,7 +183,7 @@ class ImagePreprocessor:
         """
         if self.options:
             no_of_sides = self.options['number of tray sides']
-        crop_inst = im.CropShape(frame, no_of_sides)
+        crop_inst = images.CropShape(frame, no_of_sides)
         if self.crop_points is None:
             self.mask_img, self.crop, self.boundary, _ = \
                 crop_inst.begin_crop()
@@ -220,15 +219,15 @@ class ImagePreprocessor:
         cropped_frame: numpy array
             A numpy array containing an image which has been cropped and masked
         """
-        masked_frame = im.mask_img(frame, self.mask_img)
-        cropped_frame = im.crop_img(masked_frame, self.crop)
+        masked_frame = images.mask_img(frame, self.mask_img)
+        cropped_frame = images.crop_img(masked_frame, self.crop)
         return cropped_frame
 
 
 if __name__ == "__main__":
     import Generic.filedialogs as fd
     input_vid_name = fd.load_filename('Choose a video')
-    input_vid = vid.ReadVideo(input_vid_name)
+    input_vid = video.ReadVideo(input_vid_name)
     methods = []
     options = {}
     IP = ImagePreprocessor(methods, options)
@@ -246,4 +245,4 @@ if __name__ == "__main__":
             boundary = boundary.reshape((-1, 1, 2))
             boundary = boundary.astype(np.int32)
             cv2.polylines(new_frame, [boundary], True, (0, 0, 255))
-        im.display(new_frame)
+        images.display(new_frame)

@@ -4,11 +4,8 @@ import time
 import numpy as np
 import trackpy as tp
 import multiprocessing as mp
-import Generic.video as vid
-import Generic.images as im
-import ParticleTracking.preprocessing as pp
-import ParticleTracking.dataframes as df
-import ParticleTracking.annotation as an
+from Generic import video, images
+from ParticleTracking import preprocessing, dataframes, annotation
 import matplotlib.path as mpath
 
 
@@ -31,7 +28,7 @@ class ParticleTracker:
         self.multiprocess = multiprocess
         self.save_crop_video = save_crop_video
         self.save_check_video = save_check_video
-        self.ip = pp.ImagePreprocessor(
+        self.ip = preprocessing.ImagePreprocessor(
             methods, self.options, crop_points)
         self.check_options()
 
@@ -51,11 +48,11 @@ class ParticleTracker:
     def save_cropped_video(self):
         print('saving cropped video')
         crop = self.ip.crop
-        vid.crop_video(self.video_filename,
-                       crop[0][0],
-                       crop[1][0],
-                       crop[0][1],
-                       crop[1][1])
+        video.crop_video(self.video_filename,
+                         crop[0][0],
+                         crop[1][0],
+                         crop[0][1],
+                         crop[1][1])
 
     def track_multiprocess(self):
         """Call this to start tracking"""
@@ -75,14 +72,14 @@ class ParticleTracker:
 
     def track_singleprocess(self):
         """Call this to start the tracking"""
-        self.video = vid.ReadVideo(self.video_filename)
+        self.video = video.ReadVideo(self.video_filename)
         if os.path.exists(self.data_store_filename):
             os.remove(self.data_store_filename)
-        data = df.DataStore(self.data_store_filename)
+        data = dataframes.DataStore(self.data_store_filename)
         for f in range(self.video.num_frames):
             frame = self.video.read_next_frame()
             new_frame, boundary = self.ip.process_image(frame)
-            circles = im.find_circles(
+            circles = images.find_circles(
                 new_frame,
                 self.options['min_dist'],
                 self.options['p_1'],
@@ -101,12 +98,12 @@ class ParticleTracker:
 
     def _find_video_info(self):
         """From the video reads properties for other methods"""
-        cap = vid.ReadVideo(self.video_filename)
+        cap = video.ReadVideo(self.video_filename)
         self.frame_jump_unit = cap.num_frames // self.num_processes
         self.fps = cap.fps
         frame = cap.read_next_frame()
         new_frame, _ = self.ip.process_image(frame)
-        self.width, self.height = im.get_width_and_height(new_frame)
+        self.width, self.height = images.get_width_and_height(new_frame)
 
     def _track_process(self, group_number):
         """
@@ -120,8 +117,8 @@ class ParticleTracker:
         group_number: int
             Describes which fraction of the video the method should act on
         """
-        data = df.DataStore(str(group_number) + '.hdf5')
-        cap = vid.ReadVideo(self.video_filename)
+        data = dataframes.DataStore(str(group_number) + '.hdf5')
+        cap = video.ReadVideo(self.video_filename)
         frame_no_start = self.frame_jump_unit * group_number
         cap.set_frame(frame_no_start)
 
@@ -129,7 +126,7 @@ class ParticleTracker:
         while proc_frames < self.frame_jump_unit:
             frame = cap.read_next_frame()
             new_frame, boundary = self.ip.process_image(frame)
-            circles = im.find_circles(
+            circles = images.find_circles(
                 new_frame,
                 self.options['min_dist'],
                 self.options['p_1'],
@@ -149,15 +146,15 @@ class ParticleTracker:
         """Concatenates and removes intermediate dataframes"""
         dataframe_list = ["{}.hdf5".format(i) for i in
                           range(self.num_processes)]
-        df.concatenate_dataframe(dataframe_list,
-                                 self.data_store_filename)
+        dataframes.concatenate_dataframe(dataframe_list,
+                                         self.data_store_filename)
         for file in dataframe_list:
             os.remove(file)
 
     def _link_trajectories(self):
         """Implements the trackpy functions link_df and filter_stubs"""
-        data_store = df.DataStore(self.data_store_filename,
-                                  load=True)
+        data_store = dataframes.DataStore(self.data_store_filename,
+                                          load=True)
         try:
             a = self.options['max frame displacement']
         except KeyError as error:
@@ -187,9 +184,9 @@ class ParticleTracker:
 
     def _check_video_tracking(self):
         """Uses the VideoAnnotator class to draw circles on the video"""
-        data_store = df.DataStore(self.data_store_filename,
-                                  load=True)
-        va = an.VideoAnnotator(
+        data_store = dataframes.DataStore(self.data_store_filename,
+                                          load=True)
+        va = annotation.VideoAnnotator(
                 data_store,
                 self.video_corename + "_crop.mp4")
         va.add_coloured_circles()

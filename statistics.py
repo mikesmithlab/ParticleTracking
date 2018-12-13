@@ -1,5 +1,5 @@
 import numpy as np
-import ParticleTracking.dataframes as df
+from ParticleTracking import dataframes
 import scipy.spatial as sp
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
@@ -11,7 +11,7 @@ class PropertyCalculator:
     """Class to calculate the properties associated with tracking"""
     def __init__(self, tracking_dataframe):
         self.td = tracking_dataframe
-        self.num_frames = int(np.max(self.td.dataframe['frame']))
+        self.num_frames = self.td.num_frames
         self.corename = os.path.splitext(self.td.filename)[0]
 
     def calculate_orientational_correlation(self, frame_no):
@@ -121,7 +121,7 @@ class PropertyCalculator:
         plt.show()
 
     def calculate_local_rotational_invarient(self):
-        orders = self.td.dataframe['order'].values
+        orders = self.td.get_column('order')
         loc_rot_invar = np.abs(orders)**2
         self.td.add_property('loc_rot_invar', loc_rot_invar)
 
@@ -358,7 +358,7 @@ class CroppedVoronoi:
 
 
 if __name__ == "__main__":
-    dataframe = df.DataStore(
+    dataframe = dataframes.DataStore(
             "/home/ppxjd3/Videos/liquid_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)

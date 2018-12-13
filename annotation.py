@@ -1,13 +1,11 @@
 import cv2
-import ParticleTracking.dataframes as df
-import Generic.video as vid
-import Generic.images as im
+from ParticleTracking import dataframes
+from Generic import video, images
 from matplotlib import cm
 import numpy as np
-import multiprocessing as mp
-import subprocess as sub
 import os
 from PIL import ImageDraw, Image, ImageOps
+
 
 class VideoAnnotator:
 
@@ -24,22 +22,22 @@ class VideoAnnotator:
         self.shrink_factor = shrink_factor
 
     def add_annotations(self, voronoi=False, delaunay=False):
-        cap = vid.ReadVideoFFMPEG(self.input_video_filename)
+        cap = video.ReadVideoFFMPEG(self.input_video_filename)
         output_video_filename = (
                 self.core_filename +
                 '_network' +
                 self.extension
                 )
-        out = vid.WriteVideoFFMPEG(output_video_filename,
-                                   bitrate='MEDIUM4K')
+        out = video.WriteVideoFFMPEG(output_video_filename,
+                                     bitrate='MEDIUM4K')
         for f in range(cap.num_frames):
             print(f)
             points = self.td.get_info(f)
             frame = cap.read_frame()
             if delaunay:
-                frame = im.draw_delaunay_tess(frame, points)
+                frame = images.draw_delaunay_tess(frame, points)
             if voronoi:
-                frame = im.draw_voronoi_cells(frame, points)
+                frame = images.draw_voronoi_cells(frame, points)
             out.add_frame(frame)
         out.close()
 
@@ -52,8 +50,8 @@ class VideoAnnotator:
             output_video_filename = \
                 self.core_filename + '_circles' + self.extension
 
-        cap = vid.ReadVideoFFMPEG(self.input_video_filename)
-        out = vid.WriteVideoFFMPEG(output_video_filename)
+        cap = video.ReadVideoFFMPEG(self.input_video_filename)
+        out = video.WriteVideoFFMPEG(output_video_filename)
         col = (255, 0, 0)
         for f in range(cap.num_frames):
             print('Annotating frame ', f+1, ' of ', cap.num_frames)
@@ -92,7 +90,7 @@ def init_circle(r, col=(255, 0, 0), fill=False):
 
 if __name__ == "__main__":
 
-    dataframe = df.DataStore(
+    dataframe = dataframes.DataStore(
             "/home/ppxjd3/Videos/packed_data.hdf5",
             load=True)
     input_video = "/home/ppxjd3/Videos/packed_crop.mp4"
