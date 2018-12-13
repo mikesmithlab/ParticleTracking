@@ -16,8 +16,13 @@ options = {
     'memory': 8,
     'opening kernel': 23
     }
-pt = tracking.ParticleTracker(file, options, methods, False, True, True)
-# pt.track()
+import numpy as np
+crop_points = np.array([[1095, 56], [2228, 67], [2792, 1049], [2230, 2023], [1095, 2025], [527, 1048]])
+pt = tracking.ParticleTracker(file, methods, options, True, False, False, crop_points=crop_points)
+import time
+s = time.time()
+pt.track()
+print(time.time() - s)
 
 data_store = dataframes.DataStore(pt.data_store_filename, load=True)
 calculator = statistics.PropertyCalculator(data_store)

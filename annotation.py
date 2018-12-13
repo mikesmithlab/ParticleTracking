@@ -4,7 +4,7 @@ from Generic import video, images
 from matplotlib import cm
 import numpy as np
 import os
-from PIL import ImageDraw, Image, ImageOps
+import pygame
 
 
 class VideoAnnotator:
@@ -54,38 +54,21 @@ class VideoAnnotator:
         out = video.WriteVideoFFMPEG(output_video_filename, bitrate='MEDIUM1080')
         col = (255, 0, 0)
         for f in range(cap.num_frames):
-            print('Annotating frame ', f+1, ' of ', cap.num_frames)
-            frame = cap.read_frame_PIL()
+            # print('Annotating frame ', f+1, ' of ', cap.num_frames)
+            frame = cap.read_frame_bytes()
+            surface = pygame.image.fromstring(frame, (cap.width, cap.height), 'RGB')
             info = self.td.get_info(f, include_size=True, prop=parameter)
-            draw = ImageDraw.Draw(frame)
+
             for xi, yi, r, param in info:
                 if parameter == 'particle':
-                    draw.ellipse([xi-r, yi-r, xi+r, yi+r],
-                                 outline=col, width=5)
+                    pygame.draw.circle(surface, col, (int(xi), int(yi)), int(r), 3)
                 else:
                     col = np.multiply(cm.viridis(param), 255)
-                    draw.ellipse([xi-r, yi-r, xi+r, yi+r],
-                                 fill=(int(col[0]), int(col[1]), int(col[2])))
-            if self.shrink_factor > 1:
-                new = frame.resize((((frame.width//self.shrink_factor)//2)*2,
-                                    ((frame.height//self.shrink_factor)//2)*2),
-                                   resample=Image.BILINEAR)
-            else:
-                new = frame
-            out.add_frame_PIL(new)
+                    pygame.draw.circle(surface, col, (int(xi), int(yi)), int(r))
+            frame = pygame.image.tostring(surface, 'RGB')
+            out.add_frame_bytes(frame, cap.width, cap.height)
+
         out.close()
-
-
-def init_circle(r, col=(255, 0, 0), fill=False):
-    im = Image.new('RGB', [int(r) * 2] * 2, (255, 255, 255))
-    draw = ImageDraw.Draw(im)
-    if fill:
-        draw.ellipse((1, 1, r * 2 - 1, r * 2 - 1), fill=col)
-    else:
-        draw.ellipse((1, 1, r * 2 - 1, r * 2 - 1), outline=col, width=5)
-    im = im.crop((0, 0) + (r * 2, r * 2))
-    mask = ImageOps.invert(im.convert('L'))
-    return im, mask
 
 
 if __name__ == "__main__":
