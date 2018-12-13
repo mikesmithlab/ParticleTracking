@@ -65,8 +65,11 @@ class VideoAnnotator:
                 else:
                     col = np.multiply(cm.viridis(param), 255)
                     pygame.draw.circle(surface, col, (int(xi), int(yi)), int(r))
+            if self.shrink_factor != 1:
+                surface = pygame.transform.scale(surface, (cap.width//self.shrink_factor,
+                                                           cap.height//self.shrink_factor))
             frame = pygame.image.tostring(surface, 'RGB')
-            out.add_frame_bytes(frame, cap.width, cap.height)
+            out.add_frame_bytes(frame, cap.width//self.shrink_factor, cap.height//self.shrink_factor)
 
         out.close()
 
