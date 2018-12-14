@@ -31,8 +31,8 @@ class MainWindow(QMainWindow):
         self.methods = con.MethodsList('Glass_Bead', load=True)
         self.config_dataframe = con.ConfigDataframe()
         self.options = self.config_dataframe.get_options('Glass_Bead')
-        self.pp = pp.ImagePreprocessor(self.methods.extract_methods(),
-                                       self.options)
+        self.pp = pp.Preprocessor(self.methods.extract_methods(),
+                                  self.options)
         self.init_ui()
 
     def init_ui(self):

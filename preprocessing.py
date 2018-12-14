@@ -3,7 +3,7 @@ import numpy as np
 from Generic import images, video
 
 
-class ImagePreprocessor:
+class Preprocessor:
     """
     Processes images using a given set of instructions.
 
@@ -265,6 +265,6 @@ if __name__ == "__main__":
                   'dilate kernel': 17,
                   'erode kernel': 17,
                   'number of tray sides': 6}
-    ImPro = ImagePreprocessor(methods, parameters)
+    ImPro = Preprocessor(methods, parameters)
     new_image, boundary = ImPro.process(test_image)
     images.display(new_image)
