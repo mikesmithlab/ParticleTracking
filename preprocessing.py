@@ -4,21 +4,87 @@ from Generic import images, video
 
 
 class ImagePreprocessor:
-    """Class to manage the frame by frame processing of videos"""
+    """
+    Processes images using a given set of instructions.
 
-    def __init__(self, methods=None, parameters=None, crop_points=None):
+    Attributes
+    ----------
+    methods : list of str
+        The names of methods implemented
+
+    parameters : dict
+        Contains the arguments needed for each method
+
+    crop_points : array_like
+        Contains the points which are selected when cropping.
+
+    crop : array_like
+        ((xmin, ymin), (xmax, ymax)) which bounds the roi
+
+    mask_img : ndarray
+        An array containing an image mask
+
+    calls : int
+        Records the number of calls to process
+
+    Methods
+    -------
+    process(frame)
+        Processes the supplied frame and returns the new frame
+        and the selected boundary
+
+    update(parameters, methods)
+        Updates the instance attributes `parameters` and `methods`
+
+    Notes
+    -----
+    Methods are implemented by strings in `methods`.
+    Methods implemented are with the necessary keys from `parameters`:
+
+    'simple threshold' = simple grayscale threshold
+        Uses `grayscale threshold` (int 0 - 255)
+
+    'threshold tozero' = grayscale threshold tozero
+        Uses `grayscale threshold` key (int 0 - 255)
+
+    'adaptive threshold' = Gaussian adaptive theshold
+        Uses `adaptive threshold block size' (odd int)
+        Uses 'adaptive threshold C' (int)
+
+    'flip' = reverses the colours
+
+    'opening' = performs a morphological opening
+        Uses 'opening kernel' (odd int)
+
+    'closing' = performs a morphological closing
+        Uses 'closing kernel' (odd int)
+
+    'dilation' = performs a dilation on the image
+        Uses 'dilate kernel' (odd int)
+
+    'erosion' = performs an erosion on the image
+        Uses 'erode kernel' (odd int)
+
+    'distance transform' = distance transform
+
+    """
+
+    def __init__(self, methods=[], parameters={}, crop_points=None):
         """
         Parameters
         ----------
-        methods: list
+        methods: list of str, optional
             A list containing string associated with methods in the order they
             will be used.
-            If None, process_image will only perform a grayscale of the image.
+            If None, process will only perform a grayscale of the image.
 
-        parameters: dictionary
+        parameters: dictionary, optional
             A dictionary containing all the parameters needed for functions.
-            If None, methods will use their keyword parameters
+            If None, methods will use their default parameters
 
+        crop_points: array_like, optional
+            shape (N, 2) containing the points selected by the crop.
+            Give this parameter to skip the manual cropping step
         """
 
         self.mask_img = np.array([])
@@ -26,9 +92,9 @@ class ImagePreprocessor:
         self.crop = []
         self.methods = methods
         self.parameters = parameters
-        self.process_calls = 0
+        self.calls = 0
 
-    def process_image(self, frame):
+    def process(self, frame):
         """
         Manipulates an image using class methods.
 
@@ -50,23 +116,16 @@ class ImagePreprocessor:
         self.boundary: numpy array
             Contains information about the boundary points
         """
-        if self.methods:
-            method_order = self.methods
-        else:
-            method_order = []
 
-        if self.process_calls == 0:
+        if self.calls == 0:
             self._find_crop_and_mask(frame)
-        cropped_frame = self._crop_and_mask_frame(frame)
+        cropped_frame = self._crop_and_mask(frame)
         new_frame = images.bgr_2_grayscale(cropped_frame)
-        for method in method_order:
+
+        for method in self.methods:
+
             if method == 'opening':
-                try:
-                    kernel = self.parameters['opening kernel']
-                except KeyError as error:
-                    print(error)
-                    print('opening kernel set to 3')
-                    kernel = 3
+                kernel = self.parameters['opening kernel']
                 new_frame = images.opening(
                     new_frame,
                     kernel=(kernel, kernel))
@@ -75,46 +134,26 @@ class ImagePreprocessor:
                 new_frame = ~new_frame
 
             elif method == 'threshold tozero':
-                try:
-                    threshold = self.parameters['grayscale threshold']
-                except KeyError as error:
-                    print(error, 'threshold set to 100')
-                    threshold = 100
+                threshold = self.parameters['grayscale threshold']
                 new_frame = images.threshold(
                     new_frame, threshold, cv2.THRESH_TOZERO)
 
             elif method == 'simple threshold':
-                try:
-                    threshold = self.parameters['grayscale threshold']
-                except KeyError as error:
-                    print(error, 'threshold set to 100')
-                    threshold = 100
+                threshold = self.parameters['grayscale threshold']
                 new_frame = images.threshold(
                     new_frame,
                     threshold)
 
             elif method == 'adaptive threshold':
-                try:
-                    block = self.parameters['adaptive threshold block size']
-                except KeyError as error:
-                    print(error, 'adaptive block size set to 31')
-                    block = 31
-                try:
-                    const = self.parameters['adaptive threshold C']
-                except KeyError as error:
-                    print(error, 'constant set to 0')
-                    const = 0
+                block = self.parameters['adaptive threshold block size']
+                const = self.parameters['adaptive threshold C']
                 new_frame = images.adaptive_threshold(
                     new_frame,
                     block_size=block,
                     constant=const)
 
             elif method == 'gaussian blur':
-                try:
-                    kernel = self.parameters['blur kernel']
-                except KeyError as error:
-                    print(error, 'kernel set to 3')
-                    kernel = 3
+                kernel = self.parameters['blur kernel']
                 new_frame = images.gaussian_blur(
                     new_frame,
                     kernel=(kernel, kernel))
@@ -123,11 +162,7 @@ class ImagePreprocessor:
                 new_frame = images.distance_transform(new_frame)
 
             elif method == 'closing':
-                try:
-                    kernel = self.parameters['closing kernel']
-                except KeyError as error:
-                    print(error, 'kernel set to 3')
-                    kernel = 3
+                kernel = self.parameters['closing kernel']
                 kernel_arr = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,
                                                        (kernel, kernel))
                 new_frame = images.closing(
@@ -135,44 +170,36 @@ class ImagePreprocessor:
                     kernel=kernel_arr)
 
             elif method == 'opening':
-                try:
-                    kernel = self.parameters['opening kernel']
-                except KeyError as error:
-                    print(error, 'kernel set to 3')
-                    kernel = 3
+                kernel = self.parameters['opening kernel']
                 new_frame = images.opening(
                     new_frame,
                     kernel=(kernel, kernel),
                     kernel_type=cv2.MORPH_ELLIPSE)
 
             elif method == 'dilation':
-                try:
-                    kernel = self.parameters['dilate kernel']
-                except KeyError as error:
-                    print(error, 'kernel set to 3')
-                    kernel = 3
+                kernel = self.parameters['dilate kernel']
                 new_frame = images.dilate(
                     new_frame,
                     kernel=(kernel, kernel))
 
             elif method == 'erosion':
-                try:
-                    kernel = self.parameters['erode kernel']
-                except KeyError as error:
-                    print(error, 'kernel set to 3')
-                    kernel = 3
+                kernel = self.parameters['erode kernel']
                 new_frame = images.erode(
                     new_frame,
                     kernel=(kernel, kernel))
+
             elif method == 'distance':
                 new_frame = images.distance_transform(new_frame)
 
-        self.process_calls += 1
+            else:
+                print("method is not defined")
+
+        self.calls += 1
         return new_frame, self.boundary
 
-    def update_options(self, options, methods):
+    def update(self, parameters, methods):
         """Updates class variables"""
-        self.parameters = options
+        self.parameters = parameters
         self.methods = methods
 
     def _find_crop_and_mask(self, frame, no_of_sides=1):
@@ -181,9 +208,9 @@ class ImagePreprocessor:
 
         Sets the class variables self.mask_img, self.crop and self.boundary
         """
-        if self.parameters:
-            no_of_sides = self.parameters['number of tray sides']
+        no_of_sides = self.parameters['number of tray sides']
         crop_inst = images.CropShape(frame, no_of_sides)
+
         if self.crop_points is None:
             self.mask_img, self.crop, self.boundary, _ = \
                 crop_inst.begin_crop()
@@ -201,7 +228,7 @@ class ImagePreprocessor:
             self.boundary[:, 0] -= self.crop[0][0]
             self.boundary[:, 1] -= self.crop[0][1]
 
-    def _crop_and_mask_frame(self, frame):
+    def _crop_and_mask(self, frame):
         """
         Masks then crops a given frame
 
@@ -225,24 +252,19 @@ class ImagePreprocessor:
 
 
 if __name__ == "__main__":
-    import Generic.filedialogs as fd
-    input_vid_name = fd.load_filename('Choose a video')
-    input_vid = video.ReadVideo(input_vid_name)
-    methods = []
-    options = {}
-    IP = ImagePreprocessor(methods, options)
-    for f in range(2):
-        frame = input_vid.read_next_frame()
-        new_frame, boundary = IP.process_image(frame)
-        if np.shape(boundary) == (3,):
-            new_frame = cv2.circle(new_frame,
-                                   (boundary[0], boundary[1]),
-                                   boundary[2],
-                                   (255, 0, 255),
-                                   2)
-        else:
-            # convert boundary list of points from (n, 2) to (n, 1, 2)
-            boundary = boundary.reshape((-1, 1, 2))
-            boundary = boundary.astype(np.int32)
-            cv2.polylines(new_frame, [boundary], True, (0, 0, 255))
-        images.display(new_frame)
+    import cv2
+    from Generic import images
+    test_image = cv2.imread("../ParticleTracking/test_image.png")
+    methods = ['flip', 'threshold tozero', 'adaptive threshold', 'opening',
+               'closing', 'dilation', 'erosion', 'distance transform']
+    parameters = {'grayscale threshold': 200,
+                  'adaptive threshold block size': 31,
+                  'adaptive threshold C': 0,
+                  'opening kernel': 17,
+                  'closing kernel': 17,
+                  'dilate kernel': 17,
+                  'erode kernel': 17,
+                  'number of tray sides': 6}
+    ImPro = ImagePreprocessor(methods, parameters)
+    new_image, boundary = ImPro.process(test_image)
+    images.display(new_image)

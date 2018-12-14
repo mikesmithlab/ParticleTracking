@@ -98,9 +98,9 @@ class MainWindow(QMainWindow):
 
     def process_button_clicked(self):
         self.check_method_list()
-        self.pp.update_options(self.options, self.methods.extract_methods())
+        self.pp.update(self.options, self.methods.extract_methods())
         self.new_frame, self.cropped_frame, _ = \
-            self.pp.process_image(self.frame)
+            self.pp.process(self.frame)
         cv2.imwrite('frame.png', self.new_frame)
         self.update_main_image()
 

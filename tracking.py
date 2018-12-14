@@ -78,7 +78,7 @@ class ParticleTracker:
         data = dataframes.DataStore(self.data_store_filename)
         for f in range(self.video.num_frames):
             frame = self.video.read_next_frame()
-            new_frame, boundary = self.ip.process_image(frame)
+            new_frame, boundary = self.ip.process(frame)
             circles = images.find_circles(
                 new_frame,
                 self.parameters['min_dist'],
@@ -102,7 +102,7 @@ class ParticleTracker:
         self.frame_jump_unit = cap.num_frames // self.num_processes
         self.fps = cap.fps
         frame = cap.read_next_frame()
-        new_frame, _ = self.ip.process_image(frame)
+        new_frame, _ = self.ip.process(frame)
         self.width, self.height = images.get_width_and_height(new_frame)
 
     def _track_process(self, group_number):
@@ -125,7 +125,7 @@ class ParticleTracker:
         proc_frames = 0
         while proc_frames < self.frame_jump_unit:
             frame = cap.read_next_frame()
-            new_frame, boundary = self.ip.process_image(frame)
+            new_frame, boundary = self.ip.process(frame)
             circles = images.find_circles(
                 new_frame,
                 self.parameters['min_dist'],
