@@ -200,6 +200,22 @@ class ParticleTracker:
 
 
 def get_points_inside_boundary(points, boundary):
+    """
+    Returns the points from an array of input points inside boundary
+
+    Parameters
+    ----------
+    points: ndarray
+        Shape (N, 2) containing list of N input points
+    boundary: ndarray
+        Either shape (P, 2) containing P vertices
+        or shape 3, containing cx, cy, r for a circular boundary
+
+    Returns
+    -------
+    points: ndarray
+        Shape (M, 2) containing list of M points inside the boundary
+    """
     centers = points[:, :2]
     if len(np.shape(boundary)) == 1:
         vertices_from_centre = centers - boundary[0:2]
@@ -213,6 +229,21 @@ def get_points_inside_boundary(points, boundary):
 
 
 def check_circles_bg_color(circles, image):
+    """
+    Checks the color of circles in an image and returns white ones
+
+    Parameters
+    ----------
+    circles: ndarray
+        Shape (N, 3) containing (x, y, r) for each circle
+    image: ndarray
+        Image with the particles in white
+
+    Returns
+    -------
+    circles[white_particles, :] : ndarray
+        original circles array with dark circles removed
+    """
     (x, y, r) = np.split(circles, 3, axis=1)
     (ymin, ymax) = (y - r/2, y + r/2)
     (xmin, xmax) = (x - r/2, x + r/2)
