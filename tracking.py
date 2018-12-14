@@ -16,6 +16,25 @@ class ParticleTracker:
     3) Confirms that each detected particle is real
     4) Saves particle positions and boundary information in a dataframe
     5) Saves a cropped copy of the video
+
+    Attributes
+    ----------
+    video_filename : str
+        Contains path of the input video
+    video_corename: str
+        Contains path of the input video without extension
+    data_store_filename: str
+        Contains path to save the dataframe to
+    parameters: dict
+        Contains arguments for preprocessing, detection, tracking
+    multiprocess: bool
+        If true using multiprocessing to speed up tracking
+    save_crop_video: bool
+        If true saves the cropped copy of the video
+    save_check_video: bool
+        If true saves the annoatated copy of the video
+    ip: class instance of preprocessing.Preprocessor
+
     """
 
     def __init__(self,
