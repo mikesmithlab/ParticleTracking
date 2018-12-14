@@ -1,6 +1,4 @@
-import cv2
 import os
-import time
 import numpy as np
 import trackpy as tp
 import multiprocessing as mp
@@ -10,7 +8,15 @@ import matplotlib.path as mpath
 
 
 class ParticleTracker:
-    """Class to track the locations of the particles in a video."""
+    """
+    Class to track the locations of the particles in a video.
+
+    1) Uses preprocessing.Preprocessor to manipulate images.
+    2) Uses houghcircles to locate the particles
+    3) Confirms that each detected particle is real
+    4) Saves particle positions and boundary information in a dataframe
+    5) Saves a cropped copy of the video
+    """
 
     def __init__(self,
                  input_video_filename,
@@ -28,7 +34,7 @@ class ParticleTracker:
         self.multiprocess = multiprocess
         self.save_crop_video = save_crop_video
         self.save_check_video = save_check_video
-        self.ip = preprocessing.ImagePreprocessor(
+        self.ip = preprocessing.Preprocessor(
             methods, self.parameters, crop_points)
         self._check_parameters()
 
@@ -38,6 +44,9 @@ class ParticleTracker:
         assert 'p_2' in self.parameters, 'p_2 not in dictionary'
         assert 'min_rad' in self.parameters, 'min_rad not in dictionary'
         assert 'max_rad' in self.parameters, 'max rad not in dictionary'
+        assert 'max frame displacement' in self.parameters, \
+            'max frame displacement not in dictionary'
+        assert 'memory' in self.parameters, 'memory not in dictionary'
 
     def track(self):
         if self.multiprocess:
@@ -45,7 +54,7 @@ class ParticleTracker:
         else:
             self._track_singleprocess()
 
-    def save_cropped_video(self):
+    def _save_cropped_video(self):
         print('saving cropped video')
         crop = self.ip.crop
         video.crop_video(self.video_filename,
@@ -65,7 +74,7 @@ class ParticleTracker:
         p.map(self._track_process, range(self.num_processes))
         self._cleanup_intermediate_dataframes()
         if self.save_crop_video:
-            self.save_cropped_video()
+            self._save_cropped_video()
         self._link_trajectories()
         if self.save_check_video and self.save_crop_video:
             self._check_video_tracking()
@@ -92,7 +101,7 @@ class ParticleTracker:
         data.save()
         self._link_trajectories()
         if self.save_crop_video:
-            self.save_cropped_video()
+            self._save_cropped_video()
         if self.save_check_video:
             self._check_video_tracking()
 
@@ -155,31 +164,10 @@ class ParticleTracker:
         """Implements the trackpy functions link_df and filter_stubs"""
         data_store = dataframes.DataStore(self.data_store_filename,
                                           load=True)
-        try:
-            a = self.parameters['max frame displacement']
-        except KeyError as error:
-            print(error)
-            print('max frame displacement set to 10')
-            self.parameters['max frame displacement'] = 10
-        try:
-            a = self.parameters['min frame life']
-        except KeyError as error:
-            print(error)
-            print('min frame life set to 10')
-            self.parameters['min frame life'] = 10
-        try:
-            a = self.parameters['memory']
-        except KeyError as error:
-            print(error)
-            print('memory set to 3')
-            self.parameters['memory'] = 3
         data_store.particle_data = tp.link_df(
                 data_store.particle_data,
                 self.parameters['max frame displacement'],
                 memory=self.parameters['memory'])
-        # data_store.dataframe = tp.filter_stubs(
-        #         data_store.dataframe,
-        #         self.options['min frame life'])
         data_store.save()
 
     def _check_video_tracking(self):
@@ -224,8 +212,7 @@ def check_circles_bg_color(circles, image):
 
 
 if __name__ == "__main__":
-    import Generic.filedialogs as fd
-    vid_name = fd.load_filename('Choose a video')
+    vid_name = "../ParticleTracking/test_video.mp4"
     methods = ['flip', 'threshold tozero', 'opening']
     options = {
         'grayscale threshold': None,
@@ -238,15 +225,14 @@ if __name__ == "__main__":
         'max frame displacement': 25,
         'min frame life': 10,
         'memory': 8,
-        'opening kernel': 23
+        'opening kernel': 23,
+
     }
 
     PT = ParticleTracker(vid_name,
-                         options,
                          methods,
+                         options,
                          multiprocess=False,
                          save_crop_video=True,
                          save_check_video=True)
-    start = time.time()
     PT.track()
-    print(time.time()-start)
