@@ -77,6 +77,21 @@ class PropertyCalculator:
         np.savetxt(r_name, r)
         np.savetxt(g_name, g)
 
+    def calculate_shape_factor(self):
+        """Calculates Moucka and Nezbedas shape factor"""
+        boundary = self.td.get_boundary(0)
+        CropVor = CroppedVoronoi(boundary)
+        shape_factor_all = np.array([])
+        for n in range(self.num_frames+1):
+            info = self.td.get_info(n, ['x', 'y'])
+            vor = CropVor.add_points(info)
+            VorArea = VoronoiArea(vor)
+            area = np.array(list(map(VorArea.area, range(len(info)))))
+            circumference = np.array(list(map(VorArea.perimeter, range(len(info)))))
+            shape_factor = circumference**2 / (4 * np.pi * area)
+            shape_factor_all = np.append(shape_factor_all, shape_factor)
+        self.td.add_property('shape factor', shape_factor_all)
+
     def calculate_local_density(self):
         """
         Calculates the local density of each particle in a dataframe.
@@ -282,6 +297,15 @@ def calculate_polygon_area(x, y):
 
 
 @jit
+def calculate_polygon_perimeter(x, y):
+    p = 0
+    for i in np.arange(-1, len(x)-1):
+        p += ((x[i+1]-x[i])**2 + (y[i+1] - y[i])**2)**0.5
+    return p
+
+
+
+@jit
 def sort_polygon_vertices(points):
     cx = np.mean(points[:, 0])
     cy = np.mean(points[:, 1])
@@ -313,6 +337,12 @@ class VoronoiArea:
         area = calculate_polygon_area(x, y)
         return area
 
+    def perimeter(self, point_index):
+        region_index = self.vor.regions[self.vor.point_region[point_index]]
+        region_points = self.vor.vertices[region_index]
+        x, y = sort_polygon_vertices(region_points)
+        perimeter = calculate_polygon_perimeter(x, y)
+        return perimeter
 
 class CroppedVoronoi:
     """
@@ -356,16 +386,17 @@ class CroppedVoronoi:
 
 if __name__ == "__main__":
     dataframe = dataframes.DataStore(
-            "/home/ppxjd3/Videos/liquid_data.hdf5",
+            "/home/ppxjd3/Videos/packed_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    PC.calculate_pair_correlation(1)
-    PC.calculate_hexatic_order_parameter()
-    PC.calculate_local_rotational_invarient()
-    PC.calculate_orientational_correlation(1)
-    print(dataframe.particle_data.head())
-    # print(dataframe.dataframe['local density'].values.mean())
-    print(dataframe.particle_data['loc_rot_invar'].mean())
+    PC.calculate_shape_factor()
+    # PC.calculate_pair_correlation(1)
+    # PC.calculate_hexatic_order_parameter()
+    # PC.calculate_local_rotational_invarient()
+    # PC.calculate_orientational_correlation(1)
+    # print(dataframe.particle_data.head())
+    # # print(dataframe.dataframe['local density'].values.mean())
+    # print(dataframe.particle_data['loc_rot_invar'].mean())
     # PC.find_edge_points(check=True)
     # print(dataframe.dataframe['on_edge'].mean())
     # PC.calculate_local_density()
