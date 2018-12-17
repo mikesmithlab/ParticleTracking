@@ -22,10 +22,7 @@ class PropertyCalculator:
         g6_name = self.corename + \
             '_orientational_correlation_{}_g.txt'.format(frame_no)
 
-        data = self.td.get_info(
-            frame_no,
-            include_size=True,
-            prop='order')
+        data = self.td.get_info(frame_no, ['x', 'y', 'size', 'order'])
         diameter = np.mean(np.real(data[:, 2])) * 2
 
         dists = sp.distance.pdist(np.real(data[:, :2])/diameter)
@@ -55,7 +52,7 @@ class PropertyCalculator:
         r_name = self.corename + '_pair_correlation_{}_r.txt'.format(frame_no)
         g_name = self.corename + '_pair_correlation_{}_g.txt'.format(frame_no)
 
-        data = self.td.get_info(frame_no, include_size=True)
+        data = self.td.get_info(frame_no, ['x', 'y', 'size'])
         pos = data[:, :2]
         diameter = data[:, 2].mean() * 2
 
@@ -95,7 +92,7 @@ class PropertyCalculator:
         CropVor = CroppedVoronoi(boundary)
         local_density_all = np.array([])
         for n in range(self.num_frames+1):
-            info = self.td.get_info(n, include_size=True)
+            info = self.td.get_info(n, ['x', 'y', 'size'])
             particle_area = info[:, 2].mean()**2 * np.pi
             vor = CropVor.add_points(info[:, :2])
             VorArea = VoronoiArea(vor)
@@ -128,7 +125,7 @@ class PropertyCalculator:
     def calculate_hexatic_order_parameter(self):
         order_params = np.array([])
         for n in range(self.num_frames+1):
-            points = self.td.get_info(n)
+            points = self.td.get_info(n, ['x', 'y'])
             list_indices, point_indices = self._find_delaunay_indices(points)
             # The indices of neighbouring vertices of vertex k are
             # point_indices[list_indices[k]:list_indices[k+1]].
@@ -141,7 +138,7 @@ class PropertyCalculator:
     def find_edge_points(self, check=False):
         edges_array = np.array([], dtype=bool)
         for f in range(self.num_frames+1):
-            points = self.td.get_info(f)
+            points = self.td.get_info(f, ['x', 'y'])
             boundary = self.td.get_boundary(f)
             vor = sp.Voronoi(points)
             vertices_outside = self.voronoi_vertices_outside(vor, boundary)

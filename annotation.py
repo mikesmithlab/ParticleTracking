@@ -32,7 +32,7 @@ class VideoAnnotator:
                                      bitrate='MEDIUM4K')
         for f in range(cap.num_frames):
             print(f)
-            points = self.td.get_info(f)
+            points = self.td.get_info(f, ['x', 'y'])
             frame = cap.read_frame()
             if delaunay:
                 frame = images.draw_delaunay_tess(frame, points)
@@ -57,7 +57,7 @@ class VideoAnnotator:
             # print('Annotating frame ', f+1, ' of ', cap.num_frames)
             frame = cap.read_frame_bytes()
             surface = pygame.image.fromstring(frame, (cap.width, cap.height), 'RGB')
-            info = self.td.get_info(f, include_size=True, prop=parameter)
+            info = self.td.get_info(f, ['x', 'y', 'size', parameter])
 
             for xi, yi, r, param in info:
                 if parameter == 'particle':

@@ -37,25 +37,9 @@ class DataStore:
                 "boundary": [boundary]})
         self.boundary_data = pd.concat([self.boundary_data, new_boundary])
 
-    def get_info(self, frame_no, include_points=True, include_size=False, prop=None):
-        if include_points:
-            if include_size and prop is None:
-                info = self.particle_data.loc[
-                    self.particle_data['frame'] == frame_no, ['x', 'y', 'size']].values
-            elif include_size and prop is not None:
-                info = self.particle_data.loc[
-                    self.particle_data['frame'] == frame_no, ['x', 'y', 'size',
-                                                              prop]].values
-            elif not include_size and prop is None:
-                info = self.particle_data.loc[
-                    self.particle_data['frame'] == frame_no, ['x', 'y']].values
-            else:
-                info = self.particle_data.loc[
-                    self.particle_data['frame'] == frame_no, ['x', 'y',
-                                                              prop]].values
-        else:
-            info = self.particle_data.loc[
-                self.particle_data['frame'] == frame_no, prop].values
+    def get_info(self, frame_no, headings):
+        info = self.particle_data.loc[
+            self.particle_data['frame'] == frame_no, headings].values
         return info
 
     def get_column(self, column_name):
