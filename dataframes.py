@@ -6,7 +6,43 @@ warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 
 
 class DataStore:
-    """Class to manage dataframes associated with tracking"""
+    """
+    Manages datastore containing particle and boundary info
+
+    Attributes
+    ----------
+    particle_data : pandas dataframe
+        Contains info on particles positions and properties
+
+    boundary_data : pandas dataframe
+        Contains info on the boundaries for each frame
+
+    filename : str
+        Location of the datastore
+
+    num_frames: int
+        The number of frames in `particle_data`
+
+    Methods
+    -------
+    add_tracking_data(frame, circles, boundary)
+        Adds the initial tracking information for each frame
+
+    get_info(frame_no, headings)
+        Gets the info defined by headings for frame_no
+
+    get_column(column)
+        Gets the column defined by the string `column` from `particle_data`
+
+    add_property(heading, values)
+        Adds `values` to column `heading`
+
+    save()
+        Saves the datastore
+
+    get_boundary(frame)
+        Gets the boundary info for a given frame
+    """
 
     def __init__(self, filename, load=False):
         self.particle_data = pd.DataFrame()
@@ -17,6 +53,7 @@ class DataStore:
             self._find_properties()
 
     def get_headings(self):
+        """Returns the headings of `particle_data` as a list"""
         headings = self.particle_data.columns.values.tolist()
         return headings
 
@@ -24,6 +61,20 @@ class DataStore:
         self.num_frames = self.particle_data['frame'].max()
 
     def add_tracking_data(self, frame, circles, boundary):
+        """
+        Adds initial tracking information to the dataframe
+
+        Parameters
+        ----------
+        frame : int
+            Frame number
+
+        circles : ndarray of shape (N, 3)
+            Contains 'x', 'y', and 'size' in each of the 3 columns
+
+        boundary : ndarray
+            Either shape (3,) or (N, 2) depending on shape of tray
+        """
         frame_list = np.ones((np.shape(circles)[0], 1)) * frame
         new_particles = pd.DataFrame({
                 "x": circles[:, 0],
@@ -36,20 +87,61 @@ class DataStore:
                 "frame": frame, "boundary": [boundary]})
         self.boundary_data = pd.concat([self.boundary_data, new_boundary])
 
-    def get_info(self, frame_no, headings):
+    def get_info(self, frame, headings):
+        """
+        Returns info as an ndarray for a frame
+
+        Parameters
+        ----------
+        frame : int
+
+        headings : list of str
+            List containing headings of desired columns
+
+        Returns
+        -------
+        info : ndarray
+            Contains information specified by headings for all the
+            points in frame
+        """
         info = self.particle_data.loc[
-            self.particle_data['frame'] == frame_no, headings].values
+            self.particle_data['frame'] == frame, headings].values
         return info
 
-    def get_column(self, column_name):
-        column = self.particle_data[column_name].values
+    def get_column(self, name):
+        """
+        Returns all the values from a column
+
+        Parameters
+        ----------
+        name: str
+            Heading of desired column
+
+        Returns
+        -------
+        column : ndarray
+            All the values in the column
+        """
+        column = self.particle_data[name].values
         return column
 
-    def add_property(self, prop_string, prop):
-        self.particle_data[prop_string] = prop
+    def add_property(self, heading, values):
+        """
+        Adds a new column to the dataframe
+
+        Parameters
+        ----------
+        heading : str
+            Name of the new column
+
+        values : ndarray
+            Must be the same shape as other columns in the dataframe
+        """
+        self.particle_data[heading] = values
         self.save()
 
     def save(self):
+        """Saves the dataframe, overwrites if exists"""
         if os.path.exists(self.filename):
             os.remove(self.filename)
         store = pd.HDFStore(self.filename)
@@ -64,15 +156,39 @@ class DataStore:
         store.close()
 
     def get_boundary(self, frame):
+        """
+        Returns the boundary for a frame
+
+        Parameters
+        ----------
+        frame : int
+
+        Returns
+        -------
+        boundary[0] : array_like
+            Either (3,) shape array containing x, y, and r for circle
+            or (N, 2) shape array containing (x, y) for N vertices
+        """
         boundary = self.boundary_data.loc[
             self.boundary_data['frame'] == frame, 'boundary'].values
         return boundary[0]
 
 
-def concatenate_dataframe(dataframe_list, new_filename):
+def concatenate_datastore(datastore_list, new_filename):
+    """
+    Concatenates datastores in a list
+
+    Parameters
+    ----------
+    datastore_list : list of str
+        Contains the filenames of the datastores to be concatenated
+
+    new_filename : str
+        Destination of new datastore
+    """
     data_save = pd.DataFrame()
     boundaries_save = pd.DataFrame()
-    for file in dataframe_list:
+    for file in datastore_list:
         store = pd.HDFStore(file)
         data = store['data']
         boundaries = store['boundary']
@@ -88,7 +204,7 @@ def concatenate_dataframe(dataframe_list, new_filename):
     store_out.close()
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     from Generic import filedialogs
     filename = filedialogs.load_filename(
         'Select a dataframe',

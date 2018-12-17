@@ -174,7 +174,7 @@ class ParticleTracker:
         """Concatenates and removes intermediate dataframes"""
         dataframe_list = ["{}.hdf5".format(i) for i in
                           range(self.num_processes)]
-        dataframes.concatenate_dataframe(dataframe_list,
+        dataframes.concatenate_datastore(dataframe_list,
                                          self.data_store_filename)
         for file in dataframe_list:
             os.remove(file)
