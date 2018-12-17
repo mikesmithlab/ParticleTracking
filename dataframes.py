@@ -16,6 +16,10 @@ class DataStore:
             self._load()
             self._find_properties()
 
+    def get_headings(self):
+        headings = self.particle_data.columns.values.tolist()
+        return headings
+
     def _find_properties(self):
         self.num_frames = self.particle_data['frame'].max()
 
