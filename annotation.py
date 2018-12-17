@@ -51,25 +51,34 @@ class VideoAnnotator:
                 self.core_filename + '_circles' + self.extension
 
         cap = video.ReadVideoFFMPEG(self.input_video_filename)
-        out = video.WriteVideoFFMPEG(output_video_filename, bitrate='MEDIUM1080')
+        out = video.WriteVideoFFMPEG(
+            output_video_filename, bitrate='HIGH1080')
         col = (255, 0, 0)
         for f in range(cap.num_frames):
             # print('Annotating frame ', f+1, ' of ', cap.num_frames)
             frame = cap.read_frame_bytes()
-            surface = pygame.image.fromstring(frame, (cap.width, cap.height), 'RGB')
+            surface = pygame.image.fromstring(
+                frame, (cap.width, cap.height), 'RGB')
             info = self.td.get_info(f, ['x', 'y', 'size', parameter])
 
             for xi, yi, r, param in info:
                 if parameter == 'particle':
-                    pygame.draw.circle(surface, col, (int(xi), int(yi)), int(r), 3)
+                    pygame.draw.circle(
+                        surface, col, (int(xi), int(yi)), int(r), 3)
                 else:
                     col = np.multiply(cm.viridis(param), 255)
-                    pygame.draw.circle(surface, col, (int(xi), int(yi)), int(r))
+                    pygame.draw.circle(
+                        surface, col, (int(xi), int(yi)), int(r))
             if self.shrink_factor != 1:
-                surface = pygame.transform.scale(surface, (cap.width//self.shrink_factor,
-                                                           cap.height//self.shrink_factor))
+                surface = pygame.transform.scale(
+                    surface,
+                    (cap.width//self.shrink_factor,
+                     cap.height//self.shrink_factor))
             frame = pygame.image.tostring(surface, 'RGB')
-            out.add_frame_bytes(frame, cap.width//self.shrink_factor, cap.height//self.shrink_factor)
+            out.add_frame_bytes(
+                frame,
+                cap.width//self.shrink_factor,
+                cap.height//self.shrink_factor)
 
         out.close()
 
@@ -86,7 +95,3 @@ if __name__ == "__main__":
             shrink_factor=1)
     VA.add_coloured_circles('loc_rot_invar')
     # VA.add_annotations(voronoi=True, delaunay=True)
-    # image = Image.new('RGB', [1000, 1000], (255, 0, 255))
-    # circle, mask = init_circle(20)
-    # image.paste(circle.convert('RGB', (0, 255, 0, 0)), (100, 100, 140, 140), mask)
-    # image.show()

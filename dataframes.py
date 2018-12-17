@@ -33,8 +33,7 @@ class DataStore:
                 index=np.arange(1, np.shape(circles)[0] + 1))
         self.particle_data = pd.concat([self.particle_data, new_particles])
         new_boundary = pd.DataFrame({
-                "frame": frame,
-                "boundary": [boundary]})
+                "frame": frame, "boundary": [boundary]})
         self.boundary_data = pd.concat([self.boundary_data, new_boundary])
 
     def get_info(self, frame_no, headings):
@@ -65,8 +64,8 @@ class DataStore:
         store.close()
 
     def get_boundary(self, frame):
-        boundary = self.boundary_data.loc[self.boundary_data['frame'] == frame,
-                                        'boundary'].values
+        boundary = self.boundary_data.loc[
+            self.boundary_data['frame'] == frame, 'boundary'].values
         return boundary[0]
 
 
@@ -91,7 +90,10 @@ def concatenate_dataframe(dataframe_list, new_filename):
 
 if __name__=="__main__":
     from Generic import filedialogs
-    filename = filedialogs.load_filename('Select a dataframe', directory="/home/ppxjd3/Videos", file_filter='*.hdf5')
+    filename = filedialogs.load_filename(
+        'Select a dataframe',
+        directory="/home/ppxjd3/Videos",
+        file_filter='*.hdf5')
     data = DataStore(filename, load=True)
     info = data.get_info(1, include_size=True, prop='order')
 
