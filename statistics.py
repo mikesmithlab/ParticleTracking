@@ -3,6 +3,7 @@ from ParticleTracking import dataframes
 from ParticleTracking import graphs
 import scipy.spatial as sp
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import matplotlib.path as mpath
 from numba import jit
 import os
@@ -88,62 +89,47 @@ class PropertyCalculator:
         average_x_err = np.zeros(self.num_frames)
         average_y = np.zeros(self.num_frames)
         average_y_err = np.zeros(self.num_frames)
-        radii = self.td.get_info(1, ['size'])
+
+        rad = np.mean(self.td.get_info(1, ['size']))
+
         boundary = self.td.get_boundary(0)
         center_of_tray = np.mean(boundary, axis=0)
 
         max_dist = np.linalg.norm(boundary[0, :] - center_of_tray)
-        rad = np.mean(radii)
-        bins = np.linspace(0, max_dist, 10)
-        hist_data = np.zeros((self.num_frames, len(bins)-1))
+
+        dist_bins = np.linspace(0, max_dist, 10)
+        dist_data = np.zeros((self.num_frames, len(dist_bins)-1))
+
         angle_bins = np.linspace(0, 2*np.pi, 17)
         angle_data = np.zeros((self.num_frames, len(angle_bins)-1))
-
+        all_x = np.array([])
+        all_y = np.array([])
         for f in frames:
             data = self.td.get_info(f, ['x', 'y'])
             vectors = data - center_of_tray
+            all_x = np.append(all_x, vectors[:, 0])
+            all_y = np.append(all_y, vectors[:, 1])
             vectors_norm = np.linalg.norm(vectors, axis=1)
-            # r = np.mean(vectors_norm)
-            # dr = np.std(vectors_norm)
+
             average_x[f] = np.mean(vectors[:, 0])
             average_x_err[f] = np.std(vectors[:, 0])
             average_y[f] = np.mean(vectors[:, 1])
             average_y_err[f] = np.std(vectors[:, 1])
 
-            hist_data[f, :], _ = np.histogram(vectors_norm, bins)
+            dist_data[f, :], _ = np.histogram(vectors_norm, dist_bins)
             angles = np.arctan2(vectors[:, 0], vectors[:, 1])
             angles += np.pi
             angle_data[f, :], _ = np.histogram(angles, angle_bins)
-            if animate:
-                if f == 0:
-                    fig = plt.figure()
-                    ax = fig.add_subplot(111)
-                    plt.ion()
-                    plt.plot(boundary[:, 0], boundary[:, 1], 'x')
-                    plot1, = ax.plot(center_of_tray[0], center_of_tray[1], 'o')
-                    plot2, = ax.plot(data[:, 0], data[:, 1], '.')
-                    plot3, = ax.plot(np.mean(data[:, 0]), np.mean(data[:, 1]), 'P')
-                    plt.savefig(self.corename + '_positions.png')
-                else:
-                    print(f)
-                    plot2.set_xdata(data[:, 0])
-                    plot2.set_ydata(data[:, 1])
-                    plot3.set_xdata(np.mean(data[:, 0]))
-                    plot3.set_ydata(np.mean(data[:, 1]))
-                    fig.canvas.draw()
-                    fig.canvas.flush_events()
-
-                plt.show()
 
 
-        bins = bins + (bins[1] - bins[0])/2
-        bins /= rad
+        # dist_bins = dist_bins + (dist_bins[1] - dist_bins[0])/2
+        dist_bins /= rad
         average_x /= rad
         average_x_err = rad
         average_y /= rad
         average_y_err /= rad
         plt.figure()
-        plt.subplot(1,2,1)
+        plt.subplot(1, 2, 1)
         plt.errorbar(frames, average_x, yerr=average_x_err, fmt='rx',
                      errorevery=20, capsize=2)
         plt.xlabel('frame')
@@ -158,18 +144,28 @@ class PropertyCalculator:
 
 
         plt.figure()
-        hist_means = np.mean(hist_data, axis=0)
-        hist_err = np.std(hist_data, axis=0)
-        plt.errorbar(bins[:-1], hist_means, yerr=hist_err, fmt='x')
+        hist_means = np.mean(dist_data, axis=0)
+        hist_err = np.std(dist_data, axis=0)
+        plt.bar(dist_bins[:-1], hist_means, yerr=hist_err,
+                width=dist_bins[1]-dist_bins[0], align='edge')
         plt.xlabel('Distance r/$\sigma$')
         plt.ylabel('Frequency')
         plt.savefig(self.corename + '_rad_dist.png')
+
 
         angle_means = np.mean(angle_data, axis=0)
         angle_err = np.std(angle_data, axis=0)
         graphs.polar_histogram(angle_bins, angle_means,
                                filename=self.corename+'_angle_hist.png',
                                y_err=angle_err)
+
+        plt.figure()
+        all_x /= rad
+        all_y /= rad
+        hb = plt.hexbin(all_x, all_y, gridsize=20, mincnt=10, cmap=plt.cm.YlOrRd_r)
+        cb = plt.colorbar()
+        plt.show()
+
 
 
     def calculate_shape_factor(self):
