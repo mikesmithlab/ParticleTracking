@@ -49,6 +49,17 @@ class PropertyCalculator:
         np.savetxt(r_name, r_values)
         np.savetxt(g6_name, G6)
 
+    def average_order_parameter(self):
+        frames = self.td.num_frames
+        orders = np.zeros(frames)
+        for f in range(frames):
+            orders[f] = self.td.get_info(f, ['loc_rot_invar']).mean()
+        plt.figure()
+        plt.plot(orders, 'x')
+        plt.xlabel('frame')
+        plt.ylabel('$<\phi_l >$')
+        plt.savefig(self.corename + '_order_ramp.png')
+
     def calculate_pair_correlation(self, frame_no):
         fig_name = self.corename + '_pair_correlation_{}.png'.format(frame_no)
         r_name = self.corename + '_pair_correlation_{}_r.txt'.format(frame_no)
