@@ -1,4 +1,4 @@
-from ParticleTracking import tracking, dataframes, statistics
+from ParticleTracking import tracking, dataframes, statistics, graphs
 from Generic import filedialogs
 
 file = filedialogs.load_filename('Load a video')
@@ -31,3 +31,4 @@ calculator.calculate_level_checks()
 # calculator.calculate_local_rotational_invarient()
 # calculator.calculate_pair_correlation(1)
 # calculator.calculate_orientational_correlation(1)
+# calculator.average_order_parameter()

@@ -1,6 +1,7 @@
 import numpy as np
 from ParticleTracking import dataframes
 from ParticleTracking import graphs
+from Generic import plotting
 import scipy.spatial as sp
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -90,10 +91,8 @@ class PropertyCalculator:
         np.savetxt(r_name, r)
         np.savetxt(g_name, g)
 
-    def calculate_level_checks(self, animate=False):
-        fig_name = self.corename + '_mean_position.png'
-        f_name = self.corename + '_mean_position_f.txt'
-        r_name = self.corename + '_mean_position_r.txt'
+    def calculate_level_checks(self):
+        fig_name = self.corename + '_level_figs.png'
 
         frames = np.arange(0, self.num_frames)
         average_x = np.zeros(self.num_frames)
@@ -132,50 +131,45 @@ class PropertyCalculator:
             angles += np.pi
             angle_data[f, :], _ = np.histogram(angles, angle_bins)
 
-
-        # dist_bins = dist_bins + (dist_bins[1] - dist_bins[0])/2
-        dist_bins /= rad
         average_x /= rad
         average_x_err = rad
         average_y /= rad
         average_y_err /= rad
-        plt.figure()
-        plt.subplot(1, 2, 1)
-        plt.errorbar(frames, average_x, yerr=average_x_err, fmt='rx',
-                     errorevery=20, capsize=2)
-        plt.xlabel('frame')
-        plt.ylabel('$\Delta x$ / $\sigma$')
-        plt.subplot(1,2,2)
-        plt.errorbar(frames, average_y, yerr=average_y_err, fmt='bx',
-                     errorevery=20, capsize=2)
-        plt.xlabel('frame')
-        plt.ylabel('$\Delta y$ / $\sigma$')
-        plt.subplots_adjust(wspace=0.3)
-        plt.savefig(fig_name)
-
-
-        plt.figure()
+        plot = graphs.Plotter(2, 2)
+        plot.add_scatter(0, frames, average_x)
+        plot.add_scatter(0, frames, average_y)
+        plot.config_axes(0, xlabel='frames',
+                         ylabel='$\Delta x / \sigma, \Delta y / \sigma$',
+                         legend=['x', 'y'])
+        dist_bins /= rad
         hist_means = np.mean(dist_data, axis=0)
         hist_err = np.std(dist_data, axis=0)
-        plt.bar(dist_bins[:-1], hist_means, yerr=hist_err,
-                width=dist_bins[1]-dist_bins[0], align='edge')
-        plt.xlabel('Distance r/$\sigma$')
-        plt.ylabel('Frequency')
-        plt.savefig(self.corename + '_rad_dist.png')
-
+        plot.add_bar(1, dist_bins[:-1], hist_means, yerr=hist_err)
+        plot.config_axes(1, xlabel='$r/\sigma$', ylabel='Frequency')
 
         angle_means = np.mean(angle_data, axis=0)
         angle_err = np.std(angle_data, axis=0)
-        graphs.polar_histogram(angle_bins, angle_means,
-                               filename=self.corename+'_angle_hist.png',
-                               y_err=angle_err)
+        plot.add_polar_bar(2, angle_bins[:-1], angle_means, angle_err)
 
-        plt.figure()
         all_x /= rad
         all_y /= rad
-        hb = plt.hexbin(all_x, all_y, gridsize=20, mincnt=10, cmap=plt.cm.YlOrRd_r)
-        cb = plt.colorbar()
-        plt.show()
+        plot.add_hexbin(3, all_x, all_y, gridsize=20, mincnt=10)
+        plot.config_axes(3, xlabel='$x/\sigma$', ylabel='$y/\sigma$')
+
+        plot.save(fig_name)
+
+        plot.show()
+
+        # graphs.polar_histogram(angle_bins, angle_means,
+        #                        filename=self.corename+'_angle_hist.png',
+        #                        y_err=angle_err)
+        #
+        # plt.figure()
+        # all_x /= rad
+        # all_y /= rad
+        # hb = plt.hexbin(all_x, all_y, gridsize=20, mincnt=10, cmap=plt.cm.YlOrRd_r)
+        # cb = plt.colorbar()
+        # plt.show()
 
 
 
