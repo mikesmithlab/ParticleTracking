@@ -204,12 +204,47 @@ def concatenate_datastore(datastore_list, new_filename):
     store_out.close()
 
 
+class PlotData:
+
+    def __init__(self, filename):
+        self.filename = filename
+        if os.path.exists(filename):
+            self.load()
+        else:
+            self.df = pd.DataFrame()
+            self.df.to_hdf(self.filename, 'df')
+
+    def load(self):
+        self.df = pd.read_hdf(self.filename, index_col=0)
+
+    def add_column(self, name, data):
+        if name in self.df:
+            temp_df = self.df.drop(name, axis=1)
+        else:
+            temp_df = self.df
+        new_df = pd.DataFrame({name: data})
+        self.df = pd.concat([temp_df, new_df], axis=1)
+        self.df.to_hdf(self.filename, 'df')
+
+    def read_column(self, name):
+        data = self.df[name].values
+        data = data[~np.isnan(data)]
+        return data
+
 if __name__ == "__main__":
-    from Generic import filedialogs
-    filename = filedialogs.load_filename(
-        'Select a dataframe',
-        directory="/home/ppxjd3/Videos",
-        file_filter='*.hdf5')
-    data = DataStore(filename, load=True)
-    info = data.get_info(1, include_size=True, prop='order')
+    # from Generic import filedialogs
+    # filename = filedialogs.load_filename(
+    #     'Select a dataframe',
+    #     directory="/home/ppxjd3/Videos",
+    #     file_filter='*.hdf5')
+    # data = DataStore(filename, load=True)
+    # info = data.get_info(1, include_size=True, prop='order')
+
+    filename = 'test2.csv'
+    plot_data = PlotData(filename)
+    # data1 = np.arange(5, 50, 10)
+    # plot_data.add_column('col1', data1)
+    data2 = np.arange(30, 39)
+    plot_data.add_column('col2', data2)
+    print(plot_data.df.head())
 

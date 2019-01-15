@@ -16,14 +16,12 @@ class PropertyCalculator:
         self.td = tracking_dataframe
         self.num_frames = self.td.num_frames
         self.corename = os.path.splitext(self.td.filename)[0]
+        plot_data_name = self.corename + '_plot_data.hdf5'
+        self.plot_data = dataframes.PlotData(plot_data_name)
 
     def calculate_orientational_correlation(self, frame_no):
         fig_name = self.corename + \
             '_orientational_correlation_{}.png'.format(frame_no)
-        r_name = self.corename + \
-            '_orientational_correlation_{}_r.txt'.format(frame_no)
-        g6_name = self.corename + \
-            '_orientational_correlation_{}_g.txt'.format(frame_no)
 
         data = self.td.get_info(frame_no, ['x', 'y', 'size', 'order'])
         diameter = np.mean(np.real(data[:, 2])) * 2
@@ -47,8 +45,11 @@ class PropertyCalculator:
         plt.ylabel('$G_6(r)$')
         plt.savefig(fig_name)
 
-        np.savetxt(r_name, r_values)
-        np.savetxt(g6_name, G6)
+        self.plot_data.add_column(
+            'orientation_correlation_{}_r'.format(frame_no), r_values)
+
+        self.plot_data.add_column(
+            'orientation correlation_{}_g'.format(frame_no), G6)
 
     def average_order_parameter(self):
         frames = self.td.num_frames
@@ -63,8 +64,6 @@ class PropertyCalculator:
 
     def calculate_pair_correlation(self, frame_no):
         fig_name = self.corename + '_pair_correlation_{}.png'.format(frame_no)
-        r_name = self.corename + '_pair_correlation_{}_r.txt'.format(frame_no)
-        g_name = self.corename + '_pair_correlation_{}_g.txt'.format(frame_no)
 
         data = self.td.get_info(frame_no, ['x', 'y', 'size'])
         pos = data[:, :2]
@@ -88,8 +87,10 @@ class PropertyCalculator:
         plt.ylabel('$g(r) - 1$')
         plt.savefig(fig_name)
 
-        np.savetxt(r_name, r)
-        np.savetxt(g_name, g)
+        self.plot_data.add_column('pair_correlation_{}_r'.format(frame_no),
+                                  r)
+        self.plot_data.add_column('pair_correlation_{}_g-1'.format(frame_no),
+                                  g-1)
 
     def calculate_level_checks(self):
         fig_name = self.corename + '_level_figs.png'
@@ -135,43 +136,59 @@ class PropertyCalculator:
         average_x_err = rad
         average_y /= rad
         average_y_err /= rad
-        plot = graphs.Plotter(2, 2)
-        plot.add_scatter(0, frames, average_x)
-        plot.add_scatter(0, frames, average_y)
-        plot.config_axes(0, xlabel='frames',
-                         ylabel='$\Delta x / \sigma, \Delta y / \sigma$',
-                         legend=['x', 'y'])
+        # plot = graphs.Plotter(2, 2)
+        # plot.add_scatter(0, frames, average_x)
+        # plot.add_scatter(0, frames, average_y)
+        # plot.config_axes(0, xlabel='frames',
+        #                  ylabel='$\Delta x / \sigma, \Delta y / \sigma$',
+        #                  legend=['x', 'y'])
         dist_bins /= rad
         hist_means = np.mean(dist_data, axis=0)
         hist_err = np.std(dist_data, axis=0)
-        plot.add_bar(1, dist_bins[:-1], hist_means, yerr=hist_err)
-        plot.config_axes(1, xlabel='$r/\sigma$', ylabel='Frequency')
-
+        # plot.add_bar(1, dist_bins[:-1], hist_means, yerr=hist_err)
+        # plot.config_axes(1, xlabel='$r/\sigma$', ylabel='Frequency')
+        #
         angle_means = np.mean(angle_data, axis=0)
         angle_err = np.std(angle_data, axis=0)
-        plot.add_polar_bar(2, angle_bins[:-1], angle_means, angle_err)
-
-        all_x /= rad
-        all_y /= rad
-        plot.add_hexbin(3, all_x, all_y, gridsize=20, mincnt=10)
-        plot.config_axes(3, xlabel='$x/\sigma$', ylabel='$y/\sigma$')
-
-        plot.save(fig_name)
-
-        plot.show()
+        # plot.add_polar_bar(2, angle_bins[:-1], angle_means, angle_err)
+        #
+        # all_x /= rad
+        # all_y /= rad
+        # plot.add_hexbin(3, all_x, all_y, gridsize=20, mincnt=10)
+        # plot.config_axes(3, xlabel='$x/\sigma$', ylabel='$y/\sigma$')
+        #
+        # plot.save(fig_name)
+        #
+        # plot.show()
 
         # graphs.polar_histogram(angle_bins, angle_means,
         #                        filename=self.corename+'_angle_hist.png',
         #                        y_err=angle_err)
         #
         # plt.figure()
-        # all_x /= rad
-        # all_y /= rad
-        # hb = plt.hexbin(all_x, all_y, gridsize=20, mincnt=10, cmap=plt.cm.YlOrRd_r)
+        all_x /= rad
+        all_y /= rad
+        hb = plt.hexbin(all_x, all_y, gridsize=20, mincnt=0)
         # cb = plt.colorbar()
         # plt.show()
 
+        ### Save Data ###
 
+
+        self.plot_data.add_column('mean x pos', average_x)
+        self.plot_data.add_column('mean y pos', average_y)
+        self.plot_data.add_column('mean pos frames', frames)
+
+        self.plot_data.add_column('mean dist bins', dist_bins)
+        self.plot_data.add_column('mean dist hist', hist_means)
+        self.plot_data.add_column('mean dist hist err', hist_err)
+
+        self.plot_data.add_column('angle dist bins', angle_bins)
+        self.plot_data.add_column('angle dist hist', angle_means)
+        self.plot_data.add_column('angle dist hist err', angle_err)
+
+        self.plot_data.add_column('hexbin x', all_x)
+        self.plot_data.add_column('hexbin y', all_y)
 
     def calculate_shape_factor(self):
         """Calculates Moucka and Nezbedas shape factor"""
@@ -420,6 +437,7 @@ def calculate_area_from_boundary(boundary):
         area = calculate_polygon_area(x, y)
     return area
 
+
 class VoronoiArea:
     """Calculates area of a voronoi cell for a given point"""
 
@@ -439,6 +457,7 @@ class VoronoiArea:
         x, y = sort_polygon_vertices(region_points)
         perimeter = calculate_polygon_perimeter(x, y)
         return perimeter
+
 
 class CroppedVoronoi:
     """
