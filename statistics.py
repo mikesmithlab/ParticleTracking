@@ -46,10 +46,11 @@ class PropertyCalculator:
         plt.savefig(fig_name)
 
         self.plot_data.add_column(
-            'orientation_correlation_{}_r'.format(frame_no), r_values)
+            'orientation_correlation_{}_r'.format(int(frame_no)), r_values)
 
+        G6[np.isnan(G6)] = 0
         self.plot_data.add_column(
-            'orientation correlation_{}_g'.format(frame_no), G6)
+            'orientation correlation_{}_g'.format(int(frame_no)), G6)
 
     def average_order_parameter(self):
         frames = self.td.num_frames

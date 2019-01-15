@@ -44,6 +44,15 @@ class FigureMaker:
         plotter.config_subplots(wspace=0.4, hspace=0.3)
         plotter.show()
 
+    def plot_orientational_correlation(self):
+        r = self.plot_data.read_column('orientation_correlation_1_r')
+        g = self.plot_data.read_column('orientation correlation_1_g')
+
+        plotter = Plotter()
+        plotter.add_scatter(0, r, g)
+        plotter.add_scatter(0, r, max(g)*r**(-1/4))
+        plotter.config_axes(0, xlabel='r/$\sigma$', ylabel='$G_6(r)$', xscale='log', yscale='log')
+        plotter.show()
 
 def plot_shape_factor_histogram(filename, frame):
     datastore = dataframes.DataStore(filename, load=True)
@@ -93,12 +102,14 @@ class Plotter:
     def show(self):
         plt.show()
 
-    def config_axes(self, subplot=0, xlabel=None, ylabel=None, legend=None, title=None):
+    def config_axes(self, subplot=0, xlabel=None, ylabel=None, legend=None, title=None, xscale='linear', yscale='linear'):
         self.ax[subplot].set_xlabel(xlabel)
         self.ax[subplot].set_ylabel(ylabel)
         if legend is not None:
             self.ax[subplot].legend(legend)
         self.ax[subplot].set_title(title)
+        self.ax[subplot].set_xscale(xscale)
+        self.ax[subplot].set_yscale(yscale)
 
     def config_subplots(self, left=None, bottom=None, right=None, top=None, wspace=None, hspace=None):
         self.fig.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
@@ -122,6 +133,7 @@ def scatter(xdata, ydata, xerr=None, yerr=None, xlabel=None, ylabel=None,
 
 if __name__ == "__main__":
     # plot_shape_factor_histogram("/home/ppxjd3/Videos/liquid_data.hdf5", 0)
-    filename = "/home/ppxjd3/Videos/Testing Flatness 080119/15490002_data_plot_data.hdf5"
+    filename = "/home/ppxjd3/Videos/grid/grid_plot_data.hdf5"
     fig_maker = FigureMaker(filename)
-    fig_maker.plot_level_checks()
+    # fig_maker.plot_level_checks()
+    fig_maker.plot_orientational_correlation()
