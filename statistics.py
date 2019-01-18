@@ -15,7 +15,6 @@ class PropertyCalculator:
     def __init__(self, tracking_dataframe):
         self.td = tracking_dataframe
         self.td.fill_frame_data()
-        self.num_frames = self.td.num_frames
         self.corename = os.path.splitext(self.td.filename)[0]
         plot_data_name = self.corename + '_plot_data.hdf5'
         self.plot_data = dataframes.PlotData(plot_data_name)
@@ -24,7 +23,7 @@ class PropertyCalculator:
         fig_name = self.corename + \
             '_orientational_correlation_{}.png'.format(frame_no)
 
-        data = self.td.get_info(frame_no, ['x', 'y', 'size', 'order'])
+        data = self.td.get_info(frame_no, ['x', 'y', 'size', 'complex order'])
         diameter = np.mean(np.real(data[:, 2])) * 2
 
         dists = sp.distance.pdist(np.real(data[:, :2])/diameter)
@@ -54,15 +53,10 @@ class PropertyCalculator:
             'orientation correlation_{}_g'.format(int(frame_no)), G6)
 
     def average_order_parameter(self):
-        frames = self.td.num_frames
-        orders = np.zeros(frames)
-        for f in range(frames):
-            orders[f] = self.td.get_info(f, ['loc_rot_invar']).mean()
-        plt.figure()
-        plt.plot(orders, 'x')
-        plt.xlabel('frame')
-        plt.ylabel('$<\phi_l >$')
-        plt.savefig(self.corename + '_order_ramp.png')
+        orders = np.zeros(self.td.num_frames)
+        for f in range(self.td.num_frames):
+            orders[f] = self.td.get_info(f, ['real order']).mean()
+        self.td.add_frame_property('mean order', orders)
 
     def calculate_pair_correlation(self, frame_no):
         fig_name = self.corename + '_pair_correlation_{}.png'.format(frame_no)
@@ -197,7 +191,7 @@ class PropertyCalculator:
         boundary = self.td.get_boundary(0)
         CropVor = CroppedVoronoi(boundary)
         shape_factor_all = np.array([])
-        for n in range(self.num_frames+1):
+        for n in range(self.num_frames):
             info = self.td.get_info(n, ['x', 'y'])
             vor = CropVor.add_points(info)
             VorArea = VoronoiArea(vor)
@@ -221,7 +215,7 @@ class PropertyCalculator:
         boundary = self.td.get_boundary(0)
         CropVor = CroppedVoronoi(boundary)
         local_density_all = np.array([])
-        for n in range(self.num_frames+1):
+        for n in range(self.td.num_frames):
             info = self.td.get_info(n, ['x', 'y', 'size'])
             particle_area = info[:, 2].mean()**2 * np.pi
             vor = CropVor.add_points(info[:, :2])
@@ -229,7 +223,14 @@ class PropertyCalculator:
             area = list(map(VorArea.area, range(len(info))))
             density = particle_area / np.array(area)
             local_density_all = np.append(local_density_all, density)
-        self.td.add_particle_property('local_density', local_density_all)
+        self.td.add_particle_property('local density', local_density_all)
+
+    def calculate_average_local_density(self):
+        density = np.zeros(self.td.num_frames)
+        for f in range(self.td.num_frames):
+            density[f] = np.mean(self.td.get_info(f, ['local density']))
+        self.td.add_frame_property('local density', density)
+
 
     @staticmethod
     def show_property_with_condition(points, prop, cond, val, vor=None):
@@ -248,12 +249,11 @@ class PropertyCalculator:
         plt.show()
 
     def calculate_susceptibility(self):
-        chi = np.zeros(self.num_frames)
-        for f in range(self.num_frames):
+        chi = np.zeros(self.td.num_frames)
+        for f in range(self.td.num_frames):
             orders = self.td.get_info(f, ['real order'])
             chi[f] = np.mean(np.power(orders - np.mean(orders), 2))
         self.td.add_frame_property('susceptibility', chi)
-
 
     def calculate_order_magnitude(self):
         orders = self.td.get_column('complex order')
@@ -262,7 +262,7 @@ class PropertyCalculator:
 
     def calculate_hexatic_order_parameter(self):
         order_params = np.array([])
-        for n in range(self.num_frames+1):
+        for n in range(self.td.num_frames):
             points = self.td.get_info(n, ['x', 'y'])
             list_indices, point_indices = self._find_delaunay_indices(points)
             # The indices of neighbouring vertices of vertex k are
@@ -275,7 +275,7 @@ class PropertyCalculator:
 
     def find_edge_points(self, check=False):
         edges_array = np.array([], dtype=bool)
-        for f in range(self.num_frames+1):
+        for f in range(self.num_frames):
             points = self.td.get_info(f, ['x', 'y'])
             boundary = self.td.get_boundary(f)
             vor = sp.Voronoi(points)

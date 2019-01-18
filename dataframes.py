@@ -65,6 +65,9 @@ class DataStore:
         print('')
         print('Frame data head : ')
         print(self.frame_data.head())
+        print('')
+        print(self.frame_data['frame'].max())
+        print(self.particle_data['frame'].max())
 
     def get_headings(self):
         """Returns the headings of `particle_data` as a list"""
@@ -81,7 +84,7 @@ class DataStore:
             self.save()
 
     def _find_properties(self):
-        self.num_frames = self.particle_data['frame'].max()
+        self.num_frames = self.particle_data['frame'].max()+1
 
     def add_tracking_data(self, frame, circles, boundary):
         """
