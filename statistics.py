@@ -91,11 +91,11 @@ class PropertyCalculator:
     def calculate_level_checks(self):
         fig_name = self.corename + '_level_figs.png'
 
-        frames = np.arange(0, self.num_frames)
-        average_x = np.zeros(self.num_frames)
-        average_x_err = np.zeros(self.num_frames)
-        average_y = np.zeros(self.num_frames)
-        average_y_err = np.zeros(self.num_frames)
+        frames = np.arange(0, self.td.num_frames)
+        average_x = np.zeros(self.td.num_frames)
+        average_x_err = np.zeros(self.td.num_frames)
+        average_y = np.zeros(self.td.num_frames)
+        average_y_err = np.zeros(self.td.num_frames)
 
         rad = np.mean(self.td.get_info(1, ['size']))
 
@@ -105,10 +105,10 @@ class PropertyCalculator:
         max_dist = np.linalg.norm(boundary[0, :] - center_of_tray)
 
         dist_bins = np.linspace(0, max_dist, 10)
-        dist_data = np.zeros((self.num_frames, len(dist_bins)-1))
+        dist_data = np.zeros((self.td.num_frames, len(dist_bins)-1))
 
         angle_bins = np.linspace(0, 2*np.pi, 17)
-        angle_data = np.zeros((self.num_frames, len(angle_bins)-1))
+        angle_data = np.zeros((self.td.num_frames, len(angle_bins)-1))
         all_x = np.array([])
         all_y = np.array([])
         for f in frames:
@@ -196,7 +196,8 @@ class PropertyCalculator:
             vor = CropVor.add_points(info)
             VorArea = VoronoiArea(vor)
             area = np.array(list(map(VorArea.area, range(len(info)))))
-            circumference = np.array(list(map(VorArea.perimeter, range(len(info)))))
+            circumference = np.array(list(map(VorArea.perimeter,
+                                              range(len(info)))))
             shape_factor = circumference**2 / (4 * np.pi * area)
             shape_factor_all = np.append(shape_factor_all, shape_factor)
         self.td.add_particle_property('shape factor', shape_factor_all)
@@ -230,7 +231,6 @@ class PropertyCalculator:
         for f in range(self.td.num_frames):
             density[f] = np.mean(self.td.get_info(f, ['local density']))
         self.td.add_frame_property('local density', density)
-
 
     @staticmethod
     def show_property_with_condition(points, prop, cond, val, vor=None):
@@ -427,7 +427,6 @@ def calculate_polygon_perimeter(x, y):
     return p
 
 
-
 @jit
 def sort_polygon_vertices(points):
     cx = np.mean(points[:, 0])
@@ -440,7 +439,7 @@ def sort_polygon_vertices(points):
 
 
 def calculate_area_from_boundary(boundary):
-    if len(np.shape(boundary))==1:
+    if len(np.shape(boundary)) == 1:
         area = np.pi * boundary[2]**2
     else:
         x, y = sort_polygon_vertices(boundary)
