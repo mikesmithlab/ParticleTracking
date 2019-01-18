@@ -1,6 +1,7 @@
 from ParticleTracking import dataframes
 import numpy as np
 import matplotlib.pyplot as plt
+from Generic import filedialogs
 
 class FigureMaker:
 
@@ -51,6 +52,7 @@ class FigureMaker:
         plotter = Plotter()
         plotter.add_scatter(0, r, g)
         plotter.add_scatter(0, r, max(g)*r**(-1/4))
+        plotter.add_scatter(0, r, (max(g)/0.6)*np.exp(-r/2))
         plotter.config_axes(0, xlabel='r/$\sigma$', ylabel='$G_6(r)$', xscale='log', yscale='log')
         plotter.show()
 
@@ -133,7 +135,8 @@ def scatter(xdata, ydata, xerr=None, yerr=None, xlabel=None, ylabel=None,
 
 if __name__ == "__main__":
     # plot_shape_factor_histogram("/home/ppxjd3/Videos/liquid_data.hdf5", 0)
-    filename = "/home/ppxjd3/Videos/grid/grid_plot_data.hdf5"
+    filename = filedialogs.load_filename('Load a plotting dataframe')
+    # filename = "/home/ppxjd3/Videos/grid/grid_plot_data.hdf5"
     fig_maker = FigureMaker(filename)
     # fig_maker.plot_level_checks()
     fig_maker.plot_orientational_correlation()

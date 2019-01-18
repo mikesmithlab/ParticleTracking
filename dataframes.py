@@ -34,7 +34,7 @@ class DataStore:
     get_column(column)
         Gets the column defined by the string `column` from `particle_data`
 
-    add_property(heading, values)
+    add_particle_property(heading, values)
         Adds `values` to column `heading`
 
     save()
@@ -47,15 +47,38 @@ class DataStore:
     def __init__(self, filename, load=False):
         self.particle_data = pd.DataFrame()
         self.boundary_data = pd.DataFrame()
+        self.frame_data = pd.DataFrame()
         self.filename = filename
         if load:
             self._load()
             self._find_properties()
 
+    def inspect_dataframes(self):
+        print('Particle data columns : ')
+        print(self.particle_data.columns.values.tolist())
+        print('')
+        print('Frame data columns : ')
+        print(self.frame_data.columns.values.tolist())
+        print('')
+        print('Particle data head : ')
+        print(self.particle_data.head())
+        print('')
+        print('Frame data head : ')
+        print(self.frame_data.head())
+
     def get_headings(self):
         """Returns the headings of `particle_data` as a list"""
         headings = self.particle_data.columns.values.tolist()
         return headings
+
+    def fill_frame_data(self):
+        if 'frame' in self.frame_data.columns.values.tolist():
+            print('frames already initialised')
+        else:
+            frame_list = np.arange(0, self.num_frames)
+            self.frame_data['frame'] = frame_list
+            print('frames initialised')
+            self.save()
 
     def _find_properties(self):
         self.num_frames = self.particle_data['frame'].max()
@@ -125,7 +148,7 @@ class DataStore:
         column = self.particle_data[name].values
         return column
 
-    def add_property(self, heading, values):
+    def add_particle_property(self, heading, values):
         """
         Adds a new column to the dataframe
 
@@ -140,6 +163,21 @@ class DataStore:
         self.particle_data[heading] = values
         self.save()
 
+    def add_frame_property(self, heading, values):
+        """
+        Adds a new column to the frame dataframe
+
+        Parameters
+        ----------
+        heading : str
+            Name of the new column
+
+        values : ndarray
+            Must be the same shape as other columns in the dataframe
+        """
+        self.frame_data[heading] = values
+        self.save()
+
     def save(self):
         """Saves the dataframe, overwrites if exists"""
         if os.path.exists(self.filename):
@@ -147,12 +185,19 @@ class DataStore:
         store = pd.HDFStore(self.filename)
         store['data'] = self.particle_data
         store['boundary'] = self.boundary_data
+        store['frame'] = self.frame_data
         store.close()
 
     def _load(self):
         store = pd.HDFStore(self.filename)
         self.particle_data = store['data']
         self.boundary_data = store['boundary']
+        try:
+            self.frame_data = store['frame']
+            print('Using stored frame_data')
+        except KeyError as error:
+            print(error)
+            print('Using empty frame_data')
         store.close()
 
     def get_boundary(self, frame):
@@ -188,12 +233,15 @@ def concatenate_datastore(datastore_list, new_filename):
     """
     data_save = pd.DataFrame()
     boundaries_save = pd.DataFrame()
+    frame_save = pd.DataFrame()
     for file in datastore_list:
         store = pd.HDFStore(file)
         data = store['data']
         boundaries = store['boundary']
+        frame_data = store['frame']
         data_save = pd.concat([data_save, data])
         boundaries_save = pd.concat([boundaries_save, boundaries])
+        frame_save = pd.concat([frame_save, frame_data])
         store.close()
 
     if os.path.exists(new_filename):
@@ -201,6 +249,7 @@ def concatenate_datastore(datastore_list, new_filename):
     store_out = pd.HDFStore(new_filename)
     store_out['data'] = data_save
     store_out['boundary'] = boundaries_save
+    store_out['frame'] = frame_save
     store_out.close()
 
 

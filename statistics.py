@@ -14,6 +14,7 @@ class PropertyCalculator:
     """Class to calculate the properties associated with tracking"""
     def __init__(self, tracking_dataframe):
         self.td = tracking_dataframe
+        self.td.fill_frame_data()
         self.num_frames = self.td.num_frames
         self.corename = os.path.splitext(self.td.filename)[0]
         plot_data_name = self.corename + '_plot_data.hdf5'
@@ -204,7 +205,7 @@ class PropertyCalculator:
             circumference = np.array(list(map(VorArea.perimeter, range(len(info)))))
             shape_factor = circumference**2 / (4 * np.pi * area)
             shape_factor_all = np.append(shape_factor_all, shape_factor)
-        self.td.add_property('shape factor', shape_factor_all)
+        self.td.add_particle_property('shape factor', shape_factor_all)
 
     def calculate_local_density(self):
         """
@@ -228,7 +229,7 @@ class PropertyCalculator:
             area = list(map(VorArea.area, range(len(info))))
             density = particle_area / np.array(area)
             local_density_all = np.append(local_density_all, density)
-        self.td.add_property('local_density', local_density_all)
+        self.td.add_particle_property('local_density', local_density_all)
 
     @staticmethod
     def show_property_with_condition(points, prop, cond, val, vor=None):
@@ -246,10 +247,18 @@ class PropertyCalculator:
             sp.voronoi_plot_2d(vor)
         plt.show()
 
-    def calculate_local_rotational_invarient(self):
-        orders = self.td.get_column('order')
-        loc_rot_invar = np.abs(orders)**2
-        self.td.add_property('loc_rot_invar', loc_rot_invar)
+    def calculate_susceptibility(self):
+        chi = np.zeros(self.num_frames)
+        for f in range(self.num_frames):
+            orders = self.td.get_info(f, ['real order'])
+            chi[f] = np.mean(np.power(orders - np.mean(orders), 2))
+        self.td.add_frame_property('susceptibility', chi)
+
+
+    def calculate_order_magnitude(self):
+        orders = self.td.get_column('complex order')
+        real_order = np.abs(orders)
+        self.td.add_particle_property('real order', real_order)
 
     def calculate_hexatic_order_parameter(self):
         order_params = np.array([])
@@ -262,7 +271,7 @@ class PropertyCalculator:
             angles = self._calculate_angles(vectors)
             orders = self._calculate_orders(angles, list_indices)
             order_params = np.append(order_params, orders)
-        self.td.add_property('order', order_params)
+        self.td.add_particle_property('complex order', order_params)
 
     def find_edge_points(self, check=False):
         edges_array = np.array([], dtype=bool)
@@ -289,7 +298,7 @@ class PropertyCalculator:
                             fill=False)
                     plt.gcf().gca().add_artist(circle)
                 plt.show()
-        self.td.add_property('on_edge', edges_array)
+        self.td.add_particle_property('on_edge', edges_array)
 
     @staticmethod
     def is_point_on_edge(vor, vertices_outside):
@@ -508,7 +517,7 @@ if __name__ == "__main__":
     PC.calculate_shape_factor()
     # PC.calculate_pair_correlation(1)
     # PC.calculate_hexatic_order_parameter()
-    # PC.calculate_local_rotational_invarient()
+    # PC.calculate_order_magnitude()
     # PC.calculate_orientational_correlation(1)
     # print(dataframe.particle_data.head())
     # # print(dataframe.dataframe['local density'].values.mean())
