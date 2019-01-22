@@ -1,4 +1,4 @@
-from ParticleTracking import tracking, dataframes, statistics, graphs
+from ParticleTracking import tracking, dataframes, statistics, graphs, annotation
 from Generic import filedialogs
 import warnings
 warnings.filterwarnings("ignore")
@@ -20,16 +20,18 @@ options = {
     }
 # import numpy as np
 # crop_points = np.array([[1095, 56], [2228, 67], [2792, 1049], [2230, 2023], [1095, 2025], [527, 1048]])
-# pt = tracking.ParticleTracker(file, methods, options, True, False, False, crop_points=None)
+pt = tracking.ParticleTracker(file, methods, options, True, crop_points=None)
 import time
 # s = time.time()
-# pt.track()
+pt.track()
 # print(time.time() - s)
-
+#
 data_store = dataframes.DataStore(file, load=True)
-calculator = statistics.PropertyCalculator(data_store)
-# # calculator.calculate_level_checks()
-calculator.calculate_hexatic_order_parameter()
+annotator = annotation.VideoAnnotator(data_store, file)
+annotator.add_coloured_circles()
+# calculator = statistics.PropertyCalculator(data_store)
+# # # calculator.calculate_level_checks()
+# calculator.calculate_hexatic_order_parameter()
 # calculator.calculate_order_magnitude()
 # calculator.calculate_susceptibility()
 # calculator.calculate_pair_correlation(1)

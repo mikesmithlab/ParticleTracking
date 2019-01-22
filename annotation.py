@@ -12,19 +12,29 @@ class VideoAnnotator:
     def __init__(
             self,
             dataframe_inst,
-            input_video_filename,
+            filename,
             shrink_factor=1
             ):
         self.td = dataframe_inst
-        self.input_video_filename = input_video_filename
-        self.core_filename, self.extension = (
-                os.path.splitext(self.input_video_filename))
+        self.filename = os.path.splitext(filename)[0]
+        self.input_video_filename = self.filename+'_crop.mp4'
+        self.check_crop_exists()
+
         self.shrink_factor = shrink_factor
+
+    def check_crop_exists(self):
+        if not os.path.exists(self.input_video_filename):
+            crop = np.loadtxt(self.filename+'.txt')
+            video.crop_video(self.filename+'.MP4',
+                             crop[0][0],
+                             crop[1][0],
+                             crop[0][1],
+                             crop[1][1])
 
     def add_annotations(self, voronoi=False, delaunay=False):
         cap = video.ReadVideoFFMPEG(self.input_video_filename)
         output_video_filename = (
-                self.core_filename +
+                self.filename +
                 '_network' +
                 self.extension
                 )
@@ -44,11 +54,11 @@ class VideoAnnotator:
     def add_coloured_circles(self, parameter=None):
         if parameter is not None:
             output_video_filename = \
-                self.core_filename + '_' + parameter + self.extension
+                self.filename + '_' + parameter + '.mp4'
         else:
             parameter = 'particle'
             output_video_filename = \
-                self.core_filename + '_circles' + self.extension
+                self.filename + '_circles' + '.mp4'
 
         cap = video.ReadVideoFFMPEG(self.input_video_filename)
         out = video.WriteVideoFFMPEG(

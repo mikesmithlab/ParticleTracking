@@ -42,8 +42,6 @@ class ParticleTracker:
                  methods,
                  parameters,
                  multiprocess=False,
-                 save_crop_video=True,
-                 save_check_video=False,
                  crop_points=None):
 
         self.filename = os.path.splitext(filename)[0]
@@ -51,8 +49,6 @@ class ParticleTracker:
         self.data_store_filename = self.filename + '.hdf5'
         self.parameters = parameters
         self.multiprocess = multiprocess
-        self.save_crop_video = save_crop_video
-        self.save_check_video = save_check_video
         self.ip = preprocessing.Preprocessor(
             methods, self.parameters, crop_points)
         self._check_parameters()
@@ -72,6 +68,8 @@ class ParticleTracker:
             self._track_multiprocess()
         else:
             self._track_singleprocess()
+        crop = self.ip.crop
+        np.savetxt(self.filename+'.txt', crop)
 
     def _save_cropped_video(self):
         print('saving cropped video')
@@ -92,11 +90,8 @@ class ParticleTracker:
         p = mp.Pool(self.num_processes)
         p.map(self._track_process, range(self.num_processes))
         self._cleanup_intermediate_dataframes()
-        if self.save_crop_video:
-            self._save_cropped_video()
         self._link_trajectories()
-        if self.save_check_video and self.save_crop_video:
-            self._check_video_tracking()
+
 
     def _track_singleprocess(self):
         """Call this to start the tracking"""
@@ -119,10 +114,6 @@ class ParticleTracker:
             data.add_tracking_data(f, circles, boundary)
         data.save()
         self._link_trajectories()
-        if self.save_crop_video:
-            self._save_cropped_video()
-        if self.save_check_video:
-            self._check_video_tracking()
 
     def _get_video_info(self):
         """From the video reads properties for other methods"""
@@ -188,15 +179,6 @@ class ParticleTracker:
                 self.parameters['max frame displacement'],
                 memory=self.parameters['memory'])
         data_store.save()
-
-    def _check_video_tracking(self):
-        """Uses the VideoAnnotator class to draw circles on the video"""
-        data_store = dataframes.DataStore(self.data_store_filename,
-                                          load=True)
-        va = annotation.VideoAnnotator(
-                data_store,
-            self.filename + "_crop.mp4")
-        va.add_coloured_circles()
 
 
 def get_points_inside_boundary(points, boundary):
