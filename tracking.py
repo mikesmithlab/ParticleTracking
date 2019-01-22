@@ -21,7 +21,7 @@ class ParticleTracker:
     ----------
     video_filename : str
         Contains path of the input video
-    video_corename: str
+    filename: str
         Contains path of the input video without extension
     data_store_filename: str
         Contains path to save the dataframe to
@@ -38,7 +38,7 @@ class ParticleTracker:
     """
 
     def __init__(self,
-                 input_video_filename,
+                 filename,
                  methods,
                  parameters,
                  multiprocess=False,
@@ -46,9 +46,9 @@ class ParticleTracker:
                  save_check_video=False,
                  crop_points=None):
 
-        self.video_filename = input_video_filename
-        self.video_corename = os.path.splitext(input_video_filename)[0]
-        self.data_store_filename = self.video_corename + '.hdf5'
+        self.filename = os.path.splitext(filename)[0]
+        self.video_filename = self.filename + '.MP4'
+        self.data_store_filename = self.filename + '.hdf5'
         self.parameters = parameters
         self.multiprocess = multiprocess
         self.save_crop_video = save_crop_video
@@ -195,7 +195,7 @@ class ParticleTracker:
                                           load=True)
         va = annotation.VideoAnnotator(
                 data_store,
-                self.video_corename + "_crop.mp4")
+            self.filename + "_crop.mp4")
         va.add_coloured_circles()
 
 

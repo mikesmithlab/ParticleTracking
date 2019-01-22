@@ -48,7 +48,7 @@ class DataStore:
         self.particle_data = pd.DataFrame()
         self.boundary_data = pd.DataFrame()
         self.frame_data = pd.DataFrame()
-        self.filename = filename
+        self.filename = os.path.splitext(filename)[0] + '.hdf5'
         if load:
             self._load()
             self._find_properties()
