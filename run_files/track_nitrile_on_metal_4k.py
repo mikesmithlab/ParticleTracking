@@ -1,9 +1,15 @@
 from ParticleTracking import tracking, dataframes, statistics, graphs, annotation
 from Generic import filedialogs
+import numpy as np
 import warnings
 warnings.filterwarnings("ignore")
 
+### Load a file ###
+###################
 file = filedialogs.load_filename('Load a video', remove_ext=False)
+
+### Tracking ###
+################
 methods = ['flip', 'threshold tozero', 'opening']
 options = {
     'grayscale threshold': None,
@@ -18,24 +24,28 @@ options = {
     'memory': 8,
     'opening kernel': 23
     }
-# import numpy as np
 # crop_points = np.array([[1095, 56], [2228, 67], [2792, 1049], [2230, 2023], [1095, 2025], [527, 1048]])
 pt = tracking.ParticleTracker(file, methods, options, True, crop_points=None)
-import time
-# s = time.time()
 pt.track()
-# print(time.time() - s)
-#
+
+
 data_store = dataframes.DataStore(file, load=True)
-annotator = annotation.VideoAnnotator(data_store, file)
-annotator.add_coloured_circles()
-# calculator = statistics.PropertyCalculator(data_store)
+
+
+### Statistics ###
+##################
+calculator = statistics.PropertyCalculator(data_store)
 # # # calculator.calculate_level_checks()
-# calculator.calculate_hexatic_order_parameter()
-# calculator.calculate_order_magnitude()
+calculator.calculate_hexatic_order_parameter()
+calculator.calculate_order_magnitude()
 # calculator.calculate_susceptibility()
 # calculator.calculate_pair_correlation(1)
-# calculator.calculate_orientational_correlation(1)
+calculator.calculate_orientational_correlation(1)
 # calculator.average_order_parameter()
 # calculator.calculate_local_density()
 # calculator.calculate_average_local_density()
+
+### Annotations ###
+###################
+# annotator = annotation.VideoAnnotator(data_store, file)
+# annotator.add_coloured_circles()
