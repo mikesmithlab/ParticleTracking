@@ -35,12 +35,12 @@ data_store = dataframes.DataStore(file, load=True)
 ### Statistics ###
 ##################
 calculator = statistics.PropertyCalculator(data_store)
-calculator.level_checks()
-calculator.order_parameter()
-calculator.susceptibility()
-calculator.average_order_parameter()
-calculator.density()
-calculator.average_density()
+# calculator.level_checks()
+# calculator.order_parameter()
+# calculator.susceptibility()
+# calculator.average_order_parameter()
+# calculator.density()
+# calculator.average_density()
 calculator.correlations(1)
 
 ### Annotations ###

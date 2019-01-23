@@ -1,7 +1,9 @@
 from ParticleTracking import dataframes
 import numpy as np
 import matplotlib.pyplot as plt
-from Generic import filedialogs
+import scipy.signal as signal
+import scipy.optimize as optimize
+from Generic import filedialogs, fitting
 
 class FigureMaker:
 
@@ -131,12 +133,57 @@ def scatter(xdata, ydata, xerr=None, yerr=None, xlabel=None, ylabel=None,
     if filename is not None:
         plt.savefig(filename)
 
+def correlation_fitter(file):
+    r = np.loadtxt(file+'_g_r.txt')
+    g = np.loadtxt(file+'_g-1.txt')
+    g6_over_g = np.loadtxt(file+'_g6_over_g.txt')
+    # plt.figure()
+    # plt.loglog(r, g)
+    # filtered = signal.savgol_filter(g, 5, 1)
+    # plt.loglog(r, filtered)
+    # peaks, _ = signal.find_peaks(filtered, distance=20)
+    # # prominences = signal.peak_prominences(g, peaks)[0]
+    # # biggest = np.argsort(prominences)[-4:]
+    # # plt.loglog(r[peaks[biggest]], g[peaks[biggest]], 'o')
+    # # plt.loglog(r[peaks], filtered[peaks], 'o')
+    # # g_line = r**(-1/3)*g[peaks[0]]
+    # # plt.loglog(r, g_line)
+    # popt, pcov = fit_exponential(r[peaks], filtered[peaks])
+    # yfit = exponential(r, popt)
+    # plt.loglog(r, yfit)
+    # plt.show()
 
+    plt.figure()
+
+    plt.loglog(r, g6_over_g)
+    g6_line = r**(-1/4)*max(g6_over_g[:20])
+    plt.loglog(r, g6_line)
+    peaks, _ = signal.find_peaks(g6_over_g, distance=5)
+    prominences = signal.peak_prominences(g6_over_g, peaks)[0]
+    biggest = np.argsort(prominences)[-8:]
+    plt.loglog(r[peaks[biggest]], g6_over_g[peaks[biggest]], 'o')
+    popt, pcov = fit_exponential(r[peaks[biggest]], g[peaks[biggest]])
+    yfit = exponential(r, popt)
+    plt.loglog(r, yfit)
+
+
+    plt.show()
+
+def fit_exponential(x, y):
+    popt, pcov = optimize.curve_fit(exponential, x, y)
+    print(popt)
+    return popt, pcov
+
+def exponential(x, b):
+    return (max(x)/np.exp(1))*np.exp(b*x)
 
 if __name__ == "__main__":
     # plot_shape_factor_histogram("/home/ppxjd3/Videos/liquid_data.hdf5", 0)
-    filename = filedialogs.load_filename('Load a plotting dataframe')
-    # filename = "/home/ppxjd3/Videos/grid/grid_plot_data.hdf5"
-    fig_maker = FigureMaker(filename)
-    # fig_maker.plot_level_checks()
-    fig_maker.plot_orientational_correlation()
+    # filename = filedialogs.load_filename('Load a plotting dataframe', remove_ext=True)
+    filename = "/home/ppxjd3/Videos/21900006"
+    # filename = "/home/ppxjd3/Videos/Solid/grid"
+    # # filename = "/home/ppxjd3/Videos/grid/grid_plot_data.hdf5"
+    # fig_maker = FigureMaker(filename)
+    # # fig_maker.plot_level_checks()
+    # fig_maker.plot_orientational_correlation()
+    correlation_fitter(filename)

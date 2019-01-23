@@ -92,6 +92,8 @@ class PropertyCalculator:
         plt.ylabel('g(r)-1')
         plt.xlim([r_min, r_max])
         plt.savefig(self.corename+'_g.png')
+        np.savetxt(self.corename+'_g_r.txt', r_values)
+        np.savetxt(self.corename+'_g-1.txt', g-1)
 
         plt.figure()
         plt.loglog(r_values, g6, '-')
@@ -106,6 +108,8 @@ class PropertyCalculator:
         plt.ylabel('g6/g')
         plt.xlim([r_min, r_max])
         plt.savefig(self.corename+'_g6_over_g.png')
+        np.savetxt(self.corename+'_g6_over_g.txt', g6/g)
+
 
     def average_order_parameter(self):
         if 'real order' not in self.td.get_headings():
