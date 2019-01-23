@@ -42,6 +42,7 @@ calculator = statistics.PropertyCalculator(data_store)
 # calculator.density()
 # calculator.average_density()
 calculator.correlations(1)
+calculator.correlations(10)
 
 ### Annotations ###
 ###################

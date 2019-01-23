@@ -288,7 +288,6 @@ class PlotData:
 class CorrData:
 
     def __init__(self, filename):
-        print(filename)
         self.filename = os.path.splitext(filename)[0]+'_corr.hdf5'
         if os.path.exists(self.filename):
             self.exists = True
@@ -303,12 +302,21 @@ class CorrData:
     def save(self):
         self.df.to_hdf(self.filename, 'df')
 
+    def head(self):
+        return self.df.head()
+
+    def tail(self):
+        return self.df.tail()
+
     def add_row(self, data, frame, label):
         if self.exists is False:
             self.df = self._add_row(data, frame, label)
             self.exists = True
         elif self.exists is True:
-            self.df = self.df.append(self._add_row(data, frame, label))
+            if (frame, label) in self.df.index.tolist():
+                self.df.loc[frame, label] = data
+            else:
+                self.df = self.df.append(self._add_row(data, frame, label))
         self.save()
 
     def _add_row(self, data, frame, label):
