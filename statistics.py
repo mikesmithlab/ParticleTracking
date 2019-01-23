@@ -12,14 +12,14 @@ import os
 
 class PropertyCalculator:
     """Class to calculate the properties associated with tracking"""
-    def __init__(self, tracking_dataframe):
-        self.td = tracking_dataframe
+    def __init__(self, datastore):
+        self.td = datastore
         self.td.fill_frame_data()
         self.corename = os.path.splitext(self.td.filename)[0]
         plot_data_name = self.corename + '_plot_data.hdf5'
         self.plot_data = dataframes.PlotData(plot_data_name)
 
-    def calculate_hexatic_order_parameter(self):
+    def order_parameter(self):
         order_params = np.array([])
         for n in range(self.td.num_frames):
             points = self.td.get_info(n, ['x', 'y'])
@@ -34,7 +34,7 @@ class PropertyCalculator:
         real_order = np.abs(order_params)
         self.td.add_particle_property('real order', real_order)
 
-    def calculate_local_density(self):
+    def density(self):
         """
         Calculates the local density of each particle in a dataframe.
 
@@ -58,9 +58,9 @@ class PropertyCalculator:
             local_density_all = np.append(local_density_all, density)
         self.td.add_particle_property('local density', local_density_all)
 
-    def calculate_correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
+    def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
         if 'complex order' not in self.td.get_headings():
-            self.calculate_hexatic_order_parameter()
+            self.order_parameter()
         data = self.td.get_info(frame_no, ['x', 'y', 'size', 'complex order'])
         diameter = np.mean(np.real(data[:, 2])) * 2
 
@@ -109,13 +109,13 @@ class PropertyCalculator:
 
     def average_order_parameter(self):
         if 'real order' not in self.td.get_headings():
-            self.calculate_hexatic_order_parameter()
+            self.order_parameter()
         orders = np.zeros(self.td.num_frames)
         for f in range(self.td.num_frames):
             orders[f] = self.td.get_info(f, ['real order']).mean()
         self.td.add_frame_property('mean order', orders)
 
-    def calculate_level_checks(self):
+    def level_checks(self):
         fig_name = self.corename + '_level_figs.png'
 
         frames = np.arange(0, self.td.num_frames)
@@ -213,7 +213,7 @@ class PropertyCalculator:
         self.plot_data.add_column('hexbin x', all_x)
         self.plot_data.add_column('hexbin y', all_y)
 
-    def calculate_shape_factor(self):
+    def shape_factor(self):
         """Calculates Moucka and Nezbedas shape factor"""
         boundary = self.td.get_boundary(0)
         CropVor = CroppedVoronoi(boundary)
@@ -229,15 +229,15 @@ class PropertyCalculator:
             shape_factor_all = np.append(shape_factor_all, shape_factor)
         self.td.add_particle_property('shape factor', shape_factor_all)
 
-    def calculate_average_local_density(self):
+    def average_density(self):
         if 'local density' not in self.td.get_headings():
-            self.calculate_local_density()
+            self.density()
         density = np.zeros(self.td.num_frames)
         for f in range(self.td.num_frames):
             density[f] = np.mean(self.td.get_info(f, ['local density']))
         self.td.add_frame_property('local density', density)
 
-    def calculate_susceptibility(self):
+    def susceptibility(self):
         chi = np.zeros(self.td.num_frames)
         for f in range(self.td.num_frames):
             orders = self.td.get_info(f, ['real order'])
@@ -500,7 +500,7 @@ if __name__ == "__main__":
             "/home/ppxjd3/Videos/packed_data.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    PC.calculate_shape_factor()
+    PC.shape_factor()
     # PC.calculate_pair_correlation(1)
     # PC.calculate_hexatic_order_parameter()
     # PC.calculate_order_magnitude()
