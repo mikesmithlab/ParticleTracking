@@ -19,74 +19,101 @@ class PropertyCalculator:
         plot_data_name = self.corename + '_plot_data.hdf5'
         self.plot_data = dataframes.PlotData(plot_data_name)
 
-    def calculate_orientational_correlation(self, frame_no):
-        fig_name = self.corename + \
-            '_orientational_correlation_{}.png'.format(frame_no)
+    def calculate_hexatic_order_parameter(self):
+        order_params = np.array([])
+        for n in range(self.td.num_frames):
+            points = self.td.get_info(n, ['x', 'y'])
+            list_indices, point_indices = self._find_delaunay_indices(points)
+            # The indices of neighbouring vertices of vertex k are
+            # point_indices[list_indices[k]:list_indices[k+1]].
+            vectors = self._find_vectors(points, list_indices, point_indices)
+            angles = self._calculate_angles(vectors)
+            orders = self._calculate_orders(angles, list_indices)
+            order_params = np.append(order_params, orders)
+        self.td.add_particle_property('complex order', order_params)
+        real_order = np.abs(order_params)
+        self.td.add_particle_property('real order', real_order)
 
+    def calculate_local_density(self):
+        """
+        Calculates the local density of each particle in a dataframe.
+
+        Calculates the area of the convex Hull of the voronoi vertices
+        corresponding to the cell of each particle.
+
+        Additional particles were added to the boundary of the system
+        before calculating the voronoi cell which were then used to bound
+        the cells of the outermost particles to the edge of the system.
+        """
+        boundary = self.td.get_boundary(0)
+        CropVor = CroppedVoronoi(boundary)
+        local_density_all = np.array([])
+        for n in range(self.td.num_frames):
+            info = self.td.get_info(n, ['x', 'y', 'size'])
+            particle_area = info[:, 2].mean() ** 2 * np.pi
+            vor = CropVor.add_points(info[:, :2])
+            VorArea = VoronoiArea(vor)
+            area = list(map(VorArea.area, range(len(info))))
+            density = particle_area / np.array(area)
+            local_density_all = np.append(local_density_all, density)
+        self.td.add_particle_property('local density', local_density_all)
+
+    def calculate_correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
+        if 'complex order' not in self.td.get_headings():
+            self.calculate_hexatic_order_parameter()
         data = self.td.get_info(frame_no, ['x', 'y', 'size', 'complex order'])
         diameter = np.mean(np.real(data[:, 2])) * 2
+
+        boundary = self.td.get_boundary(frame_no)
+        area = calculate_area_from_boundary(boundary) / diameter**2
+        n = len(data)
+        density = n / area
 
         dists = sp.distance.pdist(np.real(data[:, :2])/diameter)
         dists = sp.distance.squareform(dists)
 
-        dr = 0.02  # diameters
-        r_values = np.arange(1, 20, dr)
-        G6 = np.zeros(r_values.shape)
+        r_values = np.arange(r_min, r_max, dr)
+
+        g = np.zeros(len(r_values))
+        g6 = np.zeros(len(r_values))
         for i, r in enumerate(r_values):
-            indices = np.argwhere(abs(dists-r) <= dr/2)
+            indices = np.argwhere(abs(dists-r-dr/2) <= dr/2)
+            g[i] = len(indices) - 1
             order1s = data[indices[:, 0], 3]
             order2s = data[indices[:, 1], 3]
-            G6[i] = np.abs(np.vdot(order1s, order2s)) / len(indices)
+            g6[i] = np.abs(np.vdot(order1s, order2s))
+
+        g = g / (2 * np.pi * r_values * dr * density * (n-1))
+        g6 = g6 / (2 * np.pi * r_values * dr * density * (n-1))
 
         plt.figure()
-        plt.loglog(r_values, G6, '-')
-        plt.loglog(r_values, max(G6)*r_values**(-1/4), 'r-')
+        plt.loglog(r_values, g-1, '-')
         plt.xlabel('$r/d$')
-        plt.ylabel('$G_6(r)$')
-        plt.savefig(fig_name)
+        plt.ylabel('g(r)-1')
+        plt.xlim([r_min, r_max])
+        plt.savefig(self.corename+'_g.png')
 
-        self.plot_data.add_column(
-            'orientation_correlation_{}_r'.format(int(frame_no)), r_values)
+        plt.figure()
+        plt.loglog(r_values, g6, '-')
+        plt.xlabel('$r/d$')
+        plt.ylabel('g6(r)')
+        plt.xlim([r_min, r_max])
+        plt.savefig(self.corename+'_g6.png')
 
-        G6[np.isnan(G6)] = 0
-        self.plot_data.add_column(
-            'orientation correlation_{}_g'.format(int(frame_no)), G6)
+        plt.figure()
+        plt.loglog(r_values, g6/g, '-')
+        plt.xlabel('$r/d$')
+        plt.ylabel('g6/g')
+        plt.xlim([r_min, r_max])
+        plt.savefig(self.corename+'_g6_over_g.png')
 
     def average_order_parameter(self):
+        if 'real order' not in self.td.get_headings():
+            self.calculate_hexatic_order_parameter()
         orders = np.zeros(self.td.num_frames)
         for f in range(self.td.num_frames):
             orders[f] = self.td.get_info(f, ['real order']).mean()
         self.td.add_frame_property('mean order', orders)
-
-    def calculate_pair_correlation(self, frame_no):
-        fig_name = self.corename + '_pair_correlation_{}.png'.format(frame_no)
-
-        data = self.td.get_info(frame_no, ['x', 'y', 'size'])
-        pos = data[:, :2]
-        diameter = data[:, 2].mean() * 2
-
-        boundary = self.td.get_boundary(frame_no)
-        area = calculate_area_from_boundary(boundary) / diameter**2
-        n = len(pos)
-        density = n / area
-
-        dists = sp.distance.pdist(pos) / diameter
-        g, r = np.histogram(dists, bins=np.arange(1, 10, 0.01))
-        dr = r[1] - r[0]
-        r = r[:-1] + dr/2
-        g = g / (2*np.pi*r*dr*density*(n-1))
-
-        plt.figure()
-        plt.loglog(r, g-1, '-')
-        plt.loglog(r, (g.max()-1)*r**(-1/3))
-        plt.xlabel('$r/d$')
-        plt.ylabel('$g(r) - 1$')
-        plt.savefig(fig_name)
-
-        self.plot_data.add_column('pair_correlation_{}_r'.format(frame_no),
-                                  r)
-        self.plot_data.add_column('pair_correlation_{}_g-1'.format(frame_no),
-                                  g-1)
 
     def calculate_level_checks(self):
         fig_name = self.corename + '_level_figs.png'
@@ -202,51 +229,13 @@ class PropertyCalculator:
             shape_factor_all = np.append(shape_factor_all, shape_factor)
         self.td.add_particle_property('shape factor', shape_factor_all)
 
-    def calculate_local_density(self):
-        """
-        Calculates the local density of each particle in a dataframe.
-
-        Calculates the area of the convex Hull of the voronoi vertices
-        corresponding to the cell of each particle.
-
-        Additional particles were added to the boundary of the system
-        before calculating the voronoi cell which were then used to bound
-        the cells of the outermost particles to the edge of the system.
-        """
-        boundary = self.td.get_boundary(0)
-        CropVor = CroppedVoronoi(boundary)
-        local_density_all = np.array([])
-        for n in range(self.td.num_frames):
-            info = self.td.get_info(n, ['x', 'y', 'size'])
-            particle_area = info[:, 2].mean()**2 * np.pi
-            vor = CropVor.add_points(info[:, :2])
-            VorArea = VoronoiArea(vor)
-            area = list(map(VorArea.area, range(len(info))))
-            density = particle_area / np.array(area)
-            local_density_all = np.append(local_density_all, density)
-        self.td.add_particle_property('local density', local_density_all)
-
     def calculate_average_local_density(self):
+        if 'local density' not in self.td.get_headings():
+            self.calculate_local_density()
         density = np.zeros(self.td.num_frames)
         for f in range(self.td.num_frames):
             density[f] = np.mean(self.td.get_info(f, ['local density']))
         self.td.add_frame_property('local density', density)
-
-    @staticmethod
-    def show_property_with_condition(points, prop, cond, val, vor=None):
-        prop = np.array(prop)
-        if cond == '>':
-            points_met = np.nonzero(prop > val)
-        elif cond == '==':
-            points_met = np.nonzero(prop == val)
-        elif cond == '<':
-            points_met = np.nonzero(prop < val)
-        plt.figure()
-        plt.plot(points[:, 0], points[:, 1], 'x')
-        plt.plot(points[points_met, 0], points[points_met, 1], 'o')
-        if vor:
-            sp.voronoi_plot_2d(vor)
-        plt.show()
 
     def calculate_susceptibility(self):
         chi = np.zeros(self.td.num_frames)
@@ -254,24 +243,6 @@ class PropertyCalculator:
             orders = self.td.get_info(f, ['real order'])
             chi[f] = np.mean(np.power(orders - np.mean(orders), 2))
         self.td.add_frame_property('susceptibility', chi)
-
-    def calculate_order_magnitude(self):
-        orders = self.td.get_column('complex order')
-        real_order = np.abs(orders)
-        self.td.add_particle_property('real order', real_order)
-
-    def calculate_hexatic_order_parameter(self):
-        order_params = np.array([])
-        for n in range(self.td.num_frames):
-            points = self.td.get_info(n, ['x', 'y'])
-            list_indices, point_indices = self._find_delaunay_indices(points)
-            # The indices of neighbouring vertices of vertex k are
-            # point_indices[list_indices[k]:list_indices[k+1]].
-            vectors = self._find_vectors(points, list_indices, point_indices)
-            angles = self._calculate_angles(vectors)
-            orders = self._calculate_orders(angles, list_indices)
-            order_params = np.append(order_params, orders)
-        self.td.add_particle_property('complex order', order_params)
 
     def find_edge_points(self, check=False):
         edges_array = np.array([], dtype=bool)
@@ -299,6 +270,22 @@ class PropertyCalculator:
                     plt.gcf().gca().add_artist(circle)
                 plt.show()
         self.td.add_particle_property('on_edge', edges_array)
+
+    @staticmethod
+    def show_property_with_condition(points, prop, cond, val, vor=None):
+        prop = np.array(prop)
+        if cond == '>':
+            points_met = np.nonzero(prop > val)
+        elif cond == '==':
+            points_met = np.nonzero(prop == val)
+        elif cond == '<':
+            points_met = np.nonzero(prop < val)
+        plt.figure()
+        plt.plot(points[:, 0], points[:, 1], 'x')
+        plt.plot(points[points_met, 0], points[points_met, 1], 'o')
+        if vor:
+            sp.voronoi_plot_2d(vor)
+        plt.show()
 
     @staticmethod
     def is_point_on_edge(vor, vertices_outside):

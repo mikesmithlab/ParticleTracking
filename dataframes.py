@@ -284,19 +284,12 @@ class PlotData:
         return data
 
 if __name__ == "__main__":
-    # from Generic import filedialogs
-    # filename = filedialogs.load_filename(
-    #     'Select a dataframe',
-    #     directory="/home/ppxjd3/Videos",
-    #     file_filter='*.hdf5')
-    # data = DataStore(filename, load=True)
-    # info = data.get_info(1, include_size=True, prop='order')
+    from Generic import filedialogs
+    filename = filedialogs.load_filename(
+        'Select a dataframe',
+        directory="/home/ppxjd3/Videos",
+        file_filter='*.hdf5')
+    data = DataStore(filename, load=True)
+    data.inspect_dataframes()
 
-    filename = 'test2.csv'
-    plot_data = PlotData(filename)
-    # data1 = np.arange(5, 50, 10)
-    # plot_data.add_column('col1', data1)
-    data2 = np.arange(30, 39)
-    plot_data.add_column('col2', data2)
-    print(plot_data.df.head())
 
