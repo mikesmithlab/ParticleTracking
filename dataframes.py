@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+import itertools
 import warnings
 warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 
@@ -283,13 +284,52 @@ class PlotData:
         data = data[~np.isnan(data)]
         return data
 
+
+class CorrData:
+
+    def __init__(self, filename):
+        print(filename)
+        self.filename = os.path.splitext(filename)[0]+'_corr.hdf5'
+        if os.path.exists(self.filename):
+            self.exists = True
+            self.load()
+        else:
+            self.exists = False
+            self.df = None
+
+    def load(self):
+        self.df = pd.read_hdf(self.filename)
+
+    def save(self):
+        self.df.to_hdf(self.filename, 'df')
+
+    def add_row(self, data, frame, label):
+        if self.exists is False:
+            self.df = self._add_row(data, frame, label)
+            self.exists = True
+        elif self.exists is True:
+            self.df = self.df.append(self._add_row(data, frame, label))
+        self.save()
+
+    def _add_row(self, data, frame, label):
+        index = [(frame, label)]
+        headr = list(np.arange(0, len(data)))
+        indx = pd.MultiIndex.from_tuples(index, names=['frame', 'data'])
+        cols = pd.Index(headr)
+        df = pd.DataFrame([data], indx, cols)
+        return df
+
 if __name__ == "__main__":
     from Generic import filedialogs
     filename = filedialogs.load_filename(
         'Select a dataframe',
         directory="/home/ppxjd3/Videos",
         file_filter='*.hdf5')
-    data = DataStore(filename, load=True)
-    data.inspect_dataframes()
-
-
+    # data = DataStore(filename, load=True)
+    # data.inspect_dataframes()
+    data1 = np.arange(0, 10)
+    corr = CorrData(filename)
+    corr.add_row(data1, 0, 'a')
+    corr.add_row(data1 ** 2, 0, 'b')
+    corr.add_row(data1 * 3 + 1, 1, 'a')
+    # print(corr.df.head())
