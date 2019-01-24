@@ -133,6 +133,24 @@ def scatter(xdata, ydata, xerr=None, yerr=None, xlabel=None, ylabel=None,
     if filename is not None:
         plt.savefig(filename)
 
+def plot_correlations(file, frame):
+    corr_data = dataframes.CorrData(file)
+
+    r = corr_data.get_row(frame, 'r')
+    g = corr_data.get_row(frame, 'g')
+    g6 = corr_data.get_row(frame, 'g6')
+    y = g6/g
+    y1 = signal.savgol_filter(y, 15, 1)
+    plt.figure()
+    # plt.loglog(r, y)
+    plt.loglog(r, y1)
+    peaks, _ = signal.find_peaks(y1)
+    prominences = signal.peak_prominences(y1, peaks)[0]
+    biggest = np.argsort(prominences)[-10:]
+    plt.loglog(r[peaks[biggest]], y1[peaks[biggest]], 'o')
+    plt.show()
+
+
 def correlation_fitter(file):
     r = np.loadtxt(file+'_g_r.txt')
     g = np.loadtxt(file+'_g-1.txt')
@@ -180,10 +198,11 @@ def exponential(x, b):
 if __name__ == "__main__":
     # plot_shape_factor_histogram("/home/ppxjd3/Videos/liquid_data.hdf5", 0)
     # filename = filedialogs.load_filename('Load a plotting dataframe', remove_ext=True)
-    filename = "/home/ppxjd3/Videos/21900006"
+    filename = "/home/ppxjd3/Videos/21900003"
     # filename = "/home/ppxjd3/Videos/Solid/grid"
     # # filename = "/home/ppxjd3/Videos/grid/grid_plot_data.hdf5"
     # fig_maker = FigureMaker(filename)
     # # fig_maker.plot_level_checks()
     # fig_maker.plot_orientational_correlation()
-    correlation_fitter(filename)
+    # correlation_fitter(filename)
+    plot_correlations(filename, 1)

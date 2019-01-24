@@ -58,64 +58,72 @@ class PropertyCalculator:
             local_density_all = np.append(local_density_all, density)
         self.td.add_particle_property('local density', local_density_all)
 
+    def edge_distance(self):
+        """
+        Calculates the distance to the boundary for all points
+
+        Uses artificially generated points along the boundary lines to
+        calculate distance.
+        """
+        boundary = self.td.get_boundary(0)
+        boundary_points = generate_polygonal_boundary_points(boundary, 400)
+        x = self.td.get_column('x')
+        y = self.td.get_column('y')
+        points = np.vstack((x, y)).transpose()
+        distance = sp.distance.cdist(points, boundary_points)
+        distance = np.sort(distance, axis=1)
+        distance_to_edge = distance[:, 0]
+        self.td.add_particle_property('Edge Distance', distance_to_edge)
+
     def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
         if 'complex order' not in self.td.get_headings():
             self.order_parameter()
-        data = self.td.get_info(frame_no, ['x', 'y', 'size', 'complex order'])
+        if 'Edge Distance' not in self.td.get_headings():
+            self.edge_distance()
+        data = self.td.get_info(
+            frame_no, ['x', 'y', 'size', 'complex order', 'Edge Distance'])
         diameter = np.mean(np.real(data[:, 2])) * 2
+        data[:, 4] /= diameter # pix -> diameters
 
         boundary = self.td.get_boundary(frame_no)
-        area = calculate_area_from_boundary(boundary) / diameter**2
-        n = len(data)
-        density = n / area
+        area = calculate_area_from_boundary(boundary) / diameter**2 # d**2
+        density = len(data) / area # number density in tray
 
+        # Calculate a sample space diagram containing the distances between
+        # pairs of particles in units of diameters
         dists = sp.distance.pdist(np.real(data[:, :2])/diameter)
         dists = sp.distance.squareform(dists)
 
         r_values = np.arange(r_min, r_max, dr)
-
         g = np.zeros(len(r_values))
         g6 = np.zeros(len(r_values))
         for i, r in enumerate(r_values):
-            indices = np.argwhere(abs(dists-r-dr/2) <= dr/2)
-            g[i] = len(indices) - 1
-            order1s = data[indices[:, 0], 3]
-            order2s = data[indices[:, 1], 3]
-            g6[i] = np.abs(np.vdot(order1s, order2s))
+            # Find indices for points which are greater than (r+dr) from the
+            # boundary.
+            j_indices = np.squeeze(np.argwhere(data[:, 4] > r+dr))
 
-        g = g / (2 * np.pi * r_values * dr * density * (n-1))
-        g6 = g6 / (2 * np.pi * r_values * dr * density * (n-1))
+            # Calculate divisor for each value of r, describing the expected
+            # number of pairs at this separation
+            n = len(j_indices)
+            divisor = 2 * np.pi * r * dr * density * (n-1)
+
+            # Remove points nearer than (r+dr) from one axis of dists
+            dists_include = dists[j_indices, :]
+
+            # Count the number of pairs with distances in the bin
+            counted = np.argwhere(abs(dists_include-r-dr/2) <= dr/2)
+            g[i] = len(counted) / divisor
+
+            # Multiply and sum pairs of order parameters using vector
+            # dot product
+            order1s = data[counted[:, 0], 3]
+            order2s = data[counted[:, 1], 3]
+            g6[i] = np.abs(np.vdot(order1s, order2s)) / divisor
 
         corr_data = dataframes.CorrData(self.corename)
         corr_data.add_row(r_values, frame_no, 'r')
         corr_data.add_row(g, frame_no, 'g')
         corr_data.add_row(g6, frame_no, 'g6')
-        print(corr_data.head())
-        print(corr_data.tail())
-        # plt.figure()
-        # plt.loglog(r_values, g-1, '-')
-        # plt.xlabel('$r/d$')
-        # plt.ylabel('g(r)-1')
-        # plt.xlim([r_min, r_max])
-        # plt.savefig(self.corename+'_g.png')
-        # np.savetxt(self.corename+'_g_r.txt', r_values)
-        # np.savetxt(self.corename+'_g-1.txt', g-1)
-        #
-        # plt.figure()
-        # plt.loglog(r_values, g6, '-')
-        # plt.xlabel('$r/d$')
-        # plt.ylabel('g6(r)')
-        # plt.xlim([r_min, r_max])
-        # plt.savefig(self.corename+'_g6.png')
-        #
-        # plt.figure()
-        # plt.loglog(r_values, g6/g, '-')
-        # plt.xlabel('$r/d$')
-        # plt.ylabel('g6/g')
-        # plt.xlim([r_min, r_max])
-        # plt.savefig(self.corename+'_g6_over_g.png')
-        # np.savetxt(self.corename+'_g6_over_g.txt', g6/g)
-
 
     def average_order_parameter(self):
         if 'real order' not in self.td.get_headings():

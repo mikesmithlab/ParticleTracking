@@ -67,8 +67,6 @@ class DataStore:
         print('Frame data head : ')
         print(self.frame_data.head())
         print('')
-        print(self.frame_data['frame'].max())
-        print(self.particle_data['frame'].max())
 
     def get_headings(self):
         """Returns the headings of `particle_data` as a list"""
@@ -326,6 +324,9 @@ class CorrData:
         cols = pd.Index(headr)
         df = pd.DataFrame([data], indx, cols)
         return df
+
+    def get_row(self, frame, label):
+        return self.df.loc[frame, label].values
 
 if __name__ == "__main__":
     from Generic import filedialogs
