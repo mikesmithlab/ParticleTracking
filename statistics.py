@@ -76,6 +76,23 @@ class PropertyCalculator:
         self.td.add_particle_property('Edge Distance', distance_to_edge)
 
     def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
+        """
+        Calculates spatial and orientational correlations.
+
+        Uses definitions of g and g6 from Komatsu2015
+
+        Parameters
+        ----------
+        frame_no: The frame to calculate for
+        r_min: lower bound for r in diameters
+        r_max: upper bound for r in diameters
+        dr: bin size for r in diameters
+
+        Notes
+        -----
+        Adds data to the *_corr.hdf5 dataframe.
+
+        """
         if 'complex order' not in self.td.get_headings():
             self.order_parameter()
         if 'Edge Distance' not in self.td.get_headings():
@@ -86,8 +103,8 @@ class PropertyCalculator:
         data[:, 4] /= diameter # pix -> diameters
 
         boundary = self.td.get_boundary(frame_no)
-        area = calculate_area_from_boundary(boundary) / diameter**2 # d**2
-        density = len(data) / area # number density in tray
+        area = calculate_area_from_boundary(boundary) / diameter**2  # d**2
+        density = len(data) / area  # number density in tray
 
         # Calculate a sample space diagram containing the distances between
         # pairs of particles in units of diameters
