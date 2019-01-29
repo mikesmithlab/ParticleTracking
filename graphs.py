@@ -140,16 +140,27 @@ def plot_correlations(file, frame):
     g = corr_data.get_row(frame, 'g')
     g6 = corr_data.get_row(frame, 'g6')
     y = g6/g
-    y1 = signal.savgol_filter(y, 15, 1)
+    power_line = r**(-1/4)
+
     plt.figure()
-    # plt.loglog(r, y)
-    plt.loglog(r, y1)
-    peaks, _ = signal.find_peaks(y1)
-    prominences = signal.peak_prominences(y1, peaks)[0]
-    biggest = np.argsort(prominences)[-10:]
-    plt.loglog(r[peaks[biggest]], y1[peaks[biggest]], 'o')
+    plt.loglog(r, y)
+    plt.loglog(r, power_line)
+    peaks, _ = signal.find_peaks(y, height=0.9)
+    prominences = signal.peak_prominences(y, peaks)[0]
+    biggest = np.argsort(prominences)[:]
+    plt.loglog(r[peaks[biggest]], y[peaks[biggest]], 'o')
     plt.show()
 
+    # plt.figure()
+    # plt.plot(r, g-1)
+    # y = g-1
+    # peaks, _ = signal.find_peaks(y)
+    # prominences = signal.peak_prominences(y, peaks)[0]
+    # biggest = np.argsort(prominences)[-5:]
+    # plt.plot(r[peaks[biggest]], y[peaks[biggest]], 'o')
+    # power_line = r**(-1/3)
+    # plt.plot(r, power_line)
+    # plt.show()
 
 def correlation_fitter(file):
     r = np.loadtxt(file+'_g_r.txt')
@@ -195,11 +206,18 @@ def fit_exponential(x, y):
 def exponential(x, b):
     return (max(x)/np.exp(1))*np.exp(b*x)
 
+def order_quiver(datastore, frame):
+    data = datastore.get_info(frame, ['x', 'y', 'complex order'])
+    plt.figure()
+    plt.quiver(data[:, 0], data[:, 1], np.real(data[:, 2]), np.imag(data[:, 2]),
+               pivot='mid')
+    plt.show()
+
 if __name__ == "__main__":
     # plot_shape_factor_histogram("/home/ppxjd3/Videos/liquid_data.hdf5", 0)
     # filename = filedialogs.load_filename('Load a plotting dataframe', remove_ext=True)
-    filename = "/home/ppxjd3/Videos/21900003"
-    # filename = "/home/ppxjd3/Videos/Solid/grid"
+    # filename = "/home/ppxjd3/Videos/down/down.MP4"
+    filename = "/home/ppxjd3/Videos/Solid/grid"
     # # filename = "/home/ppxjd3/Videos/grid/grid_plot_data.hdf5"
     # fig_maker = FigureMaker(filename)
     # # fig_maker.plot_level_checks()

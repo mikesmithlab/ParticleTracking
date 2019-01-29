@@ -92,7 +92,6 @@ class ParticleTracker:
         self._cleanup_intermediate_dataframes()
         self._link_trajectories()
 
-
     def _track_singleprocess(self):
         """Call this to start the tracking"""
         self.video = video.ReadVideo(self.video_filename)

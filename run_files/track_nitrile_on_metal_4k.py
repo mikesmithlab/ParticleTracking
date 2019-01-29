@@ -9,7 +9,7 @@ warnings.filterwarnings("ignore")
 file = filedialogs.load_filename('Load a video', remove_ext=False)
 
 ### Tracking ###
-################
+###############
 # methods = ['flip', 'threshold tozero', 'opening']
 # options = {
 #     'grayscale threshold': None,
@@ -34,15 +34,15 @@ data_store = dataframes.DataStore(file, load=True)
 
 ### Statistics ###
 ##################
-calculator = statistics.PropertyCalculator(data_store)
-calculator.edge_distance()
+# calculator = statistics.PropertyCalculator(data_store)
+# calculator.edge_distance()
 # calculator.level_checks()
-calculator.order_parameter()
+# calculator.order_parameter()
 # calculator.susceptibility()
 # calculator.average_order_parameter()
 # calculator.density()
 # calculator.average_density()
-calculator.correlations(1)
+# calculator.correlations(300, r_min=1, r_max=20, dr=0.04)
 # calculator.correlations(10)
 
 # data_store.inspect_dataframes()
@@ -51,3 +51,8 @@ calculator.correlations(1)
 ###################
 # annotator = annotation.VideoAnnotator(data_store, file)
 # annotator.add_coloured_circles()
+
+### Graphs ###
+##############
+
+graphs.order_quiver(data_store, 0)

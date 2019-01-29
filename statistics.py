@@ -20,6 +20,11 @@ class PropertyCalculator:
         self.plot_data = dataframes.PlotData(plot_data_name)
 
     def order_parameter(self):
+        """
+        Calculate the hexatic order parameter.
+
+        Stores both the complex results and the magnitude of the result.
+        """
         order_params = np.array([])
         for n in range(self.td.num_frames):
             points = self.td.get_info(n, ['x', 'y'])
@@ -143,6 +148,11 @@ class PropertyCalculator:
         corr_data.add_row(g6, frame_no, 'g6')
 
     def average_order_parameter(self):
+        """
+        Calculate the average order parameter for each frame.
+
+        Stores the results in the frame dataframe
+        """
         if 'real order' not in self.td.get_headings():
             self.order_parameter()
         orders = np.zeros(self.td.num_frames)
