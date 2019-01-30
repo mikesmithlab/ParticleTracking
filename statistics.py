@@ -26,9 +26,12 @@ class PropertyCalculator:
         Stores both the complex results and the magnitude of the result.
         """
         order_params = np.array([])
+        neighbors_arr = np.array([])
         for n in range(self.td.num_frames):
             points = self.td.get_info(n, ['x', 'y'])
             list_indices, point_indices = self._find_delaunay_indices(points)
+            neighbors = self._count_neighbors(list_indices)
+            neighbors_arr = np.append(neighbors_arr, neighbors)
             # The indices of neighbouring vertices of vertex k are
             # point_indices[list_indices[k]:list_indices[k+1]].
             vectors = self._find_vectors(points, list_indices, point_indices)
@@ -38,6 +41,7 @@ class PropertyCalculator:
         self.td.add_particle_property('complex order', order_params)
         real_order = np.abs(order_params)
         self.td.add_particle_property('real order', real_order)
+        self.td.add_particle_property('neighbors', neighbors_arr)
 
     def density(self):
         """
@@ -352,6 +356,11 @@ class PropertyCalculator:
             vertices_inside = path.contains_points(vor.vertices)
             vertices_outside = ~vertices_inside
         return vertices_outside
+
+    @staticmethod
+    def _count_neighbors(list_indices):
+        neighbors = list_indices[1:] - list_indices[:-1]
+        return neighbors
 
     @staticmethod
     def _find_vectors(points, list_indices, point_indices):

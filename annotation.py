@@ -5,7 +5,11 @@ from matplotlib import cm
 import numpy as np
 import os
 import pygame
-
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle, Polygon, ConnectionPatch
+from matplotlib.collections import PatchCollection
+import scipy.spatial as sp
 
 class VideoAnnotator:
 
@@ -93,15 +97,48 @@ class VideoAnnotator:
         out.close()
 
 
+def neighbors(data_store, frame):
+    data = data_store.get_info(frame, ['x', 'y', 'size', 'neighbors'])
+    rad = data[:, 2].max()
+    fig, ax = plt.subplots()
+    patches = []
+    colors = []
+    for x, y, r, n in data:
+        patches.append(Circle((x, y), r, linewidth=0))
+        colors.append(n)
+    voro = sp.Voronoi(data[:, :2])
+    ridge_vertices = voro.ridge_vertices
+    new_ridge_vertices = []
+    for ridge in ridge_vertices:
+        if -1 not in ridge:
+            new_ridge_vertices.append(ridge)
+    polygons = voro.vertices[new_ridge_vertices]
+    for line in polygons:
+        poly = Polygon(np.array(line), closed=False)
+        patches.append(poly)
+        colors.append(0)
+
+    p = PatchCollection(patches, alpha=1, cmap=matplotlib.cm.Set1, match_original=True)
+    p.set_array(np.array(colors))
+    ax.add_collection(p)
+    fig.colorbar(p, ax=ax)
+    ax.set_xlim([data[:, 0].min()-rad, data[:, 0].max()+rad])
+    ax.set_ylim([data[:, 1].min()-rad, data[:, 1].max()+rad])
+    ax.set_aspect('equal')
+    ax.set_axis_off()
+    plt.show()
+
+
 if __name__ == "__main__":
 
     dataframe = dataframes.DataStore(
-            "/home/ppxjd3/Videos/solid_data.hdf5",
+            "/home/ppxjd3/Videos/Solid/grid.hdf5",
             load=True)
-    input_video = "/home/ppxjd3/Videos/solid_crop.mp4"
-    VA = VideoAnnotator(
-            dataframe,
-            input_video,
-            shrink_factor=1)
-    VA.add_coloured_circles('loc_rot_invar')
-    # VA.add_annotations(voronoi=True, delaunay=True)
+    # input_video = "/home/ppxjd3/Videos/solid_crop.mp4"
+    # VA = VideoAnnotator(
+    #         dataframe,
+    #         input_video,
+    #         shrink_factor=1)
+    # VA.add_coloured_circles('loc_rot_invar')
+    # # VA.add_annotations(voronoi=True, delaunay=True)
+    neighbors(dataframe, 0)

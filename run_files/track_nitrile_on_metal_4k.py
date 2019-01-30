@@ -34,10 +34,10 @@ data_store = dataframes.DataStore(file, load=True)
 
 ### Statistics ###
 ##################
-# calculator = statistics.PropertyCalculator(data_store)
+calculator = statistics.PropertyCalculator(data_store)
 # calculator.edge_distance()
 # calculator.level_checks()
-# calculator.order_parameter()
+calculator.order_parameter()
 # calculator.susceptibility()
 # calculator.average_order_parameter()
 # calculator.density()
@@ -51,6 +51,7 @@ data_store = dataframes.DataStore(file, load=True)
 ###################
 # annotator = annotation.VideoAnnotator(data_store, file)
 # annotator.add_coloured_circles()
+annotation.neighbors(data_store, 0)
 
 ### Graphs ###
 ##############
