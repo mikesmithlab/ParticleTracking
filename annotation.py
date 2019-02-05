@@ -7,9 +7,10 @@ import os
 import pygame
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, Polygon, ConnectionPatch
+from matplotlib.patches import Circle, Polygon
 from matplotlib.collections import PatchCollection
 import scipy.spatial as sp
+
 
 class VideoAnnotator:
 
