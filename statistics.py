@@ -10,7 +10,7 @@ from numba import jit
 from shapely.geometry import Polygon, Point
 import os
 from math import pi
-from progress.bar import Bar
+from tqdm import tqdm
 
 
 class PropertyCalculator:
@@ -35,9 +35,7 @@ class PropertyCalculator:
         neighbors_arr = np.array([])
         frame_order = []
         frame_sus = []
-        bar = Bar('Order', max=self.td.num_frames)
-        for n in range(self.td.num_frames):
-            bar.next()
+        for n in tqdm(range(self.td.num_frames), 'Order'):
             points = self.td.get_info(n, ['x', 'y'])
             list_indices, point_indices = self._find_delaunay_indices(points)
             neighbors = self._count_neighbors(list_indices)
@@ -59,7 +57,6 @@ class PropertyCalculator:
         self.td.add_particle_property('neighbors', neighbors_arr)
         self.td.add_frame_property('mean order', frame_order)
         self.td.add_frame_property('susceptibility', frame_sus)
-        bar.finish()
 
     def voronoi_cells(self):
         """
@@ -70,9 +67,7 @@ class PropertyCalculator:
         local_density_all = np.array([])
         shape_factor_all = np.array([])
         on_edge_all = np.array([])
-        bar = Bar('Voronoi Cell Calculations', max=self.td.num_frames)
-        for n in range(self.td.num_frames):
-            bar.next()
+        for n in tqdm(range(self.td.num_frames), 'Voronoi'):
             info = self.td.get_info(n, ['x', 'y', 'size'])
             particle_area = info[:, 2].mean()**2 * pi
             vor = sp.Voronoi(info[:, :2])
@@ -95,7 +90,6 @@ class PropertyCalculator:
         self.td.add_particle_property('local density', local_density_all)
         self.td.add_particle_property('shape factor', shape_factor_all)
         self.td.add_particle_property('on edge', on_edge_all)
-        bar.finish()
 
     def edge_distance(self):
         boundary = self.td.get_boundary(0)
@@ -104,7 +98,7 @@ class PropertyCalculator:
         points = np.vstack((x, y)).transpose()
         bound = Polygon(boundary)
         distance = []
-        for point in points:
+        for point in tqdm(points, 'Edge Distance'):
             distance.append(bound.exterior.distance(Point(point)))
         self.td.add_particle_property('Edge Distance', distance)
 
@@ -504,8 +498,8 @@ if __name__ == "__main__":
             load=True)
     PC = PropertyCalculator(dataframe)
     PC.order_parameter()
-    # PC.voronoi_cells()
-    # PC.edge_distance()
+    PC.voronoi_cells()
+    PC.edge_distance()
 
     print(dataframe.particle_data.head())
     print(dataframe.frame_data.head())
