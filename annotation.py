@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Polygon
 from matplotlib.collections import PatchCollection
 import scipy.spatial as sp
+from tqdm import tqdm
 
 
 class VideoAnnotator:
@@ -45,8 +46,7 @@ class VideoAnnotator:
                 )
         out = video.WriteVideoFFMPEG(output_video_filename,
                                      bitrate='MEDIUM4K')
-        for f in range(cap.num_frames):
-            print(f)
+        for f in tqdm(range(cap.num_frames), 'network annotations'):
             points = self.td.get_info(f, ['x', 'y'])
             frame = cap.read_frame()
             if delaunay:
@@ -69,8 +69,7 @@ class VideoAnnotator:
         out = video.WriteVideoFFMPEG(
             output_video_filename, bitrate='HIGH1080')
         col = (255, 0, 0)
-        for f in range(cap.num_frames):
-            # print('Annotating frame ', f+1, ' of ', cap.num_frames)
+        for f in tqdm(range(cap.num_frames), 'Circle annotations'):
             frame = cap.read_frame_bytes()
             surface = pygame.image.fromstring(
                 frame, (cap.width, cap.height), 'RGB')
