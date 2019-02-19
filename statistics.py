@@ -26,6 +26,9 @@ class PropertyCalculator:
         """
         Calculate the hexatic order parameter.
 
+        Also stores the number of neighbors, mean order per frame
+         and mean susceptibility per frame
+
         Stores both the complex results and the magnitude of the result.
         """
         order_params = np.array([])
@@ -494,73 +497,6 @@ def intersect_polygons(poly1, poly2, return_check=False):
         return poly1
 
 
-# class VoronoiArea:
-#     """Calculates area of a voronoi cell for a given point"""
-#
-#     def __init__(self, vor):
-#         self.vor = vor
-#
-#     def area(self, point_index):
-#         region_index = self.vor.regions[self.vor.point_region[point_index]]
-#         region_points = self.vor.vertices[region_index]
-#         x, y = sort_polygon_vertices(region_points)
-#         area = calculate_polygon_area(x, y)
-#         return area
-#
-#     def perimeter(self, point_index):
-#         region_index = self.vor.regions[self.vor.point_region[point_index]]
-#         region_points = self.vor.vertices[region_index]
-#         x, y = sort_polygon_vertices(region_points)
-#         perimeter = calculate_polygon_perimeter(x, y)
-#         return perimeter
-
-# def hull_area_2d(points):
-#     """Calculates area of a 2D convex hull"""
-#     hull = sp.ConvexHull(points)
-#     area = hull.volume
-#     return area
-
-
-# class CroppedVoronoi:
-#     """
-#     Generates extra boundary points to give realistic cells to real points
-#     """
-#
-#     def __init__(self, boundary):
-#         if len(np.shape(boundary)) == 1:
-#             self.boundary_points = generate_circular_boundary_points(
-#                 boundary[0],
-#                 boundary[1],
-#                 boundary[2],
-#                 1000)
-#             self.edge_points = generate_circular_boundary_points(
-#                 boundary[0],
-#                 boundary[1],
-#                 boundary[2]+20,
-#                 100)
-#         else:
-#             self.boundary_points = generate_polygonal_boundary_points(
-#                 boundary, 1000, add_dist=20)
-#             self.edge_points = generate_polygonal_boundary_points(
-#                 boundary, 100, add_dist=40)
-#         self.tree = sp.cKDTree(self.boundary_points)
-#
-#     def add_points(self, points):
-#         input_points = np.concatenate((points, self.edge_points))
-#         vor = sp.Voronoi(input_points)
-#         vertices_to_move = []
-#         for region in vor.regions:
-#             if -1 in region:
-#                 vertices_to_move += region
-#         vertices_to_move = [vertex for vertex in vertices_to_move
-#                             if vertex != -1]
-#         unique_vertices_to_move = np.unique(vertices_to_move)
-#         new_indices = self.tree.query(vor.vertices[unique_vertices_to_move])
-#         new_vertices = self.boundary_points[new_indices[1]]
-#         vor.vertices[unique_vertices_to_move] = new_vertices
-#         return vor
-
-
 if __name__ == "__main__":
     import time
     dataframe = dataframes.DataStore(
@@ -570,16 +506,6 @@ if __name__ == "__main__":
     PC.order_parameter()
     # PC.voronoi_cells()
     # PC.edge_distance()
-    # PC.calculate_pair_correlation(1)
-    # PC.calculate_hexatic_order_parameter()
-    # PC.calculate_order_magnitude()
-    # PC.calculate_orientational_correlation(1)
-    # print(dataframe.particle_data.head())
-    # # print(dataframe.dataframe['local density'].values.mean())
-    # print(dataframe.particle_data['loc_rot_invar'].mean())
-    # PC.find_edge_points(check=True)
-    # print(dataframe.dataframe['on_edge'].mean())
-    # PC.calculate_local_density()
+
     print(dataframe.particle_data.head())
-    print(dataframe.particle_data['on edge'].mean())
     print(dataframe.frame_data.head())
