@@ -7,7 +7,10 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.path as mpath
 from numba import jit
+from shapely.geometry import Polygon, Point
 import os
+from math import pi
+from progress.bar import Bar
 
 
 class PropertyCalculator:
@@ -27,7 +30,10 @@ class PropertyCalculator:
         """
         order_params = np.array([])
         neighbors_arr = np.array([])
+        frame_order = []
+        bar = Bar('Order', max=self.td.num_frames)
         for n in range(self.td.num_frames):
+            bar.next()
             points = self.td.get_info(n, ['x', 'y'])
             list_indices, point_indices = self._find_delaunay_indices(points)
             neighbors = self._count_neighbors(list_indices)
@@ -38,51 +44,54 @@ class PropertyCalculator:
             angles = self._calculate_angles(vectors)
             orders = self._calculate_orders(angles, list_indices)
             order_params = np.append(order_params, orders)
+            frame_order.append(np.mean(np.abs(orders)))
         self.td.add_particle_property('complex order', order_params)
         real_order = np.abs(order_params)
         self.td.add_particle_property('real order', real_order)
         self.td.add_particle_property('neighbors', neighbors_arr)
+        self.td.add_frame_property('mean order', frame_order)
+        bar.finish()
 
-    def density(self):
+    def voronoi_cells(self):
         """
-        Calculates the local density of each particle in a dataframe.
-
-        Calculates the area of the convex Hull of the voronoi vertices
-        corresponding to the cell of each particle.
-
-        Additional particles were added to the boundary of the system
-        before calculating the voronoi cell which were then used to bound
-        the cells of the outermost particles to the edge of the system.
+        Calculates the density and shape factor of each voronoi cell
         """
         boundary = self.td.get_boundary(0)
-        CropVor = CroppedVoronoi(boundary)
         local_density_all = np.array([])
+        shape_factor_all = np.array([])
+        bar = Bar('Density', max=self.td.num_frames)
         for n in range(self.td.num_frames):
+            bar.next()
             info = self.td.get_info(n, ['x', 'y', 'size'])
-            particle_area = info[:, 2].mean() ** 2 * np.pi
-            vor = CropVor.add_points(info[:, :2])
-            VorArea = VoronoiArea(vor)
-            area = list(map(VorArea.area, range(len(info))))
+            particle_area = info[:, 2].mean()**2 * pi
+            vor = sp.Voronoi(info[:, :2])
+            regions, vertices = voronoi_finite_polygons_2d(vor)
+            area = []
+            shape_factor = []
+            for region in regions:
+                polygon = vertices[region]
+                polygon = intersect_polygons(polygon, boundary)
+                polygon_area = Polygon(polygon).area
+                polygon_perimeter = Polygon(polygon).length
+                shape_factor.append(polygon_perimeter**2/(4 * pi * polygon_area))
+                area.append(polygon_area)
             density = particle_area / np.array(area)
             local_density_all = np.append(local_density_all, density)
+            shape_factor_all = np.append(shape_factor_all, shape_factor)
         self.td.add_particle_property('local density', local_density_all)
+        self.td.add_particle_property('shape factor', shape_factor_all)
+        bar.finish()
 
     def edge_distance(self):
-        """
-        Calculates the distance to the boundary for all points
-
-        Uses artificially generated points along the boundary lines to
-        calculate distance.
-        """
         boundary = self.td.get_boundary(0)
-        boundary_points = generate_polygonal_boundary_points(boundary, 400)
         x = self.td.get_column('x')
         y = self.td.get_column('y')
         points = np.vstack((x, y)).transpose()
-        distance = sp.distance.cdist(points, boundary_points)
-        distance = np.sort(distance, axis=1)
-        distance_to_edge = distance[:, 0]
-        self.td.add_particle_property('Edge Distance', distance_to_edge)
+        bound = Polygon(boundary)
+        distance = []
+        for point in points:
+            distance.append(bound.exterior.distance(Point(point)))
+        self.td.add_particle_property('Edge Distance', distance)
 
     def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
         """
@@ -150,19 +159,6 @@ class PropertyCalculator:
         corr_data.add_row(r_values, frame_no, 'r')
         corr_data.add_row(g, frame_no, 'g')
         corr_data.add_row(g6, frame_no, 'g6')
-
-    def average_order_parameter(self):
-        """
-        Calculate the average order parameter for each frame.
-
-        Stores the results in the frame dataframe
-        """
-        if 'real order' not in self.td.get_headings():
-            self.order_parameter()
-        orders = np.zeros(self.td.num_frames)
-        for f in range(self.td.num_frames):
-            orders[f] = self.td.get_info(f, ['real order']).mean()
-        self.td.add_frame_property('mean order', orders)
 
     def level_checks(self):
         fig_name = self.corename + '_level_figs.png'
@@ -261,22 +257,6 @@ class PropertyCalculator:
 
         self.plot_data.add_column('hexbin x', all_x)
         self.plot_data.add_column('hexbin y', all_y)
-
-    def shape_factor(self):
-        """Calculates Moucka and Nezbedas shape factor"""
-        boundary = self.td.get_boundary(0)
-        CropVor = CroppedVoronoi(boundary)
-        shape_factor_all = np.array([])
-        for n in range(self.num_frames):
-            info = self.td.get_info(n, ['x', 'y'])
-            vor = CropVor.add_points(info)
-            VorArea = VoronoiArea(vor)
-            area = np.array(list(map(VorArea.area, range(len(info)))))
-            circumference = np.array(list(map(VorArea.perimeter,
-                                              range(len(info)))))
-            shape_factor = circumference**2 / (4 * np.pi * area)
-            shape_factor_all = np.append(shape_factor_all, shape_factor)
-        self.td.add_particle_property('shape factor', shape_factor_all)
 
     def average_density(self):
         if 'local density' not in self.td.get_headings():
@@ -394,41 +374,6 @@ class PropertyCalculator:
         return angles
 
 
-def generate_circular_boundary_points(cx, cy, rad, n):
-    """
-    Generates an array of points around a circular boundary
-
-    Parameters
-    ----------
-    cx, cy is the center coordinate of the circle
-    rad is the radius of the circle
-    n is the number of points around the circle
-
-    Returns
-    -------
-    points: (n, 2) array of the output points
-    """
-    angles = np.linspace(0, 2*np.pi, n)
-    x = cx + rad * np.cos(angles)
-    y = cy + rad * np.sin(angles)
-    points = np.vstack((x, y)).transpose()
-    return points
-
-
-def generate_polygonal_boundary_points(boundary, n, add_dist=0):
-    if add_dist > 0:
-        boundary = move_points_from_center(boundary, add_dist)
-    x = np.array([])
-    y = np.array([])
-    for p in range(-1, len(boundary)-1):
-        xi = np.linspace(boundary[p, 0], boundary[p+1, 0], n//len(boundary))
-        yi = np.linspace(boundary[p, 1], boundary[p+1, 1], n//len(boundary))
-        x = np.append(x, xi)
-        y = np.append(y, yi)
-    points = np.vstack((x, y)).transpose()
-    return points
-
-
 def move_points_from_center(points, dist):
     center = (points[:, 0].mean(), points[:, 1].mean())
     points_from_center = points - center
@@ -440,13 +385,6 @@ def move_points_from_center(points, dist):
     new_points = np.vstack((new_x, new_y)).transpose()
     new_points += center
     return new_points
-
-
-def hull_area_2d(points):
-    """Calculates area of a 2D convex hull"""
-    hull = sp.ConvexHull(points)
-    area = hull.volume
-    return area
 
 
 @jit
@@ -488,73 +426,177 @@ def calculate_area_from_boundary(boundary):
     return area
 
 
-class VoronoiArea:
-    """Calculates area of a voronoi cell for a given point"""
-
-    def __init__(self, vor):
-        self.vor = vor
-
-    def area(self, point_index):
-        region_index = self.vor.regions[self.vor.point_region[point_index]]
-        region_points = self.vor.vertices[region_index]
-        x, y = sort_polygon_vertices(region_points)
-        area = calculate_polygon_area(x, y)
-        return area
-
-    def perimeter(self, point_index):
-        region_index = self.vor.regions[self.vor.point_region[point_index]]
-        region_points = self.vor.vertices[region_index]
-        x, y = sort_polygon_vertices(region_points)
-        perimeter = calculate_polygon_perimeter(x, y)
-        return perimeter
-
-
-class CroppedVoronoi:
+def voronoi_finite_polygons_2d(vor, radius=None):
     """
-    Generates extra boundary points to give realistic cells to real points
+    Reconstruct infinite voronoi regions in a 2D diagram to finite
+    regions.
+
+    Parameters
+    ----------
+    vor : Voronoi
+        Input diagram
+    radius : float, optional
+        Distance to 'points at infinity'.
+
+    Returns
+    -------
+    regions : list of tuples
+        Indices of vertices in each revised Voronoi regions.
+    vertices : list of tuples
+        Coordinates for revised Voronoi vertices. Same as coordinates
+        of input vertices, with 'points at infinity' appended to the
+        end.
+
     """
 
-    def __init__(self, boundary):
-        if len(np.shape(boundary)) == 1:
-            self.boundary_points = generate_circular_boundary_points(
-                boundary[0],
-                boundary[1],
-                boundary[2],
-                1000)
-            self.edge_points = generate_circular_boundary_points(
-                boundary[0],
-                boundary[1],
-                boundary[2]+20,
-                100)
-        else:
-            self.boundary_points = generate_polygonal_boundary_points(
-                boundary, 1000, add_dist=20)
-            self.edge_points = generate_polygonal_boundary_points(
-                boundary, 100, add_dist=40)
-        self.tree = sp.cKDTree(self.boundary_points)
+    if vor.points.shape[1] != 2:
+        raise ValueError("Requires 2D input")
 
-    def add_points(self, points):
-        input_points = np.concatenate((points, self.edge_points))
-        vor = sp.Voronoi(input_points)
-        vertices_to_move = []
-        for region in vor.regions:
-            if -1 in region:
-                vertices_to_move += region
-        vertices_to_move = [vertex for vertex in vertices_to_move
-                            if vertex != -1]
-        unique_vertices_to_move = np.unique(vertices_to_move)
-        new_indices = self.tree.query(vor.vertices[unique_vertices_to_move])
-        new_vertices = self.boundary_points[new_indices[1]]
-        vor.vertices[unique_vertices_to_move] = new_vertices
-        return vor
+    new_regions = []
+    new_vertices = vor.vertices.tolist()
+
+    center = vor.points.mean(axis=0)
+    if radius is None:
+        radius = vor.points.ptp().max()
+
+    # Construct a map containing all ridges for a given point
+    all_ridges = {}
+    for (p1, p2), (v1, v2) in zip(vor.ridge_points, vor.ridge_vertices):
+        all_ridges.setdefault(p1, []).append((p2, v1, v2))
+        all_ridges.setdefault(p2, []).append((p1, v1, v2))
+
+    # Reconstruct infinite regions
+    for p1, region in enumerate(vor.point_region):
+        vertices = vor.regions[region]
+
+        if all(v >= 0 for v in vertices):
+            # finite region
+            new_regions.append(vertices)
+            continue
+
+        # reconstruct a non-finite region
+        ridges = all_ridges[p1]
+        new_region = [v for v in vertices if v >= 0]
+
+        for p2, v1, v2 in ridges:
+            if v2 < 0:
+                v1, v2 = v2, v1
+            if v1 >= 0:
+                # finite ridge: already in the region
+                continue
+
+            # Compute the missing endpoint of an infinite ridge
+
+            t = vor.points[p2] - vor.points[p1] # tangent
+            t /= np.linalg.norm(t)
+            n = np.array([-t[1], t[0]])  # normal
+
+            midpoint = vor.points[[p1, p2]].mean(axis=0)
+            direction = np.sign(np.dot(midpoint - center, n)) * n
+            far_point = vor.vertices[v2] + direction * radius
+
+            new_region.append(len(new_vertices))
+            new_vertices.append(far_point.tolist())
+
+        # sort region counterclockwise
+        vs = np.asarray([new_vertices[v] for v in new_region])
+        c = vs.mean(axis=0)
+        angles = np.arctan2(vs[:, 1] - c[1], vs[:, 0] - c[0])
+        new_region = np.array(new_region)[np.argsort(angles)]
+
+        # finish
+        new_regions.append(new_region.tolist())
+
+    return new_regions, np.asarray(new_vertices)
+
+
+def intersect_polygons(poly1, poly2):
+    poly = Polygon(poly1)
+    bound = Polygon(poly2)
+    if poly.overlaps(bound):
+        inter = poly.intersection(bound)
+        poly1 = list(inter.exterior.coords)
+    return poly1
+
+
+# class VoronoiArea:
+#     """Calculates area of a voronoi cell for a given point"""
+#
+#     def __init__(self, vor):
+#         self.vor = vor
+#
+#     def area(self, point_index):
+#         region_index = self.vor.regions[self.vor.point_region[point_index]]
+#         region_points = self.vor.vertices[region_index]
+#         x, y = sort_polygon_vertices(region_points)
+#         area = calculate_polygon_area(x, y)
+#         return area
+#
+#     def perimeter(self, point_index):
+#         region_index = self.vor.regions[self.vor.point_region[point_index]]
+#         region_points = self.vor.vertices[region_index]
+#         x, y = sort_polygon_vertices(region_points)
+#         perimeter = calculate_polygon_perimeter(x, y)
+#         return perimeter
+
+# def hull_area_2d(points):
+#     """Calculates area of a 2D convex hull"""
+#     hull = sp.ConvexHull(points)
+#     area = hull.volume
+#     return area
+
+
+# class CroppedVoronoi:
+#     """
+#     Generates extra boundary points to give realistic cells to real points
+#     """
+#
+#     def __init__(self, boundary):
+#         if len(np.shape(boundary)) == 1:
+#             self.boundary_points = generate_circular_boundary_points(
+#                 boundary[0],
+#                 boundary[1],
+#                 boundary[2],
+#                 1000)
+#             self.edge_points = generate_circular_boundary_points(
+#                 boundary[0],
+#                 boundary[1],
+#                 boundary[2]+20,
+#                 100)
+#         else:
+#             self.boundary_points = generate_polygonal_boundary_points(
+#                 boundary, 1000, add_dist=20)
+#             self.edge_points = generate_polygonal_boundary_points(
+#                 boundary, 100, add_dist=40)
+#         self.tree = sp.cKDTree(self.boundary_points)
+#
+#     def add_points(self, points):
+#         input_points = np.concatenate((points, self.edge_points))
+#         vor = sp.Voronoi(input_points)
+#         vertices_to_move = []
+#         for region in vor.regions:
+#             if -1 in region:
+#                 vertices_to_move += region
+#         vertices_to_move = [vertex for vertex in vertices_to_move
+#                             if vertex != -1]
+#         unique_vertices_to_move = np.unique(vertices_to_move)
+#         new_indices = self.tree.query(vor.vertices[unique_vertices_to_move])
+#         new_vertices = self.boundary_points[new_indices[1]]
+#         vor.vertices[unique_vertices_to_move] = new_vertices
+#         return vor
 
 
 if __name__ == "__main__":
+    import time
     dataframe = dataframes.DataStore(
-            "/home/ppxjd3/Videos/packed_data.hdf5",
+            "/home/ppxjd3/Videos/Solid/grid.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    PC.shape_factor()
+    # PC.order_parameter()
+    # PC.voronoi_cells()
+    PC.edge_distance()
+    PC.edge_distance_2()
+    # PC.shape_factor()
     # PC.calculate_pair_correlation(1)
     # PC.calculate_hexatic_order_parameter()
     # PC.calculate_order_magnitude()
@@ -565,4 +607,4 @@ if __name__ == "__main__":
     # PC.find_edge_points(check=True)
     # print(dataframe.dataframe['on_edge'].mean())
     # PC.calculate_local_density()
-    # print(dataframe.dataframe.head())
+    print(dataframe.particle_data.head())
