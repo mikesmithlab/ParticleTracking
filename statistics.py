@@ -31,6 +31,7 @@ class PropertyCalculator:
         order_params = np.array([])
         neighbors_arr = np.array([])
         frame_order = []
+        frame_sus = []
         bar = Bar('Order', max=self.td.num_frames)
         for n in range(self.td.num_frames):
             bar.next()
@@ -44,22 +45,29 @@ class PropertyCalculator:
             angles = self._calculate_angles(vectors)
             orders = self._calculate_orders(angles, list_indices)
             order_params = np.append(order_params, orders)
+            orders_r = np.abs(orders)
             frame_order.append(np.mean(np.abs(orders)))
-        self.td.add_particle_property('complex order', order_params)
+            frame_sus.append(np.mean(np.power(orders_r - np.mean(orders_r), 2)))
         real_order = np.abs(order_params)
+
+        # Add data to dataframe
+        self.td.add_particle_property('complex order', order_params)
         self.td.add_particle_property('real order', real_order)
         self.td.add_particle_property('neighbors', neighbors_arr)
         self.td.add_frame_property('mean order', frame_order)
+        self.td.add_frame_property('susceptibility', frame_sus)
         bar.finish()
 
     def voronoi_cells(self):
         """
-        Calculates the density and shape factor of each voronoi cell
+        Calculates the density and shape factor of each voronoi cell.
+        Also decides whether the particle is at the edge or not.
         """
         boundary = self.td.get_boundary(0)
         local_density_all = np.array([])
         shape_factor_all = np.array([])
-        bar = Bar('Density', max=self.td.num_frames)
+        on_edge_all = np.array([])
+        bar = Bar('Voronoi Cell Calculations', max=self.td.num_frames)
         for n in range(self.td.num_frames):
             bar.next()
             info = self.td.get_info(n, ['x', 'y', 'size'])
@@ -68,18 +76,22 @@ class PropertyCalculator:
             regions, vertices = voronoi_finite_polygons_2d(vor)
             area = []
             shape_factor = []
+            on_edge = []
             for region in regions:
                 polygon = vertices[region]
-                polygon = intersect_polygons(polygon, boundary)
+                polygon, edge = intersect_polygons(polygon, boundary, return_check=True)
                 polygon_area = Polygon(polygon).area
                 polygon_perimeter = Polygon(polygon).length
                 shape_factor.append(polygon_perimeter**2/(4 * pi * polygon_area))
                 area.append(polygon_area)
+                on_edge.append(edge)
             density = particle_area / np.array(area)
             local_density_all = np.append(local_density_all, density)
             shape_factor_all = np.append(shape_factor_all, shape_factor)
+            on_edge_all = np.append(on_edge_all, on_edge)
         self.td.add_particle_property('local density', local_density_all)
         self.td.add_particle_property('shape factor', shape_factor_all)
+        self.td.add_particle_property('on edge', on_edge_all)
         bar.finish()
 
     def edge_distance(self):
@@ -266,40 +278,6 @@ class PropertyCalculator:
             density[f] = np.mean(self.td.get_info(f, ['local density']))
         self.td.add_frame_property('local density', density)
 
-    def susceptibility(self):
-        chi = np.zeros(self.td.num_frames)
-        for f in range(self.td.num_frames):
-            orders = self.td.get_info(f, ['real order'])
-            chi[f] = np.mean(np.power(orders - np.mean(orders), 2))
-        self.td.add_frame_property('susceptibility', chi)
-
-    def find_edge_points(self, check=False):
-        edges_array = np.array([], dtype=bool)
-        for f in range(self.num_frames):
-            points = self.td.get_info(f, ['x', 'y'])
-            boundary = self.td.get_boundary(f)
-            vor = sp.Voronoi(points)
-            vertices_outside = self.voronoi_vertices_outside(vor, boundary)
-            edges = self.is_point_on_edge(vor, vertices_outside)
-            edges_array = np.append(edges_array, edges)
-            if check and f == 0:
-                plt.figure()
-                plt.plot(points[:, 0], points[:, 1], 'o')
-                edges_index = np.nonzero(edges == 1)
-                plt.plot(points[edges_index, 0], points[edges_index, 1], 'x')
-                if len(np.shape(boundary)) > 1:
-                    plt.plot(boundary[:, 0], boundary[:, 1], 'b-')
-                    plt.plot(boundary[[-1, 0], 0], boundary[[-1, 0], 1], 'b-')
-                else:
-                    circle = plt.Circle(
-                            (boundary[0], boundary[1]),
-                            boundary[2],
-                            color='r',
-                            fill=False)
-                    plt.gcf().gca().add_artist(circle)
-                plt.show()
-        self.td.add_particle_property('on_edge', edges_array)
-
     @staticmethod
     def show_property_with_condition(points, prop, cond, val, vor=None):
         prop = np.array(prop)
@@ -315,15 +293,6 @@ class PropertyCalculator:
         if vor:
             sp.voronoi_plot_2d(vor)
         plt.show()
-
-    @staticmethod
-    def is_point_on_edge(vor, vertices_outside):
-        edges = np.zeros(len(vor.points), dtype=bool)
-        for point_index, region_index in enumerate(vor.point_region):
-            region = vor.regions[region_index]
-            if np.any(vertices_outside[region]):
-                edges[point_index] = True
-        return edges
 
     @staticmethod
     def voronoi_vertices_outside(vor, boundary):
@@ -510,13 +479,19 @@ def voronoi_finite_polygons_2d(vor, radius=None):
     return new_regions, np.asarray(new_vertices)
 
 
-def intersect_polygons(poly1, poly2):
+def intersect_polygons(poly1, poly2, return_check=False):
     poly = Polygon(poly1)
     bound = Polygon(poly2)
     if poly.overlaps(bound):
         inter = poly.intersection(bound)
         poly1 = list(inter.exterior.coords)
-    return poly1
+        check = True
+    else:
+        check = False
+    if return_check:
+        return poly1, check
+    else:
+        return poly1
 
 
 # class VoronoiArea:
@@ -592,11 +567,9 @@ if __name__ == "__main__":
             "/home/ppxjd3/Videos/Solid/grid.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    # PC.order_parameter()
+    PC.order_parameter()
     # PC.voronoi_cells()
-    PC.edge_distance()
-    PC.edge_distance_2()
-    # PC.shape_factor()
+    # PC.edge_distance()
     # PC.calculate_pair_correlation(1)
     # PC.calculate_hexatic_order_parameter()
     # PC.calculate_order_magnitude()
@@ -608,3 +581,5 @@ if __name__ == "__main__":
     # print(dataframe.dataframe['on_edge'].mean())
     # PC.calculate_local_density()
     print(dataframe.particle_data.head())
+    print(dataframe.particle_data['on edge'].mean())
+    print(dataframe.frame_data.head())
