@@ -7,10 +7,11 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.path as mpath
 from numba import jit
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Polygon, Point, MultiPolygon
 import os
 from math import pi
 from tqdm import tqdm
+from rtree import index
 
 
 class PropertyCalculator:
@@ -64,6 +65,7 @@ class PropertyCalculator:
         Also decides whether the particle is at the edge or not.
         """
         boundary = self.td.get_boundary(0)
+        boundary = Polygon(boundary)
         local_density_all = np.array([])
         shape_factor_all = np.array([])
         on_edge_all = np.array([])
@@ -72,17 +74,10 @@ class PropertyCalculator:
             particle_area = info[:, 2].mean()**2 * pi
             vor = sp.Voronoi(info[:, :2])
             regions, vertices = voronoi_finite_polygons_2d(vor)
-            area = []
-            shape_factor = []
-            on_edge = []
-            for region in regions:
-                polygon = vertices[region]
-                polygon, edge = intersect_polygons(polygon, boundary, return_check=True)
-                polygon_area = Polygon(polygon).area
-                polygon_perimeter = Polygon(polygon).length
-                shape_factor.append(polygon_perimeter**2/(4 * pi * polygon_area))
-                area.append(polygon_area)
-                on_edge.append(edge)
+            polygons = get_polygons(regions, vertices)
+            polygons, on_edge = intersect_with_edge(polygons, boundary)
+            area, shape_factor = area_and_shapefactor(polygons)
+
             density = particle_area / np.array(area)
             local_density_all = np.append(local_density_all, density)
             shape_factor_all = np.append(shape_factor_all, shape_factor)
@@ -292,18 +287,6 @@ class PropertyCalculator:
         plt.show()
 
     @staticmethod
-    def voronoi_vertices_outside(vor, boundary):
-        if len(np.shape(boundary)) == 1:
-            vertices_from_centre = vor.vertices - boundary[0:2]
-            vertices_outside = np.linalg.norm(vertices_from_centre, axis=1) > \
-                boundary[2]
-        else:
-            path = mpath.Path(boundary)
-            vertices_inside = path.contains_points(vor.vertices)
-            vertices_outside = ~vertices_inside
-        return vertices_outside
-
-    @staticmethod
     def _count_neighbors(list_indices):
         neighbors = list_indices[1:] - list_indices[:-1]
         return neighbors
@@ -340,18 +323,18 @@ class PropertyCalculator:
         return angles
 
 
-def move_points_from_center(points, dist):
-    center = (points[:, 0].mean(), points[:, 1].mean())
-    points_from_center = points - center
-    dists = np.linalg.norm(points_from_center, axis=1)
-    dists += dist
-    angles = np.angle(points_from_center[:, 0]+1j*points_from_center[:, 1])
-    new_x = dists * np.cos(angles)
-    new_y = dists * np.sin(angles)
-    new_points = np.vstack((new_x, new_y)).transpose()
-    new_points += center
-    return new_points
+def get_polygons(regions, vertices):
+    return [Polygon(vertices[r]) for r in regions]
 
+
+def intersect_with_edge(polygons, boundary):
+    return zip(*[intersect_polygons(p, boundary, True) for p in polygons])
+
+
+def area_and_shapefactor(polygons):
+    area = np.array([p.area for p in polygons])
+    sf = np.array([p.length for p in polygons])**2 / (4 * pi * area)
+    return area, sf
 
 @jit
 def calculate_polygon_area(x, y):
@@ -362,15 +345,6 @@ def calculate_polygon_area(x, y):
         p2 += y[i] * x[i-1]
     area = 0.5 * abs(p1-p2)
     return area
-
-
-@jit
-def calculate_polygon_perimeter(x, y):
-    p = 0
-    for i in np.arange(-1, len(x)-1):
-        p += ((x[i+1]-x[i])**2 + (y[i+1] - y[i])**2)**0.5
-    return p
-
 
 @jit
 def sort_polygon_vertices(points):
@@ -477,11 +451,13 @@ def voronoi_finite_polygons_2d(vor, radius=None):
 
 
 def intersect_polygons(poly1, poly2, return_check=False):
-    poly = Polygon(poly1)
-    bound = Polygon(poly2)
-    if poly.overlaps(bound):
-        inter = poly.intersection(bound)
-        poly1 = list(inter.exterior.coords)
+    # if poly1.distance(poly2) == 0:
+    #     poly1 = poly1.intersection(poly2)
+    #     check = True
+    # else:
+    #     check = False
+    if poly1.overlaps(poly2):
+        poly1 = poly1.intersection(poly2)
         check = True
     else:
         check = False
@@ -497,9 +473,9 @@ if __name__ == "__main__":
             "/home/ppxjd3/Videos/Solid/grid.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    PC.order_parameter()
+    # PC.order_parameter()
     PC.voronoi_cells()
-    PC.edge_distance()
+    # PC.edge_distance()
 
     print(dataframe.particle_data.head())
     print(dataframe.frame_data.head())
