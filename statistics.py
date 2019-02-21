@@ -68,7 +68,6 @@ class PropertyCalculator:
         """
         boundary = self.td.get_boundary(0)
         boundary = Polygon(boundary)
-        boundary_prep = prep(boundary.boundary)
         local_density_all = np.array([])
         shape_factor_all = np.array([])
         on_edge_all = np.array([])
@@ -77,15 +76,11 @@ class PropertyCalculator:
             particle_area = info[:, 2].mean()**2 * pi
             vor = sp.Voronoi(info[:, :2])
             regions, vertices = voronoi_finite_polygons_2d(vor)
-            polygons = get_polygons(regions, vertices)
-            polygons, on_edge = intersect_all_polygons(polygons, boundary)
-            plt.figure()
-            for polygon in polygons:
-                coords = np.array(polygon.exterior.coords)
-                plt.fill(coords[:, 0], coords[:, 1])
-            plt.show()
+            inside = find_points_inside(vertices, boundary)
+            polygons, on_edge = get_polygons(regions, vertices, inside)
+            polygons = intersect_all_polygons(polygons, boundary, on_edge)
+            # plot_polygons(polygons)
             area, shape_factor = area_and_shapefactor(polygons)
-
             density = particle_area / np.array(area)
             local_density_all = np.append(local_density_all, density)
             shape_factor_all = np.append(shape_factor_all, shape_factor)
@@ -331,12 +326,24 @@ class PropertyCalculator:
         return angles
 
 
-def get_polygons(regions, vertices):
-    return [Polygon(vertices[r]) for r in regions]
+def plot_polygons(polygons):
+    plt.figure()
+    for poly in polygons:
+        coords = np.array(poly.exterior.coords)
+        plt.fill(coords[:, 0], coords[:, 1])
+    plt.show()
 
 
-def intersect_with_edge(polygons, boundary, boundary_prep):
-    return zip(*[intersect_polygons(p, boundary, boundary_prep, True) for p in polygons])
+def find_points_inside(vertices, boundary):
+    path = mpath.Path(boundary.exterior.coords)
+    flags = path.contains_points(vertices)
+    return flags
+
+
+def get_polygons(regions, vertices, inside):
+    polygons = [Polygon(vertices[r]) for r in regions]
+    on_edge = [not all(inside[r]) for r in regions]
+    return polygons, on_edge
 
 
 def area_and_shapefactor(polygons):
@@ -458,30 +465,14 @@ def voronoi_finite_polygons_2d(vor, radius=None):
     return new_regions, np.asarray(new_vertices)
 
 
-def intersect_polygons(poly1, poly2, b_prep, return_check=False):
-    if b_prep.overlaps(poly1):
-        poly1 = poly1.intersection(poly2)
-        check = True
-    else:
-        check = False
-    if return_check:
-        return poly1, check
-    else:
-        return poly1
-
-
-def intersect_all_polygons(polygons, boundary):
-    centers = [poly.centroid for poly in polygons]
-    tree = STRtree(centers)
-    results = np.sort(tree.query(boundary.buffer(-50)))
-    on_edge = [a not in results for a in range(len(polygons))]
-    new_poly = []
-    for p, e in zip(polygons, on_edge):
-        if e:
-            new_poly.append(p.intersection(boundary))
+def intersect_all_polygons(polygons, boundary, on_edge):
+    new_polygons = []
+    for i, poly in enumerate(polygons):
+        if on_edge[i]:
+            new_polygons.append(poly.intersection(boundary))
         else:
-            new_poly.append(p)
-    return new_poly, on_edge
+            new_polygons.append(poly)
+    return new_polygons
 
 
 
