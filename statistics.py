@@ -1,20 +1,14 @@
 import numpy as np
 from ParticleTracking import dataframes
-from ParticleTracking import graphs
-from Generic import plotting
 import scipy.spatial as sp
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import matplotlib.path as mpath
 from numba import jit
-from shapely.geometry import Polygon, Point, MultiPolygon, LineString, MultiPoint
-from shapely.geometry.polygon import LinearRing
+from shapely.geometry import Polygon, Point
 import os
 from math import pi
 from tqdm import tqdm
-from shapely.strtree import STRtree
-import time
-from shapely.prepared import prep
+
 
 class PropertyCalculator:
     """Class to calculate the properties associated with tracking"""
@@ -482,7 +476,7 @@ if __name__ == "__main__":
             "/home/ppxjd3/Videos/Solid/grid.hdf5",
             load=True)
     PC = PropertyCalculator(dataframe)
-    # PC.order_parameter()
+    PC.order_parameter()
     PC.voronoi_cells()
     # PC.edge_distance()
 
