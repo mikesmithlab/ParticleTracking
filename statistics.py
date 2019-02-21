@@ -7,12 +7,14 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.path as mpath
 from numba import jit
-from shapely.geometry import Polygon, Point, MultiPolygon
+from shapely.geometry import Polygon, Point, MultiPolygon, LineString, MultiPoint
+from shapely.geometry.polygon import LinearRing
 import os
 from math import pi
 from tqdm import tqdm
-from rtree import index
-
+from shapely.strtree import STRtree
+import time
+from shapely.prepared import prep
 
 class PropertyCalculator:
     """Class to calculate the properties associated with tracking"""
@@ -66,6 +68,7 @@ class PropertyCalculator:
         """
         boundary = self.td.get_boundary(0)
         boundary = Polygon(boundary)
+        boundary_prep = prep(boundary.boundary)
         local_density_all = np.array([])
         shape_factor_all = np.array([])
         on_edge_all = np.array([])
@@ -75,7 +78,12 @@ class PropertyCalculator:
             vor = sp.Voronoi(info[:, :2])
             regions, vertices = voronoi_finite_polygons_2d(vor)
             polygons = get_polygons(regions, vertices)
-            polygons, on_edge = intersect_with_edge(polygons, boundary)
+            polygons, on_edge = intersect_all_polygons(polygons, boundary)
+            plt.figure()
+            for polygon in polygons:
+                coords = np.array(polygon.exterior.coords)
+                plt.fill(coords[:, 0], coords[:, 1])
+            plt.show()
             area, shape_factor = area_and_shapefactor(polygons)
 
             density = particle_area / np.array(area)
@@ -327,8 +335,8 @@ def get_polygons(regions, vertices):
     return [Polygon(vertices[r]) for r in regions]
 
 
-def intersect_with_edge(polygons, boundary):
-    return zip(*[intersect_polygons(p, boundary, True) for p in polygons])
+def intersect_with_edge(polygons, boundary, boundary_prep):
+    return zip(*[intersect_polygons(p, boundary, boundary_prep, True) for p in polygons])
 
 
 def area_and_shapefactor(polygons):
@@ -450,13 +458,8 @@ def voronoi_finite_polygons_2d(vor, radius=None):
     return new_regions, np.asarray(new_vertices)
 
 
-def intersect_polygons(poly1, poly2, return_check=False):
-    # if poly1.distance(poly2) == 0:
-    #     poly1 = poly1.intersection(poly2)
-    #     check = True
-    # else:
-    #     check = False
-    if poly1.overlaps(poly2):
+def intersect_polygons(poly1, poly2, b_prep, return_check=False):
+    if b_prep.overlaps(poly1):
         poly1 = poly1.intersection(poly2)
         check = True
     else:
@@ -465,6 +468,21 @@ def intersect_polygons(poly1, poly2, return_check=False):
         return poly1, check
     else:
         return poly1
+
+
+def intersect_all_polygons(polygons, boundary):
+    centers = [poly.centroid for poly in polygons]
+    tree = STRtree(centers)
+    results = np.sort(tree.query(boundary.buffer(-50)))
+    on_edge = [a not in results for a in range(len(polygons))]
+    new_poly = []
+    for p, e in zip(polygons, on_edge):
+        if e:
+            new_poly.append(p.intersection(boundary))
+        else:
+            new_poly.append(p)
+    return new_poly, on_edge
+
 
 
 if __name__ == "__main__":

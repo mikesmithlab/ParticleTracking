@@ -5,6 +5,7 @@ import multiprocessing as mp
 from Generic import video, images
 from ParticleTracking import preprocessing, dataframes, annotation
 import matplotlib.path as mpath
+from tqdm import tqdm
 
 
 class ParticleTracker:
@@ -98,7 +99,7 @@ class ParticleTracker:
         if os.path.exists(self.data_store_filename):
             os.remove(self.data_store_filename)
         data = dataframes.DataStore(self.data_store_filename)
-        for f in range(self.video.num_frames):
+        for f in tqdm(range(self.video.num_frames), 'Tracking'):
             frame = self.video.read_next_frame()
             new_frame, boundary = self.ip.process(frame)
             circles = images.find_circles(
