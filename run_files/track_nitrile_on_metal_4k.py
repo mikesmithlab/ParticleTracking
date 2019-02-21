@@ -26,7 +26,7 @@ options = {
     }
 # crop_points = np.array([[1095, 56], [2228, 67], [2792, 1049], [2230, 2023], [1095, 2025], [527, 1048]])
 pt = tracking.ParticleTracker(file, methods, options, False, crop_points=None)
-pt.track()
+# pt.track()
 
 
 data_store = dataframes.DataStore(file, load=True)
@@ -35,15 +35,16 @@ data_store = dataframes.DataStore(file, load=True)
 ### Statistics ###
 ##################
 calculator = statistics.PropertyCalculator(data_store)
+calculator.distance()
 # calculator.edge_distance()
 # calculator.level_checks()
-calculator.order_parameter()
+# calculator.order()
 # calculator.susceptibility()
 # calculator.average_order_parameter()
 # calculator.density()
 # calculator.average_density()
 # calculator.correlations(300, r_min=1, r_max=20, dr=0.04)
-# calculator.correlations(10)
+calculator.correlations(10)
 
 # data_store.inspect_dataframes()
 
