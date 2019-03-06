@@ -26,7 +26,7 @@ options = {
     }
 # crop_points = np.array([[1095, 56], [2228, 67], [2792, 1049], [2230, 2023], [1095, 2025], [527, 1048]])
 pt = tracking.ParticleTracker(file, methods, options, False, crop_points=None)
-# pt.track()
+pt.track()
 
 
 data_store = dataframes.DataStore(file, load=True)
