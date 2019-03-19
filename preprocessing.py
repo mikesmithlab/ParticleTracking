@@ -69,7 +69,7 @@ class Preprocessor:
 
     """
 
-    def __init__(self, methods=[], parameters={}, crop_points=None):
+    def __init__(self, methods=[], parameters={}, auto_crop=False):
         """
         Parameters
         ----------
@@ -88,8 +88,8 @@ class Preprocessor:
         """
 
         self.mask_img = np.array([])
-        self.crop_points = crop_points
         self.crop = []
+        self.auto_crop = auto_crop
         self.methods = methods
         self.parameters = parameters
         self.calls = 0
@@ -118,7 +118,10 @@ class Preprocessor:
         """
 
         if self.calls == 0:
-            self._find_crop_and_mask(frame)
+            if self.auto_crop:
+                self._find_auto_crop_and_mask(frame)
+            else:
+                self._find_manual_crop_and_mask(frame)
         cropped_frame = self._crop_and_mask(frame)
         new_frame = images.bgr_2_grayscale(cropped_frame)
 
@@ -202,7 +205,7 @@ class Preprocessor:
         self.parameters = parameters
         self.methods = methods
 
-    def _find_crop_and_mask(self, frame, no_of_sides=1):
+    def _find_manual_crop_and_mask(self, frame):
         """
         Opens a crop shape instance with the input frame and no_of_sides
 
@@ -211,12 +214,9 @@ class Preprocessor:
         no_of_sides = self.parameters['number of tray sides']
         crop_inst = images.CropShape(frame, no_of_sides)
 
-        if self.crop_points is None:
-            self.mask_img, self.crop, self.boundary, _ = \
-                crop_inst.begin_crop()
-        else:
-            self.mask_img, self.crop, self.boundary, _ = \
-                crop_inst.find_crop_and_mask(self.crop_points)
+        self.mask_img, self.crop, self.boundary, _ = \
+            crop_inst.find_crop_and_mask()
+
         if np.shape(self.boundary) == (3,):
             # boundary = [xc, yc, r]
             # crop = ([xmin, ymin], [xmax, ymax])
@@ -227,6 +227,26 @@ class Preprocessor:
             # crop = ([xmin, ymin], [xmax, ymax])
             self.boundary[:, 0] -= self.crop[0][0]
             self.boundary[:, 1] -= self.crop[0][1]
+
+    def _find_auto_crop_and_mask(self, frame):
+        blue = images.find_color(frame, 'Blue')
+        contours = images.find_contours(blue)
+        contours = images.sort_contours(contours)
+        hex_corners, (xc, yc) = images.find_contour_corners(
+            contours[-2], self.parameters['number of tray sides'],
+            aligned=True)
+        hex_corners = contours[-2][hex_corners]
+        hex_corners = np.squeeze(hex_corners)
+        sketch = images.draw_polygon(frame, hex_corners, thickness=2)
+        images.display(sketch)
+        self.mask_img = np.zeros(np.shape(frame)).astype('uint8')
+        cv2.fillPoly(self.mask_img, pts=np.array([hex_corners], dtype=np.int32),
+                     color=(1, 1, 1))
+        self.crop = ([min(hex_corners[:, 0]), min(hex_corners[:, 1])],
+                     [max(hex_corners[:, 0]), max(hex_corners[:, 1])])
+        self.boundary = hex_corners
+        self.boundary[:, 0] -= self.crop[0][0]
+        self.boundary[:, 1] -= self.crop[0][1]
 
     def _crop_and_mask(self, frame):
         """

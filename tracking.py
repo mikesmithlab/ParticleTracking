@@ -43,7 +43,7 @@ class ParticleTracker:
                  methods,
                  parameters,
                  multiprocess=False,
-                 crop_points=None):
+                 auto_crop=False):
 
         self.filename = os.path.splitext(filename)[0]
         self.video_filename = self.filename + '.MP4'
@@ -51,7 +51,7 @@ class ParticleTracker:
         self.parameters = parameters
         self.multiprocess = multiprocess
         self.ip = preprocessing.Preprocessor(
-            methods, self.parameters, crop_points)
+            methods, self.parameters, auto_crop)
         self._check_parameters()
 
     def _check_parameters(self):
@@ -153,7 +153,7 @@ class ParticleTracker:
                 self.parameters['min_rad'],
                 self.parameters['max_rad'])
             circles = get_points_inside_boundary(circles, boundary)
-            circles = check_circles_bg_color(circles, new_frame)
+            # circles = check_circles_bg_color(circles, new_frame)
             data.add_tracking_data(frame_no_start+proc_frames,
                                    circles,
                                    boundary)
@@ -178,6 +178,7 @@ class ParticleTracker:
                 data_store.particle_data,
                 self.parameters['max frame displacement'],
                 memory=self.parameters['memory'])
+        data_store.particle_data = tp.filter_stubs(data_store.particle_data, 10)
         data_store.save()
 
 
@@ -237,6 +238,7 @@ def check_circles_bg_color(circles, image):
     white_particles = []
     for ymx, ymn, xmx, xmn in zip(ymax, ymin, xmax, xmin):
         circle_im = image[int(ymn):int(ymx), int(xmn):int(xmx)]
+        # images.display(circle_im)
         im_mean = np.mean(circle_im)
         white_particles.append(im_mean > 200)
     return circles[white_particles, :]
@@ -244,27 +246,28 @@ def check_circles_bg_color(circles, image):
 
 
 if __name__ == "__main__":
-    vid_name = "../ParticleTracking/test_video.mp4"
-    methods = ['flip', 'threshold tozero', 'opening']
-    options = {
-        'grayscale threshold': None,
-        'number of tray sides': 6,
-        'min_dist': 30,
-        'p_1': 200,
-        'p_2': 3,
-        'min_rad': 15,
-        'max_rad': 19,
-        'max frame displacement': 25,
-        'min frame life': 10,
-        'memory': 8,
-        'opening kernel': 23,
-
-    }
-
-    PT = ParticleTracker(vid_name,
-                         methods,
-                         options,
-                         multiprocess=False,
-                         save_crop_video=True,
-                         save_check_video=True)
-    PT.track()
+    pass
+    # vid_name = "../ParticleTracking/test_video.mp4"
+    # methods = ['flip', 'threshold tozero', 'opening']
+    # options = {
+    #     'grayscale threshold': None,
+    #     'number of tray sides': 6,
+    #     'min_dist': 30,
+    #     'p_1': 200,
+    #     'p_2': 3,
+    #     'min_rad': 15,
+    #     'max_rad': 19,
+    #     'max frame displacement': 25,
+    #     'min frame life': 10,
+    #     'memory': 8,
+    #     'opening kernel': 23,
+    #
+    # }
+    #
+    # PT = ParticleTracker(vid_name,
+    #                      methods,
+    #                      options,
+    #                      multiprocess=False,
+    #                      save_crop_video=True,
+    #                      save_check_video=True)
+    # PT.track()
