@@ -116,13 +116,13 @@ class ParticleTracker:
             circles = get_points_inside_boundary(circles, boundary)
             circles = check_circles_bg_color(circles, new_frame)
             data.add_tracking_data(f, circles, boundary)
-            data.add_frame_property('Duty', self.duty_cycle)
         data.save()
         self._link_trajectories()
 
     def _get_video_info(self):
         """From the video reads properties for other methods"""
         cap = video.ReadVideo(self.video_filename)
+        self.duty_cycle = read_audio_file(self.video_filename, cap.num_frames)
         self.frame_jump_unit = cap.num_frames // self.num_processes
         self.fps = cap.fps
         frame = cap.read_next_frame()
@@ -158,7 +158,7 @@ class ParticleTracker:
                 self.parameters['min_rad'],
                 self.parameters['max_rad'])
             circles = get_points_inside_boundary(circles, boundary)
-            # circles = check_circles_bg_color(circles, new_frame)
+            circles = check_circles_bg_color(circles, new_frame)
             data.add_tracking_data(frame_no_start+proc_frames,
                                    circles,
                                    boundary)
@@ -179,6 +179,7 @@ class ParticleTracker:
         """Implements the trackpy functions link_df and filter_stubs"""
         data_store = dataframes.DataStore(self.data_store_filename,
                                           load=True)
+        data_store.add_frame_property('Duty', self.duty_cycle)
         data_store.particle_data = tp.link_df(
                 data_store.particle_data,
                 self.parameters['max frame displacement'],
