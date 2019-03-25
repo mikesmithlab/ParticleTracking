@@ -2,9 +2,10 @@ import os
 import numpy as np
 import trackpy as tp
 import multiprocessing as mp
-from Generic import video, images
+from Generic import video, images, audio
 from ParticleTracking import preprocessing, dataframes, annotation
 import matplotlib.path as mpath
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 
@@ -65,6 +66,7 @@ class ParticleTracker:
         assert 'memory' in self.parameters, 'memory not in dictionary'
 
     def track(self):
+
         if self.multiprocess:
             self._track_multiprocess()
         else:
@@ -96,6 +98,8 @@ class ParticleTracker:
     def _track_singleprocess(self):
         """Call this to start the tracking"""
         self.video = video.ReadVideo(self.video_filename)
+        self.duty_cycle = read_audio_file(self.video_filename, self.video.num_frames)
+        print(self.video.num_frames)
         if os.path.exists(self.data_store_filename):
             os.remove(self.data_store_filename)
         data = dataframes.DataStore(self.data_store_filename)
@@ -112,6 +116,7 @@ class ParticleTracker:
             circles = get_points_inside_boundary(circles, boundary)
             circles = check_circles_bg_color(circles, new_frame)
             data.add_tracking_data(f, circles, boundary)
+            data.add_frame_property('Duty', self.duty_cycle)
         data.save()
         self._link_trajectories()
 
@@ -243,6 +248,14 @@ def check_circles_bg_color(circles, image):
         white_particles.append(im_mean > 200)
     return circles[white_particles, :]
 
+
+def read_audio_file(file, frames):
+    wav = audio.extract_wav(file)
+    wav_l = wav[:, 0]
+    # wav = audio.digitise(wav)
+    freqs = audio.frame_frequency(wav_l, frames, 48000)
+    d = (freqs - 1000)/100
+    return d
 
 
 if __name__ == "__main__":
