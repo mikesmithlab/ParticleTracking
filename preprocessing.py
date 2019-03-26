@@ -123,8 +123,8 @@ class Preprocessor:
                     find_auto_crop_and_mask(frame)
             else:
                 self._find_manual_crop_and_mask(frame)
-        cropped_frame = self._crop_and_mask(frame)
-        new_frame = images.bgr_2_grayscale(cropped_frame)
+        cropped_frame = self._crop_and_mask(~frame)
+        new_frame = images.bgr_2_grayscale(~cropped_frame)
 
         for method in self.methods:
 
@@ -258,7 +258,7 @@ def find_auto_crop_and_mask(frame):
     contours = images.sort_contours(contours)
     # hex_corners = fit_hexagon_to_contour(contours[-2])
     hex_corners = images.fit_hex(np.squeeze(contours[-2]))
-    sketch = images.draw_polygon(frame, hex_corners, thickness=2)
+    sketch = images.draw_polygon(frame.copy(), hex_corners, thickness=2)
     images.display(sketch)
     mask_img = np.zeros(np.shape(frame)).astype('uint8')
     cv2.fillPoly(mask_img, pts=np.array([hex_corners], dtype=np.int32),
