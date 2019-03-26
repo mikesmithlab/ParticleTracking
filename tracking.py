@@ -44,13 +44,15 @@ class ParticleTracker:
                  methods,
                  parameters,
                  multiprocess=False,
-                 auto_crop=False):
+                 auto_crop=False,
+                 debug=False):
 
         self.filename = os.path.splitext(filename)[0]
         self.video_filename = self.filename + '.MP4'
         self.data_store_filename = self.filename + '.hdf5'
         self.parameters = parameters
         self.multiprocess = multiprocess
+        self.debug = debug
         self.ip = preprocessing.Preprocessor(
             methods, self.parameters, auto_crop)
         self._check_parameters()
@@ -113,8 +115,24 @@ class ParticleTracker:
                 self.parameters['p_2'],
                 self.parameters['min_rad'],
                 self.parameters['max_rad'])
+            if self.debug:
+                images.display(frame)
+                images.display(new_frame)
+                temp = new_frame.copy()
+                # images.display(images.draw_circles(np.dstack((temp, temp, temp)), circles))
             circles = get_points_inside_boundary(circles, boundary)
+            if self.debug:
+                temp = new_frame.copy()
+                # images.display(
+                #     images.draw_circles(np.dstack((temp, temp, temp)),
+                #                         circles))
             circles = check_circles_bg_color(circles, new_frame)
+            if self.debug:
+                temp = new_frame.copy()
+                images.display(
+                    images.draw_circles(np.dstack((temp, temp, temp)),
+                                        circles))
+
             data.add_tracking_data(f, circles, boundary)
         data.save()
         self._link_trajectories()
@@ -184,7 +202,7 @@ class ParticleTracker:
                 data_store.particle_data,
                 self.parameters['max frame displacement'],
                 memory=self.parameters['memory'])
-        data_store.particle_data = tp.filter_stubs(data_store.particle_data, 10)
+        data_store.particle_data = tp.filter_stubs(data_store.particle_data, self.parameters['min frame life'])
         data_store.save()
 
 
