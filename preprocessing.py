@@ -119,7 +119,8 @@ class Preprocessor:
 
         if self.calls == 0:
             if self.auto_crop:
-                self._find_auto_crop_and_mask(frame)
+                self.crop, self.mask_img, self.boundary = \
+                    find_auto_crop_and_mask(frame)
             else:
                 self._find_manual_crop_and_mask(frame)
         cropped_frame = self._crop_and_mask(frame)
@@ -228,26 +229,6 @@ class Preprocessor:
             self.boundary[:, 0] -= self.crop[0][0]
             self.boundary[:, 1] -= self.crop[0][1]
 
-    def _find_auto_crop_and_mask(self, frame):
-        blue = images.find_color(frame, 'Blue')
-        contours = images.find_contours(blue)
-        contours = images.sort_contours(contours)
-        hex_corners, (xc, yc) = images.find_contour_corners(
-            contours[-2], self.parameters['number of tray sides'],
-            aligned=True)
-        hex_corners = contours[-2][hex_corners]
-        hex_corners = np.squeeze(hex_corners)
-        sketch = images.draw_polygon(frame, hex_corners, thickness=2)
-        images.display(sketch)
-        self.mask_img = np.zeros(np.shape(frame)).astype('uint8')
-        cv2.fillPoly(self.mask_img, pts=np.array([hex_corners], dtype=np.int32),
-                     color=(1, 1, 1))
-        self.crop = ([min(hex_corners[:, 0]), min(hex_corners[:, 1])],
-                     [max(hex_corners[:, 0]), max(hex_corners[:, 1])])
-        self.boundary = hex_corners
-        self.boundary[:, 0] -= self.crop[0][0]
-        self.boundary[:, 1] -= self.crop[0][1]
-
     def _crop_and_mask(self, frame):
         """
         Masks then crops a given frame
@@ -269,6 +250,25 @@ class Preprocessor:
         masked_frame = images.mask_img(frame, self.mask_img)
         cropped_frame = images.crop_img(masked_frame, self.crop)
         return cropped_frame
+
+
+def find_auto_crop_and_mask(frame):
+    blue = images.find_color(frame, 'Blue')
+    contours = images.find_contours(blue)
+    contours = images.sort_contours(contours)
+    # hex_corners = fit_hexagon_to_contour(contours[-2])
+    hex_corners = images.fit_hex(np.squeeze(contours[-2]))
+    sketch = images.draw_polygon(frame, hex_corners, thickness=2)
+    images.display(sketch)
+    mask_img = np.zeros(np.shape(frame)).astype('uint8')
+    cv2.fillPoly(mask_img, pts=np.array([hex_corners], dtype=np.int32),
+                 color=(1, 1, 1))
+    crop = ([int(min(hex_corners[:, 0])), int(min(hex_corners[:, 1]))],
+            [int(max(hex_corners[:, 0])), int(max(hex_corners[:, 1]))])
+    boundary = hex_corners
+    boundary[:, 0] -= crop[0][0]
+    boundary[:, 1] -= crop[0][1]
+    return crop, mask_img, boundary
 
 
 if __name__ == "__main__":
