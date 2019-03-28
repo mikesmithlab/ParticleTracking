@@ -5,8 +5,8 @@ import cv2
 import time
 
 def load_im():
-    file = "/home/ppxjd3/Videos/Test_camera_audio/22030003.MP4"
-    # file = "/home/ppxjd3/Videos/Testing Auto Crop/22010001.MP4"
+    # file = "/home/ppxjd3/Videos/Test_camera_audio/22030003.MP4"
+    file = "/home/ppxjd3/Videos/Testing Auto Crop/22010001.MP4"
     vid = video.ReadVideo(file)
     frame = vid.read_next_frame()
     crop, mask, boundary = preprocessing.find_auto_crop_and_mask(frame)

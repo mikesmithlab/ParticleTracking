@@ -10,35 +10,21 @@ file = filedialogs.load_filename('Load a video', remove_ext=False, directory='/h
 
 ### Tracking ###
 ###############
-methods = ['flip', 'threshold tozero', 'opening']
-# options = {
-#     'grayscale threshold': None,
-#     'number of tray sides': 6,
-#     'min_dist': 30,
-#     'p_1': 200,
-#     'p_2': 3,
-#     'min_rad': 15,
-#     'max_rad': 19,
-#     'max frame displacement': 25,
-#     'min frame life': 10,
-#     'memory': 8,
-#     'opening kernel': 23
-#     }
+methods = ['flip']
 options = {
-    'grayscale threshold': None,
     'number of tray sides': 6,
-    'min_dist': 22,
-    'p_1': 255,
-    'p_2': 5,
-    'min_rad': 12,
-    'max_rad': 17,
-    'max frame displacement': 25,
-    'min frame life': 10,
-    'memory': 8,
-    'opening kernel': 23
+    'min_dist': 23,
+    'p_1': 105,
+    'p_2': 2,
+    'min_rad': 13,
+    'max_rad': 14,
+    'max frame displacement': 10,
+    'min frame life': 50,
+    'memory': 3
     }
 
-pt = tracking.ParticleTracker(file, methods, options, False, auto_crop=True)
+pt = tracking.ParticleTracker(file, methods, options, False, auto_crop=True, debug=False)
+
 pt.track()
 
 
@@ -47,7 +33,7 @@ data_store = dataframes.DataStore(file, load=True)
 
 ### Statistics ###
 ##################
-calculator = statistics.PropertyCalculator(data_store)
+# calculator = statistics.PropertyCalculator(data_store)
 # calculator.distance()
 # calculator.edge_distance()
 # calculator.level_checks()
