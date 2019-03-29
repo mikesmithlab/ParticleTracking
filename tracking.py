@@ -53,6 +53,7 @@ class ParticleTracker:
         self.data_store_filename = self.filename + '.hdf5'
         self.parameters = parameters
         self.multiprocess = multiprocess
+        self.num_processes = mp.cpu_count() // 2 if self.multiprocess else 1
         self.debug = debug
         self.ip = preprocessing.Preprocessor(
             methods, self.parameters, auto_crop)
@@ -69,74 +70,22 @@ class ParticleTracker:
         assert 'memory' in self.parameters, 'memory not in dictionary'
 
     def track(self):
-
+        self._get_video_info()
         if self.multiprocess:
             self._track_multiprocess()
         else:
-            self._track_singleprocess()
+            self._track_process(0)
+        self._link_trajectories()
         crop = self.ip.crop
         np.savetxt(self.filename+'.txt', crop)
 
-    def _save_cropped_video(self):
-        print('saving cropped video')
-        crop = self.ip.crop
-        video.crop_video(self.video_filename,
-                         crop[0][0],
-                         crop[1][0],
-                         crop[0][1],
-                         crop[1][1])
-
     def _track_multiprocess(self):
         """Call this to start tracking"""
-        self.num_processes = mp.cpu_count()//2
         self.extension = "mp4"
         self.fourcc = "mp4v"
-        self._get_video_info()
-
         p = mp.Pool(self.num_processes)
         p.map(self._track_process, range(self.num_processes))
         self._cleanup_intermediate_dataframes()
-        self._link_trajectories()
-
-    def _track_singleprocess(self):
-        """Call this to start the tracking"""
-        self.video = video.ReadVideo(self.video_filename)
-        self.duty_cycle = read_audio_file(self.video_filename, self.video.num_frames)
-        print(self.video.num_frames)
-        if os.path.exists(self.data_store_filename):
-            os.remove(self.data_store_filename)
-        data = dataframes.DataStore(self.data_store_filename)
-        for f in tqdm(range(self.video.num_frames), 'Tracking'):
-            frame = self.video.read_next_frame()
-            new_frame, boundary = self.ip.process(frame)
-            circles = images.find_circles(
-                new_frame,
-                self.parameters['min_dist'],
-                self.parameters['p_1'],
-                self.parameters['p_2'],
-                self.parameters['min_rad'],
-                self.parameters['max_rad'])
-            if self.debug:
-                images.display(frame)
-                images.display(new_frame)
-                temp = new_frame.copy()
-                # images.display(images.draw_circles(np.dstack((temp, temp, temp)), circles))
-            circles = get_points_inside_boundary(circles, boundary)
-            if self.debug:
-                temp = new_frame.copy()
-                # images.display(
-                #     images.draw_circles(np.dstack((temp, temp, temp)),
-                #                         circles))
-            circles = check_circles_bg_color(circles, new_frame)
-            if self.debug:
-                temp = new_frame.copy()
-                images.display(
-                    images.draw_circles(np.dstack((temp, temp, temp)),
-                                        circles))
-
-            data.add_tracking_data(f, circles, boundary)
-        data.save()
-        self._link_trajectories()
 
     def _get_video_info(self):
         """From the video reads properties for other methods"""
@@ -149,24 +98,12 @@ class ParticleTracker:
         self.width, self.height = images.get_width_and_height(new_frame)
 
     def _track_process(self, group_number):
-        """
-        The method which is mapped to the Pool implementing the tracking.
-
-        Finds the circles in a percentage of the video and saves the cropped
-        video and dataframe for this part to the current working directory.
-
-        Parameters
-        ----------
-        group_number: int
-            Describes which fraction of the video the method should act on
-        """
-        data = dataframes.DataStore(str(group_number) + '.hdf5')
+        data_name = str(group_number)+'.hdf5' if self.multiprocess else self.data_store_filename
+        data = dataframes.DataStore(data_name)
         cap = video.ReadVideo(self.video_filename)
         frame_no_start = self.frame_jump_unit * group_number
         cap.set_frame(frame_no_start)
-
-        proc_frames = 0
-        while proc_frames < self.frame_jump_unit:
+        for f in tqdm(range(self.frame_jump_unit)):
             frame = cap.read_next_frame()
             new_frame, boundary = self.ip.process(frame)
             circles = images.find_circles(
@@ -178,10 +115,9 @@ class ParticleTracker:
                 self.parameters['max_rad'])
             circles = get_points_inside_boundary(circles, boundary)
             circles = check_circles_bg_color(circles, new_frame)
-            data.add_tracking_data(frame_no_start+proc_frames,
+            data.add_tracking_data(frame_no_start + f,
                                    circles,
                                    boundary)
-            proc_frames += 1
         data.save()
         cap.close()
 
@@ -279,6 +215,70 @@ def read_audio_file(file, frames):
     d = (freqs - 1000)/100
     return d
 
+    # def _track_singleprocess(self):
+    #     """Call this to start the tracking"""
+    #     self.video = video.ReadVideo(self.video_filename)
+    #     self.duty_cycle = read_audio_file(self.video_filename, self.video.num_frames)
+    #     if os.path.exists(self.data_store_filename):
+    #         os.remove(self.data_store_filename)
+    #     data = dataframes.DataStore(self.data_store_filename)
+    #     for f in tqdm(range(self.video.num_frames), 'Tracking'):
+    #         frame = self.video.read_next_frame()
+    #         new_frame, boundary = self.ip.process(frame)
+    #         circles = images.find_circles(
+    #             new_frame,
+    #             self.parameters['min_dist'],
+    #             self.parameters['p_1'],
+    #             self.parameters['p_2'],
+    #             self.parameters['min_rad'],
+    #             self.parameters['max_rad'])
+    #         circles = get_points_inside_boundary(circles, boundary)
+    #         circles = check_circles_bg_color(circles, new_frame)
+    #         if self.debug:
+    #             temp = new_frame.copy()
+    #             temp = images.draw_circles(np.dstack((temp, temp, temp)),
+    #                                        circles)
+    #             images.display(np.hstack((new_frame, temp)))
+    #         data.add_tracking_data(f, circles, boundary)
+    #     data.save()
+    #     self._link_trajectories()
+
+    # def _track_process(self, group_number):
+    #     """
+    #     The method which is mapped to the Pool implementing the tracking.
+    #
+    #     Finds the circles in a percentage of the video and saves the cropped
+    #     video and dataframe for this part to the current working directory.
+    #
+    #     Parameters
+    #     ----------
+    #     group_number: int
+    #         Describes which fraction of the video the method should act on
+    #     """
+    #     data = dataframes.DataStore(str(group_number) + '.hdf5')
+    #     cap = video.ReadVideo(self.video_filename)
+    #     frame_no_start = self.frame_jump_unit * group_number
+    #     cap.set_frame(frame_no_start)
+    #
+    #     proc_frames = 0
+    #     while proc_frames < self.frame_jump_unit:
+    #         frame = cap.read_next_frame()
+    #         new_frame, boundary = self.ip.process(frame)
+    #         circles = images.find_circles(
+    #             new_frame,
+    #             self.parameters['min_dist'],
+    #             self.parameters['p_1'],
+    #             self.parameters['p_2'],
+    #             self.parameters['min_rad'],
+    #             self.parameters['max_rad'])
+    #         circles = get_points_inside_boundary(circles, boundary)
+    #         circles = check_circles_bg_color(circles, new_frame)
+    #         data.add_tracking_data(frame_no_start+proc_frames,
+    #                                circles,
+    #                                boundary)
+    #         proc_frames += 1
+    #     data.save()
+    #     cap.close()
 
 if __name__ == "__main__":
     pass
