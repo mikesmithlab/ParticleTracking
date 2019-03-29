@@ -88,7 +88,7 @@ class ParticleTracker:
 
     def _track_multiprocess(self):
         """Call this to start tracking"""
-        self.num_processes = mp.cpu_count()
+        self.num_processes = mp.cpu_count()//2
         self.extension = "mp4"
         self.fourcc = "mp4v"
         self._get_video_info()

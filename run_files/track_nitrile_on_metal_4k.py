@@ -23,7 +23,7 @@ options = {
     'memory': 3
     }
 
-pt = tracking.ParticleTracker(file, methods, options, False, auto_crop=True, debug=False)
+pt = tracking.ParticleTracker(file, methods, options, True, auto_crop=True, debug=False)
 
 pt.track()
 
@@ -49,9 +49,9 @@ data_store = dataframes.DataStore(file, load=True)
 
 ### Annotations ###
 ###################
-annotator = annotation.VideoAnnotator(data_store, file)
-annotator.add_coloured_circles()
-# annotation.neighbors(data_store, 0)
+# annotator = annotation.VideoAnnotator(data_store, file)
+# annotator.add_coloured_circles()
+# # annotation.neighbors(data_store, 0)
 
 ### Graphs ###
 ##############
