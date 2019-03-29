@@ -26,7 +26,7 @@ class ParticleTracker:
         Contains path of the input video
     filename: str
         Contains path of the input video without extension
-    data_store_filename: str
+    data_filename: str
         Contains path to save the dataframe to
     parameters: dict
         Contains arguments for preprocessing, detection, tracking
@@ -50,7 +50,7 @@ class ParticleTracker:
 
         self.filename = os.path.splitext(filename)[0]
         self.video_filename = self.filename + '.MP4'
-        self.data_store_filename = self.filename + '.hdf5'
+        self.data_filename = self.filename + '.hdf5'
         self.parameters = parameters
         self.multiprocess = multiprocess
         self.num_processes = mp.cpu_count() // 2 if self.multiprocess else 1
@@ -81,8 +81,8 @@ class ParticleTracker:
 
     def _track_multiprocess(self):
         """Call this to start tracking"""
-        self.extension = "mp4"
-        self.fourcc = "mp4v"
+        # self.extension = "mp4"
+        # self.fourcc = "mp4v"
         p = mp.Pool(self.num_processes)
         p.map(self._track_process, range(self.num_processes))
         self._cleanup_intermediate_dataframes()
@@ -98,7 +98,8 @@ class ParticleTracker:
         self.width, self.height = images.get_width_and_height(new_frame)
 
     def _track_process(self, group_number):
-        data_name = str(group_number)+'.hdf5' if self.multiprocess else self.data_store_filename
+        data_name = (str(group_number)+'.hdf5'
+                     if self.multiprocess else self.data_filename)
         data = dataframes.DataStore(data_name)
         cap = video.ReadVideo(self.video_filename)
         frame_no_start = self.frame_jump_unit * group_number
@@ -126,20 +127,21 @@ class ParticleTracker:
         dataframe_list = ["{}.hdf5".format(i) for i in
                           range(self.num_processes)]
         dataframes.concatenate_datastore(dataframe_list,
-                                         self.data_store_filename)
+                                         self.data_filename)
         for file in dataframe_list:
             os.remove(file)
 
     def _link_trajectories(self):
         """Implements the trackpy functions link_df and filter_stubs"""
-        data_store = dataframes.DataStore(self.data_store_filename,
+        data_store = dataframes.DataStore(self.data_filename,
                                           load=True)
         data_store.add_frame_property('Duty', self.duty_cycle)
         data_store.particle_data = tp.link_df(
                 data_store.particle_data,
                 self.parameters['max frame displacement'],
                 memory=self.parameters['memory'])
-        data_store.particle_data = tp.filter_stubs(data_store.particle_data, self.parameters['min frame life'])
+        data_store.particle_data = tp.filter_stubs(
+                data_store.particle_data, self.parameters['min frame life'])
         data_store.save()
 
 
