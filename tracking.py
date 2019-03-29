@@ -7,6 +7,7 @@ from ParticleTracking import preprocessing, dataframes, annotation
 import matplotlib.path as mpath
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from numba import jit
 
 
 class ParticleTracker:
@@ -235,6 +236,7 @@ def get_points_inside_boundary(points, boundary):
     return points
 
 
+@jit
 def check_circles_bg_color(circles, image):
     """
     Checks the color of circles in an image and returns white ones
@@ -251,21 +253,22 @@ def check_circles_bg_color(circles, image):
     circles[white_particles, :] : ndarray
         original circles array with dark circles removed
     """
+    circles = np.int32(circles)
     (x, y, r) = np.split(circles, 3, axis=1)
-    (ymin, ymax) = (y - r/2, y + r/2)
-    (xmin, xmax) = (x - r/2, x + r/2)
-    ymin[ymin < 0] = 0
-    ymax[ymax > np.shape(image)[0]] = np.shape(image)[0] - 1
-    xmin[xmin < 0] = 0
-    xmax[xmax > np.shape(image)[1]] = np.shape(image)[1] - 1
+    r = int(np.mean(r))
+    ymin = np.int32(np.squeeze(y-r/2))
+    ymax = np.int32(np.squeeze(y+r/2))
+    xmin = np.int32(np.squeeze(x-r/2))
+    xmax = np.int32(np.squeeze(x+r/2))
+    all_circles = np.zeros((r, r, len(xmin)))
+    for i, (x0, x1, y0, y1) in enumerate(zip(xmin, xmax, ymin, ymax)):
+        im = image[y0:y1, x0:x1]
+        all_circles[0:im.shape[0], :im.shape[1], i] = im
+    circle_mean_0 = np.mean(all_circles, axis=(0, 1))
+    out = circles[circle_mean_0 > 200, :]
+    return out
 
-    white_particles = []
-    for ymx, ymn, xmx, xmn in zip(ymax, ymin, xmax, xmin):
-        circle_im = image[int(ymn):int(ymx), int(xmn):int(xmx)]
-        # images.display(circle_im)
-        im_mean = np.mean(circle_im)
-        white_particles.append(im_mean > 200)
-    return circles[white_particles, :]
+
 
 
 def read_audio_file(file, frames):
