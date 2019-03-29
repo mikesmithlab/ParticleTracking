@@ -122,7 +122,8 @@ class Preprocessor:
                 self.crop, self.mask_img, self.boundary = \
                     find_auto_crop_and_mask(frame)
             else:
-                self._find_manual_crop_and_mask(frame)
+                self.crop, self.mask_img, self.boundary = \
+                    find_manual_crop_and_mask(frame)
         cropped_frame = self._crop_and_mask(~frame)
         new_frame = images.bgr_2_grayscale(~cropped_frame)
 
@@ -201,34 +202,6 @@ class Preprocessor:
         self.calls += 1
         return new_frame, self.boundary
 
-    def update(self, parameters, methods):
-        """Updates class variables"""
-        self.parameters = parameters
-        self.methods = methods
-
-    def _find_manual_crop_and_mask(self, frame):
-        """
-        Opens a crop shape instance with the input frame and no_of_sides
-
-        Sets the class variables self.mask_img, self.crop and self.boundary
-        """
-        no_of_sides = self.parameters['number of tray sides']
-        crop_inst = images.CropShape(frame, no_of_sides)
-
-        self.mask_img, self.crop, self.boundary, _ = \
-            crop_inst.find_crop_and_mask()
-
-        if np.shape(self.boundary) == (3,):
-            # boundary = [xc, yc, r]
-            # crop = ([xmin, ymin], [xmax, ymax])
-            self.boundary[0] -= self.crop[0][0]
-            self.boundary[1] -= self.crop[0][1]
-        else:
-            # boundary = ([x1, y1], [x2, y2], ...)
-            # crop = ([xmin, ymin], [xmax, ymax])
-            self.boundary[:, 0] -= self.crop[0][0]
-            self.boundary[:, 1] -= self.crop[0][1]
-
     def _crop_and_mask(self, frame):
         """
         Masks then crops a given frame
@@ -250,6 +223,30 @@ class Preprocessor:
         masked_frame = images.mask_img(frame, self.mask_img)
         cropped_frame = images.crop_img(masked_frame, self.crop)
         return cropped_frame
+
+
+def find_manual_crop_and_mask(frame):
+    """
+    Opens a crop shape instance with the input frame and no_of_sides
+
+    Sets the class variables self.mask_img, self.crop and self.boundary
+    """
+    no_of_sides = int(input('Enter no of sides'))
+    crop_inst = images.CropShape(frame, no_of_sides)
+    mask_img, crop, boundary, _ = crop_inst.find_crop_and_mask()
+
+    if np.shape(boundary) == (3,):
+        # boundary = [xc, yc, r]
+        # crop = ([xmin, ymin], [xmax, ymax])
+        boundary[0] -= crop[0][0]
+        boundary[1] -= crop[0][1]
+    else:
+        # boundary = ([x1, y1], [x2, y2], ...)
+        # crop = ([xmin, ymin], [xmax, ymax])
+        boundary[:, 0] -= crop[0][0]
+        boundary[:, 1] -= crop[0][1]
+
+    return crop, mask_img, boundary
 
 
 def find_auto_crop_and_mask(frame):
