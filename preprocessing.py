@@ -266,22 +266,3 @@ def find_auto_crop_and_mask(frame):
     boundary[:, 0] -= crop[0][0]
     boundary[:, 1] -= crop[0][1]
     return crop, mask_img, boundary
-
-
-if __name__ == "__main__":
-    import cv2
-    from Generic import images
-    test_image = cv2.imread("../ParticleTracking/test_image.png")
-    methods = ['flip', 'threshold tozero', 'adaptive threshold', 'opening',
-               'closing', 'dilation', 'erosion', 'distance transform']
-    parameters = {'grayscale threshold': 200,
-                  'adaptive threshold block size': 31,
-                  'adaptive threshold C': 0,
-                  'opening kernel': 17,
-                  'closing kernel': 17,
-                  'dilate kernel': 17,
-                  'erode kernel': 17,
-                  'number of tray sides': 6}
-    ImPro = Preprocessor(methods, parameters)
-    new_image, boundary = ImPro.process(test_image)
-    images.display(new_image)

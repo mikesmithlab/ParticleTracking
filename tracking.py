@@ -212,31 +212,3 @@ def read_audio_file(file, frames):
     freqs = audio.frame_frequency(wav_l, frames, 48000)
     d = (freqs - 1000)/100
     return d
-
-
-if __name__ == "__main__":
-    pass
-    # vid_name = "../ParticleTracking/test_video.mp4"
-    # methods = ['flip', 'threshold tozero', 'opening']
-    # options = {
-    #     'grayscale threshold': None,
-    #     'number of tray sides': 6,
-    #     'min_dist': 30,
-    #     'p_1': 200,
-    #     'p_2': 3,
-    #     'min_rad': 15,
-    #     'max_rad': 19,
-    #     'max frame displacement': 25,
-    #     'min frame life': 10,
-    #     'memory': 8,
-    #     'opening kernel': 23,
-    #
-    # }
-    #
-    # PT = ParticleTracker(vid_name,
-    #                      methods,
-    #                      options,
-    #                      multiprocess=False,
-    #                      save_crop_video=True,
-    #                      save_check_video=True)
-    # PT.track()
