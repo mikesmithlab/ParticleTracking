@@ -85,7 +85,7 @@ class DataStore:
     def _find_properties(self):
         self.num_frames = self.particle_data['frame'].max()+1
 
-    def add_tracking_data(self, frame, circles, boundary):
+    def add_tracking_data(self, frame, tracked_data, boundary, column_names=None):
         """
         Adds initial tracking information to the dataframe
 
@@ -94,19 +94,25 @@ class DataStore:
         frame : int
             Frame number
 
-        circles : ndarray of shape (N, 3)
+        tracked_data : ndarray of shape (N, 3)
             Contains 'x', 'y', and 'size' in each of the 3 columns
 
         boundary : ndarray
             Either shape (3,) or (N, 2) depending on shape of tray
         """
-        frame_list = np.ones((np.shape(circles)[0], 1)) * frame
-        new_particles = pd.DataFrame({
-                "x": circles[:, 0],
-                "y": circles[:, 1],
-                "size": circles[:, 2],
-                "frame": frame_list[:, 0]},
-                index=np.arange(1, np.shape(circles)[0] + 1))
+        frame_list = np.ones((np.shape(tracked_data)[0], 1)) * frame
+        if column_names is None:
+            new_particles = pd.DataFrame({
+                    "x": tracked_data[:, 0],
+                    "y": tracked_data[:, 1],
+                    "size": tracked_data[:, 2],
+                    "frame": frame_list[:, 0]},
+                    index=np.arange(1, np.shape(tracked_data)[0] + 1))
+        else:
+            data_dict = {name: tracked_data[:, i]
+                         for i, name in enumerate(column_names)}
+            new_particles = pd.DataFrame(
+                data_dict, index=np.arange(1, np.shape(tracked_data)[0] + 1))
         self.particle_data = pd.concat([self.particle_data, new_particles])
         new_boundary = pd.DataFrame({
                 "frame": frame, "boundary": [boundary]})
