@@ -55,17 +55,6 @@ class ParticleTracker:
         self.num_processes = mp.cpu_count() // 2 if self.multiprocess else 1
         self.ip = preprocessing.Preprocessor(
             methods, self.parameters, auto_crop)
-        self._check_parameters()
-
-    def _check_parameters(self):
-        assert 'min_dist' in self.parameters, 'min_dist not in dictionary'
-        assert 'p_1' in self.parameters, 'p_1 not in dictionary'
-        assert 'p_2' in self.parameters, 'p_2 not in dictionary'
-        assert 'min_rad' in self.parameters, 'min_rad not in dictionary'
-        assert 'max_rad' in self.parameters, 'max rad not in dictionary'
-        assert 'max frame displacement' in self.parameters, \
-            'max frame displacement not in dictionary'
-        assert 'memory' in self.parameters, 'memory not in dictionary'
 
     def track(self):
         self._get_video_info()
@@ -210,5 +199,5 @@ def read_audio_file(file, frames):
     wav_l = wav[:, 0]
     # wav = audio.digitise(wav)
     freqs = audio.frame_frequency(wav_l, frames, 48000)
-    d = (freqs - 1000)/100
+    d = (freqs - 1000)/2
     return d
