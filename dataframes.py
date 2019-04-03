@@ -85,7 +85,7 @@ class DataStore:
     def _find_properties(self):
         self.num_frames = self.particle_data['frame'].max()+1
 
-    def add_tracking_data(self, frame, tracked_data, boundary, column_names=None):
+    def add_tracking_data(self, frame, tracked_data, column_names=None):
         """
         Adds initial tracking information to the dataframe
 
@@ -97,25 +97,37 @@ class DataStore:
         tracked_data : ndarray of shape (N, 3)
             Contains 'x', 'y', and 'size' in each of the 3 columns
 
-        boundary : ndarray
-            Either shape (3,) or (N, 2) depending on shape of tray
+        column_names : list of str or None
+            List containing titles for each column of tracked data.
+            If None will
         """
+        column_names = ['x', 'y', 'r'] if column_names is None else column_names
         frame_list = np.ones((np.shape(tracked_data)[0], 1)) * frame
-        if column_names is None:
-            new_particles = pd.DataFrame({
-                    "x": tracked_data[:, 0],
-                    "y": tracked_data[:, 1],
-                    "size": tracked_data[:, 2],
-                    "frame": frame_list[:, 0]},
-                    index=np.arange(1, np.shape(tracked_data)[0] + 1))
-        else:
-            data_dict = {name: tracked_data[:, i]
-                         for i, name in enumerate(column_names)}
-            new_particles = pd.DataFrame(
-                data_dict, index=np.arange(1, np.shape(tracked_data)[0] + 1))
+        tracked_data = np.concatenate((tracked_data, frame_list), axis=1)
+        column_names.append('frame')
+
+        data_dict = {name: tracked_data[:, i]
+                     for i, name in enumerate(column_names)}
+        new_particles = pd.DataFrame(
+            data_dict, index=np.arange(1, np.shape(tracked_data)[0] + 1))
+
         self.particle_data = pd.concat([self.particle_data, new_particles])
+
+    def add_boundary_data(self, frame, boundary):
+        """
+        Adds boundary information to the boundary dataframe.
+
+        Parameters
+        ----------
+        frame: int
+            Frame number
+
+        boundary : ndarray
+            Either shape (3,) for circular tray (xc, yc, r)
+            Or shape (N, 2) for polygon with N vertices
+        """
         new_boundary = pd.DataFrame({
-                "frame": frame, "boundary": [boundary]})
+            "frame": frame, "boundary": [boundary]})
         self.boundary_data = pd.concat([self.boundary_data, new_boundary])
 
     def get_info(self, frame, headings):

@@ -103,9 +103,8 @@ class ParticleTracker:
                 self.parameters['max_rad'])
             circles = get_points_inside_boundary(circles, boundary)
             circles = check_circles_bg_color(circles, new_frame)
-            data.add_tracking_data(frame_no_start + f,
-                                   circles,
-                                   boundary)
+            data.add_tracking_data(frame_no_start + f, circles)
+            data.add_boundary_data(frame_no_start + f, boundary)
         data.save()
         cap.close()
 
