@@ -45,6 +45,28 @@ class ParticleTracker:
                  parameters,
                  multiprocess=False,
                  crop_method=None):
+        """
+
+        Parameters
+        ----------
+        filename: str
+            Filepath of input video/stack
+
+        methods: list of str
+            Contains methods for Preprocessor
+
+        parameters: dictionary
+            Contains parameters for any functions
+
+        multiprocess: Bool
+            If true then splits the processing between pairs of threads
+
+        crop_method: String or None
+            Decides cropping method.
+            None: no crop
+            'auto': Automatically crop around blue hexagon
+            'manual': Manually select cropping points
+        """
 
         self.filename = os.path.splitext(filename)[0]
         self.video_filename = self.filename + '.MP4'
@@ -57,6 +79,7 @@ class ParticleTracker:
             methods, self.parameters, crop_method)
 
     def track(self):
+        """Call this to start tracking"""
         self._get_video_info()
         if self.multiprocess:
             self._track_multiprocess()
@@ -67,12 +90,27 @@ class ParticleTracker:
         np.savetxt(self.filename+'.txt', crop)
 
     def _track_multiprocess(self):
+        """Splits processing into chunks"""
         p = mp.Pool(self.num_processes)
         p.map(self._track_process, range(self.num_processes))
         self._cleanup_intermediate_dataframes()
 
     def _get_video_info(self):
-        """From the video reads properties for other methods"""
+        """
+        Reads properties from the video for other methods:
+
+        self.frame_jump_unit: int
+            Number of frames for each process
+
+        self.fps: int
+            frames per second from the video
+
+        self.width, self.height: ints
+            width and height of processed frame
+
+        self.duty_cycle: ndarray
+            duty cycles for each frame in the video
+        """
         cap = video.ReadVideo(self.video_filename)
         self.frame_jump_unit = cap.num_frames // self.num_processes
         self.fps = cap.fps
@@ -84,12 +122,27 @@ class ParticleTracker:
                                               cap.num_frames)
 
     def _track_process(self, group_number):
+        """
+        Method called by track.
+
+        If not using multiprocess call with group number 0
+
+        Parameters
+        ----------
+        group_number: int
+            Sets the group number for multiprocessing to split the input.
+        """
+        # Create the DataStore instance
         data_name = (str(group_number)+'.hdf5'
                      if self.multiprocess else self.data_filename)
         data = dataframes.DataStore(data_name)
+
+        # Load the video and set to the start point
         cap = video.ReadVideo(self.video_filename)
         frame_no_start = self.frame_jump_unit * group_number
         cap.set_frame(frame_no_start)
+
+        # Iterate over frames
         for f in tqdm(range(self.frame_jump_unit)):
             frame = cap.read_next_frame()
             data = self._analyse_frame(frame, frame_no_start + f, data)
@@ -97,8 +150,24 @@ class ParticleTracker:
         cap.close()
 
     def _analyse_frame(self, frame, frame_no, data):
+        """
+        Experiment dependent tracking steps.
+
+        Parameters
+        ----------
+        frame: uint8 frame for the video
+        frame_no: int frame number
+        data: dataframes.DataStore instance
+
+        Returns
+        -------
+        data: same dataframes.DataStore instance with additional info
+        """
         if self.exp == 'James':
+            # Process frame
             new_frame, boundary = self.ip.process(frame)
+
+            # Find and filter objects
             circles = images.find_circles(
                 new_frame,
                 self.parameters['min_dist'],
@@ -108,6 +177,8 @@ class ParticleTracker:
                 self.parameters['max_rad'])
             circles = get_points_inside_boundary(circles, boundary)
             circles = check_circles_bg_color(circles, new_frame)
+
+            # Add info to dataframes
             data.add_tracking_data(frame_no, circles)
             data.add_boundary_data(frame_no, boundary)
         elif self.exp == 'Mike Bacteria':
@@ -126,16 +197,22 @@ class ParticleTracker:
 
     def _link_trajectories(self):
         """Implements the trackpy functions link_df and filter_stubs"""
+        # Reload DataStore
         data_store = dataframes.DataStore(self.data_filename,
                                           load=True)
-        if self.exp == 'James':
-            data_store.add_frame_property('Duty', self.duty_cycle)
+        # Trackpy methods
         data_store.particle_data = tp.link_df(
                 data_store.particle_data,
                 self.parameters['max frame displacement'],
                 memory=self.parameters['memory'])
         data_store.particle_data = tp.filter_stubs(
                 data_store.particle_data, self.parameters['min frame life'])
+
+        # Experiment dependent steps
+        if self.exp == 'James':
+            data_store.add_frame_property('Duty', self.duty_cycle)
+
+        # Save DataStore
         data_store.save()
 
 

@@ -85,7 +85,7 @@ class DataStore:
     def _find_properties(self):
         self.num_frames = self.particle_data['frame'].max()+1
 
-    def add_tracking_data(self, frame, tracked_data, column_names=None):
+    def add_tracking_data(self, frame, tracked_data, col_names=None):
         """
         Adds initial tracking information to the dataframe
 
@@ -97,17 +97,17 @@ class DataStore:
         tracked_data : ndarray of shape (N, 3)
             Contains 'x', 'y', and 'size' in each of the 3 columns
 
-        column_names : list of str or None
+        col_names : list of str or None
             List containing titles for each column of tracked data.
             If None will
         """
-        column_names = ['x', 'y', 'r'] if column_names is None else column_names
+        col_names = ['x', 'y', 'r'] if col_names is None else col_names
         frame_list = np.ones((np.shape(tracked_data)[0], 1)) * frame
         tracked_data = np.concatenate((tracked_data, frame_list), axis=1)
-        column_names.append('frame')
+        col_names.append('frame')
 
         data_dict = {name: tracked_data[:, i]
-                     for i, name in enumerate(column_names)}
+                     for i, name in enumerate(col_names)}
         new_particles = pd.DataFrame(
             data_dict, index=np.arange(1, np.shape(tracked_data)[0] + 1))
 
