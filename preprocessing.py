@@ -1,6 +1,12 @@
 import cv2
 import numpy as np
-from Generic import images, video
+from Generic import images
+
+"""
+Additional processing methods should be added under if statements in process.
+To call the new method its name should be added to the methods list.
+Any parameters for new methods should come from the parameters dictionary.
+"""
 
 
 class Preprocessor:
@@ -15,8 +21,10 @@ class Preprocessor:
     parameters : dict
         Contains the arguments needed for each method
 
-    crop_points : array_like
-        Contains the points which are selected when cropping.
+    crop_method : str
+        None = No crop
+        'auto' = auto crop
+        'manual' = manual crop
 
     crop : array_like
         ((xmin, ymin), (xmax, ymax)) which bounds the roi
@@ -69,7 +77,7 @@ class Preprocessor:
 
     """
 
-    def __init__(self, methods=[], parameters={}, crop_method=None):
+    def __init__(self, methods, parameters, crop_method=None):
         """
         Parameters
         ----------
@@ -82,7 +90,7 @@ class Preprocessor:
             A dictionary containing all the parameters needed for functions.
             If None, methods will use their default parameters
 
-        crop: str or None:
+        crop_method: str or None:
             If None then no crop takes place
             If 'auto' then uses auto crop function
             If 'manual' then uses manual crop function
@@ -102,7 +110,7 @@ class Preprocessor:
         """
         Manipulates an image using class methods.
 
-        The order of the methods is described by self.method_order.
+        The order of the methods is described by self.methods
 
         Parameters
         ----------
@@ -114,13 +122,11 @@ class Preprocessor:
         new_frame: numpy array
             uint8 numpy array containing the new image
 
-        cropped_frame: numpy array
-            uint8 numpy array containing the cropped and masked image
-
         self.boundary: numpy array
             Contains information about the boundary points
         """
 
+        # Find the crop for the first frame
         if self.calls == 0:
             if self.crop_method == 'auto':
                 self.crop, self.mask_img, self.boundary = \
@@ -131,10 +137,14 @@ class Preprocessor:
             elif self.crop_method is None:
                 pass
 
+        # Perform the crop for every frame
         if self.crop_method is not None:
             cropped_frame = self._crop_and_mask(~frame)
             new_frame = images.bgr_2_grayscale(~cropped_frame)
+        else:
+            new_frame = images.bgr_2_grayscale(frame)
 
+        # Perform each method in the method list
         for method in self.methods:
 
             if method == 'opening':
