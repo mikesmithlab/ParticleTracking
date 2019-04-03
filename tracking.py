@@ -21,7 +21,7 @@ class ParticleTracker:
 
     Attributes
     ----------
-    video_filename : str
+    input_filename : str
         Contains path of the input video
     filename: str
         Contains path of the input video without extension
@@ -67,9 +67,8 @@ class ParticleTracker:
             'auto': Automatically crop around blue hexagon
             'manual': Manually select cropping points
         """
-
         self.filename = os.path.splitext(filename)[0]
-        self.video_filename = self.filename + '.MP4'
+        self.input_filename = filename
         self.data_filename = self.filename + '.hdf5'
         self.parameters = parameters
         self.exp = parameters['experiment']
@@ -111,14 +110,14 @@ class ParticleTracker:
         self.duty_cycle: ndarray
             duty cycles for each frame in the video
         """
-        cap = video.ReadVideo(self.video_filename)
+        cap = video.ReadVideo(self.input_filename)
         self.frame_jump_unit = cap.num_frames // self.num_processes
         self.fps = cap.fps
         frame = cap.read_next_frame()
         new_frame, _ = self.ip.process(frame)
         self.width, self.height = images.get_width_and_height(new_frame)
         if self.exp == 'James':
-            self.duty_cycle = read_audio_file(self.video_filename,
+            self.duty_cycle = read_audio_file(self.input_filename,
                                               cap.num_frames)
 
     def _track_process(self, group_number):
@@ -138,7 +137,7 @@ class ParticleTracker:
         data = dataframes.DataStore(data_name)
 
         # Load the video and set to the start point
-        cap = video.ReadVideo(self.video_filename)
+        cap = video.ReadVideo(self.input_filename)
         frame_no_start = self.frame_jump_unit * group_number
         cap.set_frame(frame_no_start)
 
