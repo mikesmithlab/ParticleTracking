@@ -69,7 +69,7 @@ class Preprocessor:
 
     """
 
-    def __init__(self, methods=[], parameters={}, auto_crop=False):
+    def __init__(self, methods=[], parameters={}, crop_method=None):
         """
         Parameters
         ----------
@@ -82,16 +82,20 @@ class Preprocessor:
             A dictionary containing all the parameters needed for functions.
             If None, methods will use their default parameters
 
-        crop_points: array_like, optional
-            shape (N, 2) containing the points selected by the crop.
-            Give this parameter to skip the manual cropping step
+        crop: str or None:
+            If None then no crop takes place
+            If 'auto' then uses auto crop function
+            If 'manual' then uses manual crop function
         """
+
+        self.crop_method = crop_method
+        self.methods = methods
+        self.parameters = parameters
 
         self.mask_img = np.array([])
         self.crop = []
-        self.auto_crop = auto_crop
-        self.methods = methods
-        self.parameters = parameters
+        self.boundary = None
+
         self.calls = 0
 
     def process(self, frame):
@@ -118,14 +122,18 @@ class Preprocessor:
         """
 
         if self.calls == 0:
-            if self.auto_crop:
+            if self.crop_method == 'auto':
                 self.crop, self.mask_img, self.boundary = \
                     find_auto_crop_and_mask(frame)
-            else:
+            elif self.crop_method == 'manual':
                 self.crop, self.mask_img, self.boundary = \
                     find_manual_crop_and_mask(frame)
-        cropped_frame = self._crop_and_mask(~frame)
-        new_frame = images.bgr_2_grayscale(~cropped_frame)
+            elif self.crop_method is None:
+                pass
+
+        if self.crop_method is not None:
+            cropped_frame = self._crop_and_mask(~frame)
+            new_frame = images.bgr_2_grayscale(~cropped_frame)
 
         for method in self.methods:
 

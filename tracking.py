@@ -3,9 +3,8 @@ import numpy as np
 import trackpy as tp
 import multiprocessing as mp
 from Generic import video, images, audio
-from ParticleTracking import preprocessing, dataframes, annotation
+from ParticleTracking import preprocessing, dataframes
 import matplotlib.path as mpath
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 from numba import jit
 
@@ -45,16 +44,17 @@ class ParticleTracker:
                  methods,
                  parameters,
                  multiprocess=False,
-                 auto_crop=False):
+                 crop_method=None):
 
         self.filename = os.path.splitext(filename)[0]
         self.video_filename = self.filename + '.MP4'
         self.data_filename = self.filename + '.hdf5'
         self.parameters = parameters
+        self.exp = parameters['experiment']
         self.multiprocess = multiprocess
         self.num_processes = mp.cpu_count() // 2 if self.multiprocess else 1
         self.ip = preprocessing.Preprocessor(
-            methods, self.parameters, auto_crop)
+            methods, self.parameters, crop_method)
 
     def track(self):
         self._get_video_info()
@@ -67,9 +67,6 @@ class ParticleTracker:
         np.savetxt(self.filename+'.txt', crop)
 
     def _track_multiprocess(self):
-        """Call this to start tracking"""
-        # self.extension = "mp4"
-        # self.fourcc = "mp4v"
         p = mp.Pool(self.num_processes)
         p.map(self._track_process, range(self.num_processes))
         self._cleanup_intermediate_dataframes()
@@ -77,12 +74,14 @@ class ParticleTracker:
     def _get_video_info(self):
         """From the video reads properties for other methods"""
         cap = video.ReadVideo(self.video_filename)
-        self.duty_cycle = read_audio_file(self.video_filename, cap.num_frames)
         self.frame_jump_unit = cap.num_frames // self.num_processes
         self.fps = cap.fps
         frame = cap.read_next_frame()
         new_frame, _ = self.ip.process(frame)
         self.width, self.height = images.get_width_and_height(new_frame)
+        if self.exp == 'James':
+            self.duty_cycle = read_audio_file(self.video_filename,
+                                              cap.num_frames)
 
     def _track_process(self, group_number):
         data_name = (str(group_number)+'.hdf5'
@@ -93,6 +92,12 @@ class ParticleTracker:
         cap.set_frame(frame_no_start)
         for f in tqdm(range(self.frame_jump_unit)):
             frame = cap.read_next_frame()
+            data = self._analyse_frame(frame, frame_no_start + f, data)
+        data.save()
+        cap.close()
+
+    def _analyse_frame(self, frame, frame_no, data):
+        if self.exp == 'James':
             new_frame, boundary = self.ip.process(frame)
             circles = images.find_circles(
                 new_frame,
@@ -103,10 +108,12 @@ class ParticleTracker:
                 self.parameters['max_rad'])
             circles = get_points_inside_boundary(circles, boundary)
             circles = check_circles_bg_color(circles, new_frame)
-            data.add_tracking_data(frame_no_start + f, circles)
-            data.add_boundary_data(frame_no_start + f, boundary)
-        data.save()
-        cap.close()
+            data.add_tracking_data(frame_no, circles)
+            data.add_boundary_data(frame_no, boundary)
+        elif self.exp == 'Mike Bacteria':
+            'Do something similar'
+            pass
+        return data
 
     def _cleanup_intermediate_dataframes(self):
         """Concatenates and removes intermediate dataframes"""
@@ -121,7 +128,8 @@ class ParticleTracker:
         """Implements the trackpy functions link_df and filter_stubs"""
         data_store = dataframes.DataStore(self.data_filename,
                                           load=True)
-        data_store.add_frame_property('Duty', self.duty_cycle)
+        if self.exp == 'James':
+            data_store.add_frame_property('Duty', self.duty_cycle)
         data_store.particle_data = tp.link_df(
                 data_store.particle_data,
                 self.parameters['max frame displacement'],
