@@ -1,13 +1,13 @@
 # ParticleTracking
 
-This is a repository for all the code used to track the particles, calculate statistics and produce results. It contains the following modules:
+This repository is used for locating and tracking a variety of particles and then for subsequent analysis of their motion.
 
-- annotation --> Contains classes which annotate videos and images for analysis.
-- dataframes --> Contains classes which store pandas dataframes with simplified methods.
-- graphs --> Contains classes to plot graphs of results.
-- network_calculations --> Contains classes to calculate properties from the network.
-- particle_tracking --> Contains classes to track the particles.
-- preprocess --> Contains classes to perform preprocessing of videos and images before tracking.
-- statistics_calculations --> Contains classes to calculate statistics from tracking results.
-
-
+- annotation --> For adding annotations to video files
+    - Class VideoAnnotator
+- dataframes --> Managing DataStores containing dataframes to record data
+    - particle_data : contains information for every particle in every frame
+    - frame_data : contains ensemble data for each frame
+- graphs --> Contains classes to plot graphs of results. - Working progress - Contains bad functions.
+- tracking --> Tracks particles in a video
+- preprocessing --> Processes each frame before tracking takes place 
+- statistics --> Functions to perform common analysis on the tracking data
