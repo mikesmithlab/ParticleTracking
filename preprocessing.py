@@ -122,7 +122,7 @@ class Preprocessor:
         new_frame: numpy array
             uint8 numpy array containing the new image
 
-        self.boundary: numpy array
+        boundary: numpy array
             Contains information about the boundary points
         """
 
@@ -213,6 +213,9 @@ class Preprocessor:
 
             elif method == 'distance':
                 new_frame = images.distance_transform(new_frame)
+
+            elif method == 'resize':
+                new_frame = images.resize(new_frame, 50)
 
             else:
                 print("method is not defined")

@@ -44,7 +44,8 @@ class ParticleTracker:
                  methods,
                  parameters,
                  multiprocess=False,
-                 crop_method=None):
+                 crop_method=None,
+                 show_debug=False):
         """
 
         Parameters
@@ -76,6 +77,7 @@ class ParticleTracker:
         self.num_processes = mp.cpu_count() // 2 if self.multiprocess else 1
         self.ip = preprocessing.Preprocessor(
             methods, self.parameters, crop_method)
+        self.debug = show_debug
 
     def track(self):
         """Call this to start tracking"""
@@ -174,9 +176,10 @@ class ParticleTracker:
                 self.parameters['p_2'],
                 self.parameters['min_rad'],
                 self.parameters['max_rad'])
+            if self.debug: debug(new_frame, circles)
             circles = get_points_inside_boundary(circles, boundary)
-            circles = check_circles_bg_color(circles, new_frame)
-
+            circles = check_circles_bg_color(circles, new_frame, 150)
+            if self.debug: debug(new_frame, circles)
             # Add info to dataframes
             data.add_tracking_data(frame_no, circles)
             data.add_boundary_data(frame_no, boundary)
@@ -215,6 +218,11 @@ class ParticleTracker:
         data_store.save()
 
 
+def debug(frame, circles):
+    frame = images.draw_circles(images.stack_3(frame), circles)
+    images.display(frame)
+
+
 def get_points_inside_boundary(points, boundary):
     """
     Returns the points from an array of input points inside boundary
@@ -245,7 +253,7 @@ def get_points_inside_boundary(points, boundary):
 
 
 @jit
-def check_circles_bg_color(circles, image):
+def check_circles_bg_color(circles, image, threshold):
     """
     Checks the color of circles in an image and returns white ones
 
@@ -273,7 +281,7 @@ def check_circles_bg_color(circles, image):
         im = image[y0:y1, x0:x1]
         all_circles[0:im.shape[0], :im.shape[1], i] = im
     circle_mean_0 = np.mean(all_circles, axis=(0, 1))
-    out = circles[circle_mean_0 > 200, :]
+    out = circles[circle_mean_0 > threshold, :]
     return out
 
 

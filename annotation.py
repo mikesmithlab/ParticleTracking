@@ -73,7 +73,7 @@ class VideoAnnotator:
             frame = cap.read_frame_bytes()
             surface = pygame.image.fromstring(
                 frame, (cap.width, cap.height), 'RGB')
-            info = self.td.get_info(f, ['x', 'y', 'size', parameter])
+            info = self.td.get_info(f, ['x', 'y', 'r', parameter])
 
             for xi, yi, r, param in info:
                 if parameter == 'particle':

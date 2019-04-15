@@ -9,6 +9,6 @@ NITRILE_BEADS_PARAMETERS = {
     'min_rad': 13,
     'max_rad': 14,
     'max frame displacement': 10,
-    'min frame life': 50,
+    'min frame life': 5,
     'memory': 3
     }

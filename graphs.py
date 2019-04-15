@@ -5,6 +5,7 @@ import scipy.signal as signal
 import scipy.optimize as optimize
 from Generic import filedialogs, fitting
 
+
 class FigureMaker:
 
     def __init__(self, filename):
