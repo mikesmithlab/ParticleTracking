@@ -290,3 +290,14 @@ def read_audio_file(file, frames):
     freqs = audio.frame_frequency(wav_l, frames, 48000)
     d = (freqs - 1000)/2
     return d
+
+
+if __name__ == "__main__":
+    from Generic import filedialogs
+    from ParticleTracking import configurations
+
+    file = filedialogs.load_filename()
+    params = configurations.NITRILE_BEADS_PARAMETERS
+
+    pt = ParticleTracker(file, params)
+    pt.track()
