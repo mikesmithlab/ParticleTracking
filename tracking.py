@@ -41,7 +41,6 @@ class ParticleTracker:
 
     def __init__(self,
                  filename,
-                 methods,
                  parameters,
                  multiprocess=False,
                  crop_method=None,
@@ -75,8 +74,7 @@ class ParticleTracker:
         self.exp = parameters['experiment']
         self.multiprocess = multiprocess
         self.num_processes = mp.cpu_count() // 2 if self.multiprocess else 1
-        self.ip = preprocessing.Preprocessor(
-            methods, self.parameters, crop_method)
+        self.ip = preprocessing.Preprocessor(self.parameters, crop_method)
         self.debug = show_debug
 
     def track(self):
