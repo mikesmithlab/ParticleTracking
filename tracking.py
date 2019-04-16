@@ -292,3 +292,12 @@ def read_audio_file(file, frames):
     freqs = audio.frame_frequency(wav_l, frames, 48000)
     d = (freqs - 1000)/2
     return d
+
+if __name__ == '__main__':
+    from Generic.filedialogs import load_filename
+    from ParticleTracking import configurations
+    filename = load_filename()
+
+    configurations.
+
+    pt = ParticleTracker()
