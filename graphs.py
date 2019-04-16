@@ -6,6 +6,8 @@ import scipy.optimize as optimize
 from Generic import filedialogs, fitting
 
 
+## MOVE REMAINING METHODS INTO EXPERIMENT SCRIPTS
+
 class FigureMaker:
 
     def __init__(self, filename):
@@ -59,6 +61,7 @@ class FigureMaker:
         plotter.config_axes(0, xlabel='r/$\sigma$', ylabel='$G_6(r)$', xscale='log', yscale='log')
         plotter.show()
 
+
 def plot_shape_factor_histogram(filename, frame):
     datastore = dataframes.DataStore(filename, load=True)
     shape_factors = datastore.get_info(frame, ['shape factor'])
@@ -66,61 +69,6 @@ def plot_shape_factor_histogram(filename, frame):
     plt.figure()
     plt.plot(bins[:-1], n, 'x')
     plt.show()
-
-def polar_histogram(bins, data, y_err=None, filename=None):
-    fig = plt.figure()
-    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
-    width = bins[1] - bins[0]
-    bars = ax.bar(bins[:-1], data, width=width, bottom=0.0, align='edge',
-                  yerr=y_err)
-    if filename is not None:
-        plt.savefig(filename)
-
-class Plotter:
-
-    def __init__(self, nrows=1, ncols=1, figsize=(8, 4)):
-        self.nrows = nrows
-        self.ncols = ncols
-        self.fig, self.ax = plt.subplots(nrows=nrows, ncols=ncols,
-                                         figsize=figsize)
-        if (nrows*ncols) == 1:
-            self.ax = [self.ax]
-
-        if (nrows > 1) and (ncols > 1):
-            self.ax = self.ax.flatten()
-
-    def add_scatter(self, subplot, xdata, ydata):
-        self.ax[subplot].errorbar(xdata, ydata)
-
-    def add_bar(self, subplot, xdata, ydata, yerr=None):
-        self.ax[subplot].bar(xdata, ydata, yerr=yerr,
-                             width=xdata[1]-xdata[0], align='edge')
-
-    def add_polar_bar(self, subplot, xdata, ydata, yerr=None):
-        self.ax[subplot] = plt.subplot(self.nrows, self.ncols, subplot+1, polar=True)
-        self.ax[subplot].bar(xdata, ydata, yerr=yerr,
-                             width=xdata[1]-xdata[0], align='edge')
-
-    def add_hexbin(self, subplot, xdata, ydata, gridsize=100, mincnt=0):
-        self.ax[subplot].hexbin(xdata, ydata, gridsize=gridsize, mincnt=mincnt)
-
-    def show(self):
-        plt.show()
-
-    def config_axes(self, subplot=0, xlabel=None, ylabel=None, legend=None, title=None, xscale='linear', yscale='linear'):
-        self.ax[subplot].set_xlabel(xlabel)
-        self.ax[subplot].set_ylabel(ylabel)
-        if legend is not None:
-            self.ax[subplot].legend(legend)
-        self.ax[subplot].set_title(title)
-        self.ax[subplot].set_xscale(xscale)
-        self.ax[subplot].set_yscale(yscale)
-
-    def config_subplots(self, left=None, bottom=None, right=None, top=None, wspace=None, hspace=None):
-        self.fig.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-
-    def save(self, filename):
-        self.fig.savefig(filename)
 
 
 def scatter(xdata, ydata, xerr=None, yerr=None, xlabel=None, ylabel=None,
@@ -218,10 +166,16 @@ if __name__ == "__main__":
     # plot_shape_factor_histogram("/home/ppxjd3/Videos/liquid_data.hdf5", 0)
     # filename = filedialogs.load_filename('Load a plotting dataframe', remove_ext=True)
     # filename = "/home/ppxjd3/Videos/down/down.MP4"
-    filename = "/home/ppxjd3/Videos/Solid/grid"
+    # filename = "/home/ppxjd3/Videos/Solid/grid"
     # # filename = "/home/ppxjd3/Videos/grid/grid_plot_data.hdf5"
     # fig_maker = FigureMaker(filename)
     # # fig_maker.plot_level_checks()
     # fig_maker.plot_orientational_correlation()
     # correlation_fitter(filename)
-    plot_correlations(filename, 1)
+    # plot_correlations(filename, 1)
+    graph = Plotter(2, 2)
+    x = np.arange(1, 10)
+    y = x * 2
+    graph.add_scatter(0, x, y)
+    graph.add_bar(1, x, y)
+    graph.show()

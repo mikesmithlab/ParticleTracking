@@ -302,6 +302,7 @@ class PlotData:
 
 
 class CorrData:
+    """Dataframe to save data from spatial and orientational correlations"""
 
     def __init__(self, filename):
         self.filename = os.path.splitext(filename)[0]+'_corr.hdf5'
@@ -347,16 +348,16 @@ class CorrData:
         return self.df.loc[frame, label].values
 
 if __name__ == "__main__":
-    from Generic import filedialogs
-    filename = filedialogs.load_filename(
-        'Select a dataframe',
-        directory="/home/ppxjd3/Videos",
-        file_filter='*.hdf5')
-    # data = DataStore(filename, load=True)
-    # data.inspect_dataframes()
+    # from Generic import filedialogs
+    # filename = filedialogs.load_filename(
+    #     'Select a dataframe',
+    #     directory="/home/ppxjd3/Videos",
+    #     file_filter='*.hdf5')
+    # # data = DataStore(filename, load=True)
+    # # data.inspect_dataframes()
     data1 = np.arange(0, 10)
-    corr = CorrData(filename)
+    corr = CorrData('test')
     corr.add_row(data1, 0, 'a')
     corr.add_row(data1 ** 2, 0, 'b')
     corr.add_row(data1 * 3 + 1, 1, 'a')
-    # print(corr.df.head())
+    print(corr.df.head())
