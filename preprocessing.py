@@ -77,7 +77,7 @@ class Preprocessor:
 
     """
 
-    def __init__(self, methods, parameters, crop_method=None):
+    def __init__(self, parameters, crop_method=None):
         """
         Parameters
         ----------
@@ -97,7 +97,6 @@ class Preprocessor:
         """
 
         self.crop_method = crop_method
-        self.methods = methods
         self.parameters = parameters
 
         self.mask_img = np.array([])
@@ -145,7 +144,7 @@ class Preprocessor:
             new_frame = images.bgr_2_grayscale(frame)
 
         # Perform each method in the method list
-        for method in self.methods:
+        for method in self.parameters['method']:
 
             if method == 'opening':
                 kernel = self.parameters['opening kernel']
