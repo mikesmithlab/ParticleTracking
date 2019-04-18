@@ -17,9 +17,9 @@ class PropertyCalculator:
         self.core_name = os.path.splitext(self.td.filename)[0]
 
     def order(self):
-        orders_complex = np.array([])
-        orders_abs = np.array([])
-        no_of_neighbors = np.array([])
+        orders_complex = []
+        orders_abs = []
+        no_of_neighbors = []
         frame_order = []
         frame_sus = []
         for n in tqdm(range(self.td.num_frames), 'Order'):
@@ -28,10 +28,10 @@ class PropertyCalculator:
 
             orders_r = np.abs(orders)
 
-            orders_complex = np.append(orders_complex, orders)
-            orders_abs = np.append(orders_abs, orders_r)
+            orders_complex.extend(list(orders))
+            orders_abs.extend(list(orders_r))
 
-            no_of_neighbors = np.append(no_of_neighbors, neighbors)
+            no_of_neighbors.extend(list(neighbors))
 
             frame_order.append(np.mean(orders_r))
             frame_sus.append(np.var(orders_r))
