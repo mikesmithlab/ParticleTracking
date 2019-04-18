@@ -3,7 +3,8 @@ import scipy.spatial as sp
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
-from math import pi
+from math import pi, sqrt
+import cv2
 
 
 def calculate(particles, boundary):
@@ -11,10 +12,11 @@ def calculate(particles, boundary):
     vor = sp.Voronoi(particles[:, :2])
     regions, vertices = voronoi_finite_polygons_2d(vor)
     inside = find_points_inside(vertices, boundary)
+    vertices = np.float32(vertices)
     polygons, on_edge = get_polygons(regions, vertices, inside)
     polygons = intersect_all_polygons(polygons, boundary, on_edge)
     area, shape_factor = area_and_shapefactor(polygons)
-    # plot_polygons(polygons)
+    plot_polygons(polygons)
     return area, shape_factor, on_edge
 
 
@@ -109,19 +111,16 @@ def find_points_inside(vertices, boundary):
 
 
 def get_polygons(regions, vertices, inside):
-    polygons = [Polygon(vertices[r]) for r in regions]
     on_edge = [not all(inside[r]) for r in regions]
+    polygons = [Polygon(vertices[r]) if edge else SimplePolygon(vertices[r])
+                for r, edge in zip(regions, on_edge)]
     return polygons, on_edge
 
 
 def intersect_all_polygons(polygons, boundary, on_edge):
-    new_polygons = []
-    for i, poly in enumerate(polygons):
-        if on_edge[i]:
-            new_polygons.append(poly.intersection(boundary))
-        else:
-            new_polygons.append(poly)
-    return new_polygons
+    return [poly.intersection(boundary) if edge else poly
+            for poly, edge in zip(polygons, on_edge)]
+
 
 
 def area_and_shapefactor(polygons):
@@ -136,3 +135,9 @@ def plot_polygons(polygons):
         coords = np.array(poly.exterior.coords)
         plt.fill(coords[:, 0], coords[:, 1])
     plt.show()
+
+
+class SimplePolygon:
+    def __init__(self, vertices):
+        self.area = cv2.contourArea(vertices)
+        self.length = cv2.arcLength(vertices, True)
