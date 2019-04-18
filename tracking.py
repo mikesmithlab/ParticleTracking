@@ -111,7 +111,7 @@ class ParticleTracker:
             duty cycles for each frame in the video
         """
         cap = video.ReadVideo(self.input_filename)
-        self.frame_jump_unit = cap.num_frames // self.num_processes
+        self.frame_div = cap.num_frames // self.num_processes
         self.fps = cap.fps
         frame = cap.read_next_frame()
         new_frame, _ = self.ip.process(frame)
@@ -138,13 +138,13 @@ class ParticleTracker:
 
         # Load the video and set to the start point
         cap = video.ReadVideo(self.input_filename)
-        frame_no_start = self.frame_jump_unit * group_number
-        cap.set_frame(frame_no_start)
+        start = self.frame_div * group_number
 
         # Iterate over frames
-        for f in tqdm(range(self.frame_jump_unit)):
-            frame = cap.read_next_frame()
-            data = self._analyse_frame(frame, frame_no_start + f, data)
+        for f, frame in tqdm(
+                enumerate(cap.frames(start, self.frame_div)),
+                total=self.frame_div):
+            data = self._analyse_frame(frame, start + f, data)
         data.save()
         cap.close()
 
