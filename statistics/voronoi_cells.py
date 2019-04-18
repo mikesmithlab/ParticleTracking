@@ -6,6 +6,7 @@ from math import pi, sqrt
 import cv2
 import pyclipper
 
+
 def calculate(particles, boundary):
     # boundary = Polygon(boundary)
     vor = sp.Voronoi(particles[:, :2])
@@ -112,8 +113,6 @@ def find_points_inside(vertices, boundary):
 
 def get_polygons(regions, vertices, inside):
     on_edge = [not all(inside[r]) for r in regions]
-    # polygons = [Polygon(vertices[r]) if edge else SimplePolygon(vertices[r])
-    #             for r, edge in zip(regions, on_edge)]
     polygons = [SimplePolygon(vertices[r]) for r in regions]
     return polygons, on_edge
 
