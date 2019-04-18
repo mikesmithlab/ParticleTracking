@@ -1,4 +1,3 @@
-from shapely.geometry import Polygon, Point
 import scipy.spatial as sp
 import numpy as np
 import matplotlib.pyplot as plt
