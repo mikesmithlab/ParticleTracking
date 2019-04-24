@@ -134,7 +134,7 @@ class ParticleTracker:
         # Create the DataStore instance
         data_name = (str(group_number)+'.hdf5'
                      if self.multiprocess else self.data_filename)
-        data = dataframes.DataStore(data_name)
+        data = dataframes.DataStore(data_name, load=False)
 
         # Load the video and set to the start point
         cap = video.ReadVideo(self.input_filename)

@@ -45,7 +45,7 @@ class DataStore:
         Gets the boundary info for a given frame
     """
 
-    def __init__(self, filename, load=False):
+    def __init__(self, filename, load=True):
         self.particle_data = pd.DataFrame()
         self.boundary_data = pd.DataFrame()
         self.frame_data = pd.DataFrame()
@@ -348,16 +348,10 @@ class CorrData:
         return self.df.loc[frame, label].values
 
 if __name__ == "__main__":
-    # from Generic import filedialogs
-    # filename = filedialogs.load_filename(
-    #     'Select a dataframe',
-    #     directory="/home/ppxjd3/Videos",
-    #     file_filter='*.hdf5')
-    # # data = DataStore(filename, load=True)
-    # # data.inspect_dataframes()
-    data1 = np.arange(0, 10)
-    corr = CorrData('test')
-    corr.add_row(data1, 0, 'a')
-    corr.add_row(data1 ** 2, 0, 'b')
-    corr.add_row(data1 * 3 + 1, 1, 'a')
-    print(corr.df.head())
+    from Generic import filedialogs
+    filename = filedialogs.load_filename(
+        'Select a dataframe',
+        directory="/home/ppxjd3/Videos",
+        file_filter='*.hdf5')
+    data = DataStore(filename, load=True)
+    data.inspect_dataframes()
