@@ -74,7 +74,7 @@ class PropertyCalculator:
 
     def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
         data = self.td.get_info(
-            frame_no, ['x', 'y', 'size', 'complex order', 'Edge Distance'])
+            frame_no, ['x', 'y', 'r', 'complex order', 'Edge Distance'])
         boundary = self.td.get_boundary(frame_no)
 
         r, g, g6 = correlations.corr(data, boundary, r_min, r_max, dr)
@@ -82,7 +82,7 @@ class PropertyCalculator:
         plt.plot(r, g)
         plt.show()
 
-        corr_data = dataframes.CorrData(self.corename)
+        corr_data = dataframes.CorrData(self.core_name)
         corr_data.add_row(r, frame_no, 'r')
         corr_data.add_row(g, frame_no, 'g')
         corr_data.add_row(g6, frame_no, 'g6')
