@@ -6,8 +6,25 @@ from Generic import images
 Additional processing methods should be added under if statements in process.
 To call the new method its name should be added to the methods list.
 Any parameters for new methods should come from the parameters dictionary.
+
+Add any methods you add to the dictionary METHODS as the key with any
+needed parameters as the items of the list.
 """
 
+METHODS = {'opening': ['opening kernel'],
+           'flip': None,
+           'threshold tozero': ['grayscale threshold'],
+           'simple threshold': ['grayscale threshold'],
+           'adaptive threshold': ['adaptive threshold block size',
+                                  'adaptive threshold C'],
+           'gaussian blur': ['blur kernel'],
+           'closing': ['closing kernel'],
+           'opening': ['opening kernel'],
+           'dilation': ['dilate kernel'],
+           'erosion': ['erode kernel'],
+           'distance': None,
+           'resize': ['resize scale']
+           }
 
 class Preprocessor:
     """
@@ -183,9 +200,6 @@ class Preprocessor:
                     new_frame,
                     kernel=(kernel, kernel))
 
-            elif method == 'distance transform':
-                new_frame = images.distance_transform(new_frame)
-
             elif method == 'closing':
                 kernel = self.parameters['closing kernel'][0]
                 kernel_arr = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,
@@ -217,7 +231,8 @@ class Preprocessor:
                 new_frame = images.distance_transform(new_frame)
 
             elif method == 'resize':
-                new_frame = images.resize(new_frame, 50)
+                new_frame = images.resize(new_frame,
+                                          self.parameters['resize scale'])
 
             else:
                 print(method)

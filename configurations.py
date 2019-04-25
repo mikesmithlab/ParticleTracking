@@ -1,10 +1,20 @@
 """
-Add methods and parameters for different systems here
+Add configuration dictionaries for your methodology here.
+
+Each dictionary MUST contain the following keys:
+    'crop method': 'blue hex' or 'manual' or None
+    'method' : tuple of keys from the printout of this file
+    'number of tray sides': if crop method is manual
+    'max frame displacement' : trackpy
+    'min frame life' : trackpy
+    'memory' : trackpy
+
+The trackpy keys can be ignored if the _link_trajectories method is overwritten
 
 Dictionary items with parameters than can be controlled in a gui should
 be lists with items [initial, start, stop, step]
 
-method should be a tuple so it isn't parsed by the gui
+Run this file to print out the possible options for the method key.
 """
 
 
@@ -37,3 +47,9 @@ EXAMPLE_CHILD_PARAMETERS = {
     'memory': 3,
     'grayscale threshold': [50, 0, 255, 1]
 }
+
+
+if __name__ == "__main__":
+    from ParticleTracking import preprocessing
+    for key in preprocessing.METHODS:
+        print(key, ':',preprocessing.METHODS[key])
