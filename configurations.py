@@ -1,4 +1,14 @@
-"""Add methods and parameters for different systems here"""
+"""
+Add methods and parameters for different systems here
+
+Dictionary items with parameters than can be controlled in a gui should
+be lists with items [initial, start, stop, step]
+
+method should be a tuple so it isn't parsed by the gui
+"""
+
+
+
 NITRILE_BEADS_PARAMETERS = {
     'crop method': 'blue hex',
     'method': ('flip',),
