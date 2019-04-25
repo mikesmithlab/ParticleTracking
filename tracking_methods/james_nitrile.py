@@ -23,11 +23,11 @@ class JamesPT(ParticleTracker):
         new_frame, boundary = self.ip.process(frame)
         circles = images.find_circles(
             new_frame,
-            self.parameters['min_dist'],
-            self.parameters['p_1'],
-            self.parameters['p_2'],
-            self.parameters['min_rad'],
-            self.parameters['max_rad'])
+            self.parameters['min_dist'][0],
+            self.parameters['p_1'][0],
+            self.parameters['p_2'][0],
+            self.parameters['min_rad'][0],
+            self.parameters['max_rad'][0])
         circles = get_points_inside_boundary(circles, boundary)
         circles = check_circles_bg_color(circles, new_frame, 150)
         return circles, boundary, ['x', 'y', 'r']

@@ -103,6 +103,9 @@ class Preprocessor:
 
         self.calls = 0
 
+    def update_parameters(self, parameters):
+        self.parameters = parameters
+
     def process(self, frame):
         """
         Manipulates an image using class methods.
@@ -145,7 +148,7 @@ class Preprocessor:
         for method in self.parameters['method']:
 
             if method == 'opening':
-                kernel = self.parameters['opening kernel']
+                kernel = self.parameters['opening kernel'][0]
                 new_frame = images.opening(
                     new_frame,
                     kernel=(kernel, kernel))
@@ -154,26 +157,26 @@ class Preprocessor:
                 new_frame = ~new_frame
 
             elif method == 'threshold tozero':
-                threshold = self.parameters['grayscale threshold']
+                threshold = self.parameters['grayscale threshold'][0]
                 new_frame = images.threshold(
                     new_frame, threshold, cv2.THRESH_TOZERO)
 
             elif method == 'simple threshold':
-                threshold = self.parameters['grayscale threshold']
+                threshold = self.parameters['grayscale threshold'][0]
                 new_frame = images.threshold(
                     new_frame,
                     threshold)
 
             elif method == 'adaptive threshold':
-                block = self.parameters['adaptive threshold block size']
-                const = self.parameters['adaptive threshold C']
+                block = self.parameters['adaptive threshold block size'][0]
+                const = self.parameters['adaptive threshold C'][0]
                 new_frame = images.adaptive_threshold(
                     new_frame,
                     block_size=block,
                     constant=const)
 
             elif method == 'gaussian blur':
-                kernel = self.parameters['blur kernel']
+                kernel = self.parameters['blur kernel'][0]
                 new_frame = images.gaussian_blur(
                     new_frame,
                     kernel=(kernel, kernel))
@@ -182,7 +185,7 @@ class Preprocessor:
                 new_frame = images.distance_transform(new_frame)
 
             elif method == 'closing':
-                kernel = self.parameters['closing kernel']
+                kernel = self.parameters['closing kernel'][0]
                 kernel_arr = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,
                                                        (kernel, kernel))
                 new_frame = images.closing(
@@ -190,20 +193,20 @@ class Preprocessor:
                     kernel=kernel_arr)
 
             elif method == 'opening':
-                kernel = self.parameters['opening kernel']
+                kernel = self.parameters['opening kernel'][0]
                 new_frame = images.opening(
                     new_frame,
                     kernel=(kernel, kernel),
                     kernel_type=cv2.MORPH_ELLIPSE)
 
             elif method == 'dilation':
-                kernel = self.parameters['dilate kernel']
+                kernel = self.parameters['dilate kernel'][0]
                 new_frame = images.dilate(
                     new_frame,
                     kernel=(kernel, kernel))
 
             elif method == 'erosion':
-                kernel = self.parameters['erode kernel']
+                kernel = self.parameters['erode kernel'][0]
                 new_frame = images.erode(
                     new_frame,
                     kernel=(kernel, kernel))

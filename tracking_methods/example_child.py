@@ -21,10 +21,11 @@ class ExampleChild(ParticleTracker):
         multiprocess: bool
             If true performs tracking on multiple cores
         """
+        self.tracking = tracking
         self.parameters = configurations.NITRILE_BEADS_PARAMETERS
         self.ip = preprocessing.Preprocessor(self.parameters)
         self.input_filename = filename
-        if tracking:
+        if self.tracking:
             ParticleTracker.__init__(self, multiprocess=multiprocess)
         else:
             self.cap = video.ReadVideo(self.input_filename)
@@ -32,6 +33,8 @@ class ExampleChild(ParticleTracker):
     def _analyse_frame(self):
         """
         Change steps in this method.
+
+        This is done every frame
 
         Returns
         -------
@@ -47,21 +50,30 @@ class ExampleChild(ParticleTracker):
         new_frame, boundary = self.ip.process(frame)
         info = images.find_circles(
             new_frame,
-            self.parameters['min_dist'],
-            self.parameters['p_1'],
-            self.parameters['p_2'],
-            self.parameters['min_rad'],
-            self.parameters['max_rad'])
+            self.parameters['min_dist'][0],
+            self.parameters['p_1'][0],
+            self.parameters['p_2'][0],
+            self.parameters['min_rad'][0],
+            self.parameters['max_rad'][0])
         info_headings = ['x', 'y', 'r']
-        return info, boundary, info_headings
+        if self.tracking:
+            return info, boundary, info_headings
+        else:
+            return frame, new_frame
 
     def extra_steps(self):
         """
         Add extra steps here which can be performed after tracking.
 
-        Accepts no arguments and cannot return
+        Accepts no arguments and cannot return.
+
+        This is done once.
         """
         pass
+
+    def update_parameters(self, parameters):
+        self.parameters = parameters
+        self.ip.update_parameters(self.parameters)
 
 
 if __name__ == "__main__":
