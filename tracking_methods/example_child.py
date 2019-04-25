@@ -22,15 +22,16 @@ class ExampleChild(ParticleTracker):
             If true performs tracking on multiple cores
         """
         self.tracking = tracking
-        self.parameters = configurations.NITRILE_BEADS_PARAMETERS
+        self.parameters = configurations.EXAMPLE_CHILD_PARAMETERS
         self.ip = preprocessing.Preprocessor(self.parameters)
         self.input_filename = filename
         if self.tracking:
             ParticleTracker.__init__(self, multiprocess=multiprocess)
         else:
             self.cap = video.ReadVideo(self.input_filename)
+            self.frame = self.cap.read_next_frame()
 
-    def _analyse_frame(self):
+    def analyse_frame(self):
         """
         Change steps in this method.
 
@@ -46,8 +47,11 @@ class ExampleChild(ParticleTracker):
             List of X strings describing the values in circles
 
         """
-        frame = self.cap.read_next_frame()
-        new_frame, boundary = self.ip.process(frame)
+        if self.tracking:
+            frame = self.cap.read_next_frame()
+        else:
+            frame = self.cap.find_frame(self.parameters['frame'][0])
+        new_frame, boundary, cropped_frame = self.ip.process(frame)
         info = images.find_circles(
             new_frame,
             self.parameters['min_dist'][0],
@@ -59,7 +63,8 @@ class ExampleChild(ParticleTracker):
         if self.tracking:
             return info, boundary, info_headings
         else:
-            return frame, new_frame
+            annotated_frame = images.draw_circles(cropped_frame, info)
+            return new_frame, annotated_frame
 
     def extra_steps(self):
         """

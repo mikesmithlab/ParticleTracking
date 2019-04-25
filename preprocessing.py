@@ -139,9 +139,11 @@ class Preprocessor:
 
         # Perform the crop for every frame
         if self.crop_method is not None:
-            cropped_frame = self._crop_and_mask(~frame)
-            new_frame = images.bgr_2_grayscale(~cropped_frame)
+            new_frame = self._crop_and_mask(~frame)
+            cropped_frame = new_frame.copy()
+            new_frame = images.bgr_2_grayscale(~new_frame)
         else:
+            cropped_frame = frame.copy()
             new_frame = images.bgr_2_grayscale(frame)
 
         # Perform each method in the method list
@@ -218,10 +220,11 @@ class Preprocessor:
                 new_frame = images.resize(new_frame, 50)
 
             else:
+                print(method)
                 print("method is not defined")
 
         self.calls += 1
-        return new_frame, self.boundary
+        return new_frame, self.boundary, cropped_frame
 
     def _crop_and_mask(self, frame):
         """

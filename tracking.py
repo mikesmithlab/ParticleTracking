@@ -115,7 +115,7 @@ class ParticleTracker:
         self.frame_div = self.num_frames // self.num_processes
         self.fps = cap.fps
         frame = cap.read_next_frame()
-        new_frame, _ = self.ip.process(frame)
+        new_frame, _, _ = self.ip.process(frame)
         self.width, self.height = images.get_width_and_height(new_frame)
 
     def _track_process(self, group_number):
@@ -139,7 +139,7 @@ class ParticleTracker:
         self.cap.set_frame(start)
         # Iterate over frames
         for f in tqdm(range(self.frame_div)):
-            info, boundary, info_headings = self._analyse_frame()
+            info, boundary, info_headings = self.analyse_frame()
             data.add_tracking_data(start+f, info, col_names=info_headings)
             data.add_boundary_data(start+f, boundary)
         data.save()
