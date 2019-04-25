@@ -78,7 +78,6 @@ def resize(frame, parameters):
 
 if __name__ == "__main__":
     """Run this to output list of functions"""
-    from ParticleTracking import preprocessing_methods as pm
     all_dir = dir(pm)
     all_functions = [a for a in all_dir if a[0] != '_']
     print(all_functions)

@@ -1,6 +1,6 @@
 from Generic import images, video, audio
 from ParticleTracking.tracking import ParticleTracker
-from ParticleTracking import configurations, preprocessing, dataframes
+from ParticleTracking import configurations, dataframes, preprocessing
 import numpy as np
 from numba import jit
 import matplotlib.path as mpath

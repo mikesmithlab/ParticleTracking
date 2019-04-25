@@ -88,5 +88,5 @@ class ExampleChild(ParticleTracker):
 if __name__ == "__main__":
     from Generic import filedialogs
     file = filedialogs.load_filename('Load a video')
-    tracker = ExampleChild(file, tracking=True, multiprocess=True)
+    tracker = ExampleChild(file, tracking=True, multiprocess=False)
     tracker.track()

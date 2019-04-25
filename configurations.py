@@ -3,7 +3,7 @@ import cv2
 Add configuration dictionaries for your methodology here.
 
 Each dictionary MUST contain the following keys:
-    'crop method': 'blue hex' or 'manual' or None
+    'crop method': method in preprocessing_crops
     'method' : tuple of keys from the printout of this file
     'number of tray sides': if crop method is manual
     'max frame displacement' : trackpy
@@ -18,11 +18,9 @@ be lists with items [initial, start, stop, step]
 Run this file to print out the possible methods in preprocessing.
 """
 
-
-
 NITRILE_BEADS_PARAMETERS = {
-    'crop method': 'blue hex',
-    'method': ('flip',),
+    'crop method': 'find_blue_hex_crop_and_mask',
+    'method': ('flip', 'crop_and_mask', 'grayscale'),
     'number of tray sides': 6,
     'min_dist': [23, 3, 51, 1],
     'p_1': [105, 0, 255, 1],
@@ -35,8 +33,8 @@ NITRILE_BEADS_PARAMETERS = {
     }
 
 EXAMPLE_CHILD_PARAMETERS = {
-    'crop method': 'blue hex',
-    'method': ('flip', 'threshold'),
+    'crop method': 'no_crop',
+    'method': ('grayscale', 'flip', 'threshold'),
     'threshold': [200, 0, 255, 1],
     'threshold mode': cv2.THRESH_BINARY,
     'number of tray sides': 6,
@@ -53,7 +51,17 @@ EXAMPLE_CHILD_PARAMETERS = {
 
 
 if __name__ == "__main__":
-    from ParticleTracking import preprocessing_methods as pm
+    from ParticleTracking.preprocessing import preprocessing_methods as pm
+    from ParticleTracking.preprocessing import preprocessing_crops as pc
+
+    all_dir = dir(pc)
+    all_functions = [a for a in all_dir if a[0] != '_']
+    print('preprocessing crops')
+    print(all_functions)
+
+    print('')
+
     all_dir = dir(pm)
     all_functions = [a for a in all_dir if a[0] != '_']
+    print('preprocessing methods')
     print(all_functions)
