@@ -1,8 +1,6 @@
-from Generic import images
+from Generic import images, video, audio
 from ParticleTracking.tracking import ParticleTracker
-from ParticleTracking import configurations
-from ParticleTracking import preprocessing
-import os
+from ParticleTracking import configurations, preprocessing, dataframes
 import numpy as np
 from numba import jit
 import matplotlib.path as mpath
@@ -11,15 +9,17 @@ import matplotlib.path as mpath
 class JamesPT(ParticleTracker):
 
     def __init__(self, filename, tracking=False, multiprocess=False):
-        self.filename = os.path.splitext(filename)[0]
+        self.tracking = tracking
         self.parameters = configurations.NITRILE_BEADS_PARAMETERS
         self.ip = preprocessing.Preprocessor(self.parameters)
-        self.exp = 'James'
         self.input_filename = filename
-        if tracking:
+        if self.tracking:
             ParticleTracker.__init__(self, multiprocess=multiprocess)
+        else:
+            self.cap = video.ReadVideo(self.input_filename)
 
-    def _analyse_frame(self, frame, frame_no, data):
+    def _analyse_frame(self):
+        frame = self.cap.read_next_frame()
         new_frame, boundary = self.ip.process(frame)
         circles = images.find_circles(
             new_frame,
@@ -30,9 +30,14 @@ class JamesPT(ParticleTracker):
             self.parameters['max_rad'])
         circles = get_points_inside_boundary(circles, boundary)
         circles = check_circles_bg_color(circles, new_frame, 150)
-        data.add_tracking_data(frame_no, circles)
-        data.add_boundary_data(frame_no, boundary)
-        return data
+        return circles, boundary, ['x', 'y', 'r']
+
+    def extra_steps(self):
+        duty_cycle = read_audio_file(self.input_filename, self.num_frames)
+        data_store = dataframes.DataStore(self.data_filename,
+                                          load=True)
+        data_store.add_frame_property('Duty', duty_cycle)
+        data_store.save()
 
 
 @jit
@@ -95,3 +100,11 @@ def get_points_inside_boundary(points, boundary):
         points_inside_index = path.contains_points(centers)
     points = points[points_inside_index, :]
     return points
+
+def read_audio_file(file, frames):
+    wav = audio.extract_wav(file)
+    wav_l = wav[:, 0]
+    # wav = audio.digitise(wav)
+    freqs = audio.frame_frequency(wav_l, frames, 48000)
+    d = (freqs - 1000)/2
+    return d
