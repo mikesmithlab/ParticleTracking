@@ -52,6 +52,8 @@ class ExampleChild(ParticleTracker):
         else:
             frame = self.cap.find_frame(self.parameters['frame'][0])
         new_frame, boundary, cropped_frame = self.ip.process(frame)
+
+        ### ONLY EDIT BETWEEN THESE COMMENTS
         info = images.find_circles(
             new_frame,
             self.parameters['min_dist'][0],
@@ -60,9 +62,11 @@ class ExampleChild(ParticleTracker):
             self.parameters['min_rad'][0],
             self.parameters['max_rad'][0])
         info_headings = ['x', 'y', 'r']
+        ### ONLY EDIT BETWEEN THESE COMMENTS
         if self.tracking:
             return info, boundary, info_headings
         else:
+            # THIS NEXT LINE CAN BE EDITED TOO
             annotated_frame = images.draw_circles(cropped_frame, info)
             return new_frame, annotated_frame
 
