@@ -69,12 +69,12 @@ class ParticleTracker:
     def track(self):
         """Call this to start tracking"""
         self._get_video_info()
-        self.save_crop()
         if self.multiprocess:
             self._track_multiprocess()
         else:
             self._track_process(0)
         self._link_trajectories()
+        self.save_crop()
         self.extra_steps()
 
     def save_crop(self):

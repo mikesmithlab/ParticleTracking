@@ -49,6 +49,7 @@ class DataStore:
         self.particle_data = pd.DataFrame()
         self.boundary_data = pd.DataFrame()
         self.frame_data = pd.DataFrame()
+        self.crop = []
         self.filename = os.path.splitext(filename)[0] + '.hdf5'
         if load:
             self._load()
@@ -72,6 +73,9 @@ class DataStore:
         """Returns the headings of `particle_data` as a list"""
         headings = self.particle_data.columns.values.tolist()
         return headings
+
+    def add_crop(self, crop):
+        self.crop = crop
 
     def fill_frame_data(self):
         if 'frame' in self.frame_data.columns.values.tolist():
@@ -206,12 +210,14 @@ class DataStore:
         store['data'] = self.particle_data
         store['boundary'] = self.boundary_data
         store['frame'] = self.frame_data
+        store['crop'] = pd.Series(self.crop)
         store.close()
 
     def _load(self):
         store = pd.HDFStore(self.filename)
         self.particle_data = store['data']
         self.boundary_data = store['boundary']
+        self.crop = store['crop'].values.tolist()
         try:
             self.frame_data = store['frame']
             print('Using stored frame_data')
@@ -270,6 +276,7 @@ def concatenate_datastore(datastore_list, new_filename):
     store_out['data'] = data_save
     store_out['boundary'] = boundaries_save
     store_out['frame'] = frame_save
+    store_out['crop'] = pd.Series()
     store_out.close()
 
 
