@@ -163,9 +163,4 @@ class ParticleTracker:
         data_store.save()
 
 
-def debug(frame, circles):
-    frame = images.draw_circles(images.stack_3(frame), circles)
-    images.display(frame)
-
-
 
