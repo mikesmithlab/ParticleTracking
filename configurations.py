@@ -1,3 +1,4 @@
+import cv2
 """
 Add configuration dictionaries for your methodology here.
 
@@ -14,7 +15,7 @@ The trackpy keys can be ignored if the _link_trajectories method is overwritten
 Dictionary items with parameters than can be controlled in a gui should
 be lists with items [initial, start, stop, step]
 
-Run this file to print out the possible options for the method key.
+Run this file to print out the possible methods in preprocessing.
 """
 
 
@@ -35,7 +36,9 @@ NITRILE_BEADS_PARAMETERS = {
 
 EXAMPLE_CHILD_PARAMETERS = {
     'crop method': 'blue hex',
-    'method': ('flip', 'simple threshold'),
+    'method': ('flip', 'threshold'),
+    'threshold': [200, 0, 255, 1],
+    'threshold mode': cv2.THRESH_BINARY,
     'number of tray sides': 6,
     'min_dist': [23, 3, 51, 1],
     'p_1': [105, 0, 255, 1],
@@ -50,6 +53,7 @@ EXAMPLE_CHILD_PARAMETERS = {
 
 
 if __name__ == "__main__":
-    from ParticleTracking import preprocessing
-    for key in preprocessing.METHODS:
-        print(key, ':',preprocessing.METHODS[key])
+    from ParticleTracking import preprocessing_methods as pm
+    all_dir = dir(pm)
+    all_functions = [a for a in all_dir if a[0] != '_']
+    print(all_functions)

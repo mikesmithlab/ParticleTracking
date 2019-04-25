@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from Generic import images
+from ParticleTracking import preprocessing_methods as pm
 
 """
 Additional processing methods should be added under if statements in process.
@@ -25,6 +26,7 @@ METHODS = {'opening': ['opening kernel'],
            'distance': None,
            'resize': ['resize scale']
            }
+
 
 class Preprocessor:
     """
@@ -153,10 +155,12 @@ class Preprocessor:
                     find_manual_crop_and_mask(frame)
             elif self.crop_method is None:
                 pass
+            self.parameters['crop'] = self.crop
+            self.parameters['mask image'] = self.mask_img
 
         # Perform the crop for every frame
         if self.crop_method is not None:
-            new_frame = self._crop_and_mask(~frame)
+            new_frame = pm.crop_and_mask(~frame, self.parameters)
             cropped_frame = new_frame.copy()
             new_frame = images.bgr_2_grayscale(~new_frame)
         else:
@@ -165,103 +169,10 @@ class Preprocessor:
 
         # Perform each method in the method list
         for method in self.parameters['method']:
-
-            if method == 'opening':
-                kernel = self.parameters['opening kernel'][0]
-                new_frame = images.opening(
-                    new_frame,
-                    kernel=(kernel, kernel))
-
-            elif method == 'flip':
-                new_frame = ~new_frame
-
-            elif method == 'threshold tozero':
-                threshold = self.parameters['grayscale threshold'][0]
-                new_frame = images.threshold(
-                    new_frame, threshold, cv2.THRESH_TOZERO)
-
-            elif method == 'simple threshold':
-                threshold = self.parameters['grayscale threshold'][0]
-                new_frame = images.threshold(
-                    new_frame,
-                    threshold)
-
-            elif method == 'adaptive threshold':
-                block = self.parameters['adaptive threshold block size'][0]
-                const = self.parameters['adaptive threshold C'][0]
-                new_frame = images.adaptive_threshold(
-                    new_frame,
-                    block_size=block,
-                    constant=const)
-
-            elif method == 'gaussian blur':
-                kernel = self.parameters['blur kernel'][0]
-                new_frame = images.gaussian_blur(
-                    new_frame,
-                    kernel=(kernel, kernel))
-
-            elif method == 'closing':
-                kernel = self.parameters['closing kernel'][0]
-                kernel_arr = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,
-                                                       (kernel, kernel))
-                new_frame = images.closing(
-                    new_frame,
-                    kernel=kernel_arr)
-
-            elif method == 'opening':
-                kernel = self.parameters['opening kernel'][0]
-                new_frame = images.opening(
-                    new_frame,
-                    kernel=(kernel, kernel),
-                    kernel_type=cv2.MORPH_ELLIPSE)
-
-            elif method == 'dilation':
-                kernel = self.parameters['dilate kernel'][0]
-                new_frame = images.dilate(
-                    new_frame,
-                    kernel=(kernel, kernel))
-
-            elif method == 'erosion':
-                kernel = self.parameters['erode kernel'][0]
-                new_frame = images.erode(
-                    new_frame,
-                    kernel=(kernel, kernel))
-
-            elif method == 'distance':
-                new_frame = images.distance_transform(new_frame)
-
-            elif method == 'resize':
-                new_frame = images.resize(new_frame,
-                                          self.parameters['resize scale'])
-
-            else:
-                print(method)
-                print("method is not defined")
+            new_frame = getattr(pm, method)(new_frame, self.parameters)
 
         self.calls += 1
         return new_frame, self.boundary, cropped_frame
-
-    def _crop_and_mask(self, frame):
-        """
-        Masks then crops a given frame
-
-        Takes a frame and uses a bitwise_and operation with the input mask_img
-        to mask the image around a shape.
-        It then crops the image around the mask.
-
-        Parameters
-        ----------
-        frame: numpy array
-            A numpy array of an image of type uint8
-
-        Returns
-        -------
-        cropped_frame: numpy array
-            A numpy array containing an image which has been cropped and masked
-        """
-        masked_frame = images.mask_img(frame, self.mask_img)
-        cropped_frame = images.crop_img(masked_frame, self.crop)
-        return cropped_frame
 
 
 def find_manual_crop_and_mask(frame):
