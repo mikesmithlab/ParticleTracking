@@ -77,7 +77,7 @@ class Preprocessor:
 
     """
 
-    def __init__(self, parameters, crop_method=None):
+    def __init__(self, parameters):
         """
         Parameters
         ----------
@@ -92,13 +92,11 @@ class Preprocessor:
 
         crop_method: str or None:
             If None then no crop takes place
-            If 'auto' then uses auto crop function
+            If 'blue hex' then uses auto crop function
             If 'manual' then uses manual crop function
         """
-
-        self.crop_method = crop_method
         self.parameters = parameters
-
+        self.crop_method = self.parameters['crop method']
         self.mask_img = np.array([])
         self.crop = []
         self.boundary = None
@@ -127,7 +125,7 @@ class Preprocessor:
 
         # Find the crop for the first frame
         if self.calls == 0:
-            if self.crop_method == 'auto':
+            if self.crop_method == 'blue hex':
                 self.crop, self.mask_img, self.boundary = \
                     find_auto_crop_and_mask(frame)
             elif self.crop_method == 'manual':

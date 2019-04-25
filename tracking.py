@@ -39,12 +39,7 @@ class ParticleTracker:
 
     """
 
-    def __init__(self,
-                 filename,
-                 parameters,
-                 multiprocess=False,
-                 crop_method=None,
-                 show_debug=False):
+    def __init__(self, multiprocess=False):
         """
 
         Parameters
@@ -67,15 +62,10 @@ class ParticleTracker:
             'auto': Automatically crop around blue hexagon
             'manual': Manually select cropping points
         """
-        self.filename = os.path.splitext(filename)[0]
-        self.input_filename = filename
-        self.data_filename = self.filename + '.hdf5'
-        self.parameters = parameters
-        self.exp = parameters['experiment']
         self.multiprocess = multiprocess
+        self.data_filename = self.filename + '.hdf5'
         self.num_processes = mp.cpu_count() // 2 if self.multiprocess else 1
-        self.ip = preprocessing.Preprocessor(self.parameters, crop_method)
-        self.debug = show_debug
+
 
     def track(self):
         """Call this to start tracking"""
@@ -174,10 +164,10 @@ class ParticleTracker:
                 self.parameters['p_2'],
                 self.parameters['min_rad'],
                 self.parameters['max_rad'])
-            if self.debug: debug(new_frame, circles)
+            # if self.debug: debug(new_frame, circles)
             circles = get_points_inside_boundary(circles, boundary)
             circles = check_circles_bg_color(circles, new_frame, 150)
-            if self.debug: debug(new_frame, circles)
+            # if self.debug: debug(new_frame, circles)
             # Add info to dataframes
             data.add_tracking_data(frame_no, circles)
             data.add_boundary_data(frame_no, boundary)

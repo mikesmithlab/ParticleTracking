@@ -1,6 +1,7 @@
 """Add methods and parameters for different systems here"""
 NITRILE_BEADS_PARAMETERS = {
     'experiment': 'James',
+    'crop method': 'blue hex',
     'method': ['flip'],
     'number of tray sides': 6,
     'min_dist': 23,
