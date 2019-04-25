@@ -1,7 +1,11 @@
+from Generic import images
 from ParticleTracking.tracking import ParticleTracker
 from ParticleTracking import configurations
 from ParticleTracking import preprocessing
 import os
+import numpy as np
+from numba import jit
+import matplotlib.path as mpath
 
 
 class JamesPT(ParticleTracker):
@@ -14,3 +18,80 @@ class JamesPT(ParticleTracker):
         self.input_filename = filename
         if tracking:
             ParticleTracker.__init__(self, multiprocess=multiprocess)
+
+    def _analyse_frame(self, frame, frame_no, data):
+        new_frame, boundary = self.ip.process(frame)
+        circles = images.find_circles(
+            new_frame,
+            self.parameters['min_dist'],
+            self.parameters['p_1'],
+            self.parameters['p_2'],
+            self.parameters['min_rad'],
+            self.parameters['max_rad'])
+        circles = get_points_inside_boundary(circles, boundary)
+        circles = check_circles_bg_color(circles, new_frame, 150)
+        data.add_tracking_data(frame_no, circles)
+        data.add_boundary_data(frame_no, boundary)
+        return data
+
+
+@jit
+def check_circles_bg_color(circles, image, threshold):
+    """
+    Checks the color of circles in an image and returns white ones
+
+    Parameters
+    ----------
+    circles: ndarray
+        Shape (N, 3) containing (x, y, r) for each circle
+    image: ndarray
+        Image with the particles in white
+
+    Returns
+    -------
+    circles[white_particles, :] : ndarray
+        original circles array with dark circles removed
+    """
+    circles = np.int32(circles)
+    (x, y, r) = np.split(circles, 3, axis=1)
+    r = int(np.mean(r))
+    ymin = np.int32(np.squeeze(y-r/2))
+    ymax = np.int32(np.squeeze(y+r/2))
+    xmin = np.int32(np.squeeze(x-r/2))
+    xmax = np.int32(np.squeeze(x+r/2))
+    all_circles = np.zeros((r, r, len(xmin)))
+    for i, (x0, x1, y0, y1) in enumerate(zip(xmin, xmax, ymin, ymax)):
+        im = image[y0:y1, x0:x1]
+        all_circles[0:im.shape[0], :im.shape[1], i] = im
+    circle_mean_0 = np.mean(all_circles, axis=(0, 1))
+    out = circles[circle_mean_0 > threshold, :]
+    return out
+
+
+def get_points_inside_boundary(points, boundary):
+    """
+    Returns the points from an array of input points inside boundary
+
+    Parameters
+    ----------
+    points: ndarray
+        Shape (N, 2) containing list of N input points
+    boundary: ndarray
+        Either shape (P, 2) containing P vertices
+        or shape 3, containing cx, cy, r for a circular boundary
+
+    Returns
+    -------
+    points: ndarray
+        Shape (M, 2) containing list of M points inside the boundary
+    """
+    centers = points[:, :2]
+    if len(np.shape(boundary)) == 1:
+        vertices_from_centre = centers - boundary[0:2]
+        points_inside_index = np.linalg.norm(vertices_from_centre, axis=1) < \
+            boundary[2]
+    else:
+        path = mpath.Path(boundary)
+        points_inside_index = path.contains_points(centers)
+    points = points[points_inside_index, :]
+    return points
