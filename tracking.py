@@ -69,14 +69,21 @@ class ParticleTracker:
     def track(self):
         """Call this to start tracking"""
         self._get_video_info()
+        self.save_crop()
         if self.multiprocess:
             self._track_multiprocess()
         else:
             self._track_process(0)
         self._link_trajectories()
         self.extra_steps()
+
+    def save_crop(self):
+        data_store = dataframes.DataStore(self.data_filename,
+                                          load=True)
         crop = self.ip.crop
-        np.savetxt(self.filename+'.txt', crop)
+        data_store.add_crop(crop)
+        data_store.save()
+        # np.savetxt(self.filename+'.txt', crop)
 
     def extra_steps(self):
         pass
