@@ -117,3 +117,9 @@ def read_audio_file(file, frames):
     freqs = audio.frame_frequency(wav_l, frames, 48000)
     d = (freqs - 1000)/2
     return d
+
+if __name__ == '__main__':
+    filename = '/home/ppzmis/Documents/PythonScripts/ParticleTracking/test_video.mp4'
+
+    jpt = JamesPT(filename)
+
