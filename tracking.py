@@ -3,10 +3,9 @@ import numpy as np
 import trackpy as tp
 import multiprocessing as mp
 from Generic import video, images, audio
-from ParticleTracking import preprocessing, dataframes
-import matplotlib.path as mpath
+from ParticleTracking import dataframes
+
 from tqdm import tqdm
-from numba import jit
 
 
 class ParticleTracker:
@@ -39,12 +38,7 @@ class ParticleTracker:
 
     """
 
-    def __init__(self,
-                 filename,
-                 parameters,
-                 multiprocess=False,
-                 crop_method=None,
-                 show_debug=False):
+    def __init__(self, multiprocess=False):
         """
 
         Parameters
@@ -67,15 +61,10 @@ class ParticleTracker:
             'auto': Automatically crop around blue hexagon
             'manual': Manually select cropping points
         """
-        self.filename = os.path.splitext(filename)[0]
-        self.input_filename = filename
-        self.data_filename = self.filename + '.hdf5'
-        self.parameters = parameters
-        self.exp = parameters['experiment']
+        self.filename = os.path.splitext(self.input_filename)[0]
         self.multiprocess = multiprocess
+        self.data_filename = self.filename + '.hdf5'
         self.num_processes = mp.cpu_count() // 2 if self.multiprocess else 1
-        self.ip = preprocessing.Preprocessor(self.parameters, crop_method)
-        self.debug = show_debug
 
     def track(self):
         """Call this to start tracking"""
@@ -85,8 +74,19 @@ class ParticleTracker:
         else:
             self._track_process(0)
         self._link_trajectories()
+        self.save_crop()
+        self.extra_steps()
+
+    def save_crop(self):
+        data_store = dataframes.DataStore(self.data_filename,
+                                          load=True)
         crop = self.ip.crop
-        np.savetxt(self.filename+'.txt', crop)
+        data_store.add_crop(crop)
+        data_store.save()
+        # np.savetxt(self.filename+'.txt', crop)
+
+    def extra_steps(self):
+        pass
 
     def _track_multiprocess(self):
         """Splits processing into chunks"""
@@ -111,14 +111,12 @@ class ParticleTracker:
             duty cycles for each frame in the video
         """
         cap = video.ReadVideo(self.input_filename)
-        self.frame_jump_unit = cap.num_frames // self.num_processes
+        self.num_frames = cap.num_frames
+        self.frame_div = self.num_frames // self.num_processes
         self.fps = cap.fps
         frame = cap.read_next_frame()
-        new_frame, _ = self.ip.process(frame)
+        new_frame, _, _ = self.ip.process(frame)
         self.width, self.height = images.get_width_and_height(new_frame)
-        if self.exp == 'James':
-            self.duty_cycle = read_audio_file(self.input_filename,
-                                              cap.num_frames)
 
     def _track_process(self, group_number):
         """
@@ -134,57 +132,17 @@ class ParticleTracker:
         # Create the DataStore instance
         data_name = (str(group_number)+'.hdf5'
                      if self.multiprocess else self.data_filename)
-        data = dataframes.DataStore(data_name)
+        data = dataframes.DataStore(data_name, load=False)
 
-        # Load the video and set to the start point
-        cap = video.ReadVideo(self.input_filename)
-        frame_no_start = self.frame_jump_unit * group_number
-        cap.set_frame(frame_no_start)
-
+        start = self.frame_div * group_number
+        self.cap = video.ReadVideo(self.input_filename)
+        self.cap.set_frame(start)
         # Iterate over frames
-        for f in tqdm(range(self.frame_jump_unit)):
-            frame = cap.read_next_frame()
-            data = self._analyse_frame(frame, frame_no_start + f, data)
+        for f in tqdm(range(self.frame_div)):
+            info, boundary, info_headings = self.analyse_frame()
+            data.add_tracking_data(start+f, info, col_names=info_headings)
+            data.add_boundary_data(start+f, boundary)
         data.save()
-        cap.close()
-
-    def _analyse_frame(self, frame, frame_no, data):
-        """
-        Experiment dependent tracking steps.
-
-        Parameters
-        ----------
-        frame: uint8 frame for the video
-        frame_no: int frame number
-        data: dataframes.DataStore instance
-
-        Returns
-        -------
-        data: same dataframes.DataStore instance with additional info
-        """
-        if self.exp == 'James':
-            # Process frame
-            new_frame, boundary = self.ip.process(frame)
-
-            # Find and filter objects
-            circles = images.find_circles(
-                new_frame,
-                self.parameters['min_dist'],
-                self.parameters['p_1'],
-                self.parameters['p_2'],
-                self.parameters['min_rad'],
-                self.parameters['max_rad'])
-            if self.debug: debug(new_frame, circles)
-            circles = get_points_inside_boundary(circles, boundary)
-            circles = check_circles_bg_color(circles, new_frame, 150)
-            if self.debug: debug(new_frame, circles)
-            # Add info to dataframes
-            data.add_tracking_data(frame_no, circles)
-            data.add_boundary_data(frame_no, boundary)
-        elif self.exp == 'Mike Bacteria':
-            'Do something similar'
-            pass
-        return data
 
     def _cleanup_intermediate_dataframes(self):
         """Concatenates and removes intermediate dataframes"""
@@ -208,96 +166,8 @@ class ParticleTracker:
         data_store.particle_data = tp.filter_stubs(
                 data_store.particle_data, self.parameters['min frame life'])
 
-        # Experiment dependent steps
-        if self.exp == 'James':
-            data_store.add_frame_property('Duty', self.duty_cycle)
-
         # Save DataStore
         data_store.save()
 
 
-def debug(frame, circles):
-    frame = images.draw_circles(images.stack_3(frame), circles)
-    images.display(frame)
 
-
-def get_points_inside_boundary(points, boundary):
-    """
-    Returns the points from an array of input points inside boundary
-
-    Parameters
-    ----------
-    points: ndarray
-        Shape (N, 2) containing list of N input points
-    boundary: ndarray
-        Either shape (P, 2) containing P vertices
-        or shape 3, containing cx, cy, r for a circular boundary
-
-    Returns
-    -------
-    points: ndarray
-        Shape (M, 2) containing list of M points inside the boundary
-    """
-    centers = points[:, :2]
-    if len(np.shape(boundary)) == 1:
-        vertices_from_centre = centers - boundary[0:2]
-        points_inside_index = np.linalg.norm(vertices_from_centre, axis=1) < \
-            boundary[2]
-    else:
-        path = mpath.Path(boundary)
-        points_inside_index = path.contains_points(centers)
-    points = points[points_inside_index, :]
-    return points
-
-
-@jit
-def check_circles_bg_color(circles, image, threshold):
-    """
-    Checks the color of circles in an image and returns white ones
-
-    Parameters
-    ----------
-    circles: ndarray
-        Shape (N, 3) containing (x, y, r) for each circle
-    image: ndarray
-        Image with the particles in white
-
-    Returns
-    -------
-    circles[white_particles, :] : ndarray
-        original circles array with dark circles removed
-    """
-    circles = np.int32(circles)
-    (x, y, r) = np.split(circles, 3, axis=1)
-    r = int(np.mean(r))
-    ymin = np.int32(np.squeeze(y-r/2))
-    ymax = np.int32(np.squeeze(y+r/2))
-    xmin = np.int32(np.squeeze(x-r/2))
-    xmax = np.int32(np.squeeze(x+r/2))
-    all_circles = np.zeros((r, r, len(xmin)))
-    for i, (x0, x1, y0, y1) in enumerate(zip(xmin, xmax, ymin, ymax)):
-        im = image[y0:y1, x0:x1]
-        all_circles[0:im.shape[0], :im.shape[1], i] = im
-    circle_mean_0 = np.mean(all_circles, axis=(0, 1))
-    out = circles[circle_mean_0 > threshold, :]
-    return out
-
-
-def read_audio_file(file, frames):
-    wav = audio.extract_wav(file)
-    wav_l = wav[:, 0]
-    # wav = audio.digitise(wav)
-    freqs = audio.frame_frequency(wav_l, frames, 48000)
-    d = (freqs - 1000)/2
-    return d
-
-
-if __name__ == "__main__":
-    from Generic import filedialogs
-    from ParticleTracking import configurations
-
-    file = filedialogs.load_filename()
-    params = configurations.NITRILE_BEADS_PARAMETERS
-
-    pt = ParticleTracker(file, params)
-    pt.track()

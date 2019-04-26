@@ -30,7 +30,7 @@ class VideoAnnotator:
 
     def check_crop_exists(self):
         if not os.path.exists(self.input_video_filename):
-            crop = np.loadtxt(self.filename+'.txt')
+            crop = self.td.crop
             video.crop_video(self.filename+'.MP4',
                              crop[0][0],
                              crop[1][0],

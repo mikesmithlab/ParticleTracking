@@ -1,6 +1,7 @@
 import scipy.spatial as sp
 import numpy as np
-
+from math import exp
+from numba import jit
 
 def order_and_neighbors(points):
     list_indices, point_indices = find_delaunay_indices(points)
@@ -37,10 +38,10 @@ def calculate_angles(vectors):
 
 
 def calculate_orders(angles, list_indices):
-    step = np.exp(6j * angles)
-    orders = []
-    for p in range(len(list_indices)-1):
-        part = step[list_indices[p]:list_indices[p+1]]
-        total = sum(part)/len(part)
-        orders.append(total)
+    step = list(np.exp(6j * angles))
+    parts = [step[list_indices[p]:list_indices[p+1]]
+             for p in range(len(list_indices)-1)]
+    parts_sum = [sum(part) for part in parts]
+    parts_len = [len(part) for part in parts]
+    orders = [a/b for a, b in zip(parts_sum, parts_len)]
     return orders

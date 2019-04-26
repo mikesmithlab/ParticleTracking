@@ -45,10 +45,11 @@ class DataStore:
         Gets the boundary info for a given frame
     """
 
-    def __init__(self, filename, load=False):
+    def __init__(self, filename, load=True):
         self.particle_data = pd.DataFrame()
         self.boundary_data = pd.DataFrame()
         self.frame_data = pd.DataFrame()
+        self.crop = []
         self.filename = os.path.splitext(filename)[0] + '.hdf5'
         if load:
             self._load()
@@ -73,6 +74,9 @@ class DataStore:
         headings = self.particle_data.columns.values.tolist()
         return headings
 
+    def add_crop(self, crop):
+        self.crop = crop
+
     def fill_frame_data(self):
         if 'frame' in self.frame_data.columns.values.tolist():
             print('frames already initialised')
@@ -83,7 +87,7 @@ class DataStore:
             self.save()
 
     def _find_properties(self):
-        self.num_frames = self.particle_data['frame'].max()+1
+        self.num_frames = int(self.particle_data['frame'].max()+1)
 
     def add_tracking_data(self, frame, tracked_data, col_names=None):
         """
@@ -206,12 +210,14 @@ class DataStore:
         store['data'] = self.particle_data
         store['boundary'] = self.boundary_data
         store['frame'] = self.frame_data
+        store['crop'] = pd.Series(self.crop)
         store.close()
 
     def _load(self):
         store = pd.HDFStore(self.filename)
         self.particle_data = store['data']
         self.boundary_data = store['boundary']
+        self.crop = store['crop'].values.tolist()
         try:
             self.frame_data = store['frame']
             print('Using stored frame_data')
@@ -270,6 +276,7 @@ def concatenate_datastore(datastore_list, new_filename):
     store_out['data'] = data_save
     store_out['boundary'] = boundaries_save
     store_out['frame'] = frame_save
+    store_out['crop'] = pd.Series()
     store_out.close()
 
 
@@ -348,16 +355,10 @@ class CorrData:
         return self.df.loc[frame, label].values
 
 if __name__ == "__main__":
-    # from Generic import filedialogs
-    # filename = filedialogs.load_filename(
-    #     'Select a dataframe',
-    #     directory="/home/ppxjd3/Videos",
-    #     file_filter='*.hdf5')
-    # # data = DataStore(filename, load=True)
-    # # data.inspect_dataframes()
-    data1 = np.arange(0, 10)
-    corr = CorrData('test')
-    corr.add_row(data1, 0, 'a')
-    corr.add_row(data1 ** 2, 0, 'b')
-    corr.add_row(data1 * 3 + 1, 1, 'a')
-    print(corr.df.head())
+    from Generic import filedialogs
+    filename = filedialogs.load_filename(
+        'Select a dataframe',
+        directory="/home/ppxjd3/Videos",
+        file_filter='*.hdf5')
+    data = DataStore(filename, load=True)
+    data.inspect_dataframes()

@@ -1,16 +1,18 @@
-from shapely.geometry import Polygon, Point
 import scipy.spatial as sp
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
-from math import pi
+from math import pi, sqrt
+import cv2
+import pyclipper
 
 
 def calculate(particles, boundary):
-    boundary = Polygon(boundary)
+    # boundary = Polygon(boundary)
     vor = sp.Voronoi(particles[:, :2])
     regions, vertices = voronoi_finite_polygons_2d(vor)
     inside = find_points_inside(vertices, boundary)
+    vertices = np.float32(vertices)
     polygons, on_edge = get_polygons(regions, vertices, inside)
     polygons = intersect_all_polygons(polygons, boundary, on_edge)
     area, shape_factor = area_and_shapefactor(polygons)
@@ -103,25 +105,21 @@ def voronoi_finite_polygons_2d(vor, radius=None):
 
 
 def find_points_inside(vertices, boundary):
-    path = mpath.Path(boundary.exterior.coords)
+    # path = mpath.Path(boundary.exterior.coords)
+    path = mpath.Path(boundary)
     flags = path.contains_points(vertices)
     return flags
 
 
 def get_polygons(regions, vertices, inside):
-    polygons = [Polygon(vertices[r]) for r in regions]
     on_edge = [not all(inside[r]) for r in regions]
+    polygons = [SimplePolygon(vertices[r]) for r in regions]
     return polygons, on_edge
 
 
 def intersect_all_polygons(polygons, boundary, on_edge):
-    new_polygons = []
-    for i, poly in enumerate(polygons):
-        if on_edge[i]:
-            new_polygons.append(poly.intersection(boundary))
-        else:
-            new_polygons.append(poly)
-    return new_polygons
+    return [poly.intersection(boundary) if edge else poly
+            for poly, edge in zip(polygons, on_edge)]
 
 
 def area_and_shapefactor(polygons):
@@ -133,6 +131,31 @@ def area_and_shapefactor(polygons):
 def plot_polygons(polygons):
     plt.figure()
     for poly in polygons:
-        coords = np.array(poly.exterior.coords)
+        # coords = np.array(poly.exterior.coords)
+        coords = poly.vertices
         plt.fill(coords[:, 0], coords[:, 1])
     plt.show()
+
+
+class SimplePolygon:
+    def __init__(self, vertices):
+        self.area = cv2.contourArea(vertices)
+        self.length = cv2.arcLength(vertices, True)
+        self.vertices = vertices
+
+    def intersection(self, boundary):
+        vertices = self.vertices*1000
+        boundary = boundary*1000
+        pc = pyclipper.Pyclipper()
+        pc.AddPath(boundary, pyclipper.PT_CLIP, True)
+        pc.AddPath(vertices, pyclipper.PT_SUBJECT, True)
+        solution = pc.Execute(pyclipper.CT_INTERSECTION, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO)
+        solution = np.array(solution, dtype=np.float32)/1000
+        solution = np.squeeze(solution)
+        return SimplePolygon(solution)
+
+    def area(self):
+        return cv2.contourArea(self.vertices)
+
+    def length(self):
+        return cv2.arcLength(self.vertices, True)
