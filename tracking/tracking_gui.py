@@ -35,9 +35,10 @@ class TrackingGui(ParamGui):
 
 
 if __name__ == "__main__":
-    from ParticleTracking.tracking_methods.example_child import ExampleChild
+    from ParticleTracking.tracking_methods.example_child import ExampleChild, JamesPT
     from Generic import filedialogs
 
-    file = filedialogs.load_filename('Load a video')
-    tracker = ExampleChild(file)
+    #file = filedialogs.load_filename('Load a video')
+    file='/home/ppzmis/Documents/PythonScripts/ParticleTracking/test_video.mp4'
+    tracker = JamesPT(file)
     gui = TrackingGui(tracker)

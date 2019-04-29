@@ -49,6 +49,17 @@ EXAMPLE_CHILD_PARAMETERS = {
     'grayscale threshold': [50, 0, 255, 1]
 }
 
+BACTERIA_PARAMETERS = {
+    'crop method': 'no_crop',
+    'method': ('grayscale', 'adaptive_threshold'),
+    'adaptive threshold block size': [53, 3, 101, 2],
+    'adaptive threshold C': [-26, -30, 30, 1],
+    'adaptive threshold mode': [0, 0, 1, 1],
+    'max frame displacement': 10,
+    'min frame life': 5,
+    'memory': 3,
+    'grayscale threshold': [50, 0, 255, 1]}
+
 
 if __name__ == "__main__":
     from ParticleTracking.preprocessing import preprocessing_methods as pm
