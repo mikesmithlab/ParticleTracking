@@ -80,10 +80,6 @@ class Bacteria(ParticleTracker):
         """
         pass
 
-    def update_parameters(self, parameters):
-        self.parameters = parameters
-        self.ip.update_parameters(self.parameters)
-
 
 if __name__ == "__main__":
     from Generic import filedialogs
