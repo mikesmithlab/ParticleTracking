@@ -119,7 +119,9 @@ def read_audio_file(file, frames):
     return d
 
 if __name__ == '__main__':
-    filename = '/home/ppzmis/Documents/PythonScripts/ParticleTracking/test_video.mp4'
+    from Generic import filedialogs
+    file = filedialogs.load_filename('Load a video')
 
-    jpt = JamesPT(filename)
+    jpt = JamesPT(file)
+    jpt.track()
 
