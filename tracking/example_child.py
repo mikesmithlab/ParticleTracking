@@ -80,9 +80,6 @@ class ExampleChild(ParticleTracker):
         """
         pass
 
-    def update_parameters(self, parameters):
-        self.parameters = parameters
-        self.ip.update_parameters(self.parameters)
 
 
 if __name__ == "__main__":

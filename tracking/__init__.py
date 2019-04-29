@@ -169,5 +169,12 @@ class ParticleTracker:
         # Save DataStore
         data_store.save()
 
+    def update_parameters(self, parameters):
+        self.parameters = parameters
+        self.ip.update_parameters(self.parameters)
+
+
+
+
 
 

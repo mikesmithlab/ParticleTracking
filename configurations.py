@@ -24,7 +24,7 @@ NITRILE_BEADS_PARAMETERS = {
     'number of tray sides': 6,
     'min_dist': [23, 3, 51, 1],
     'p_1': [105, 0, 255, 1],
-    'p_2': [2, 0, 20, 1],
+    'p_2': [2, 1, 20, 1],
     'min_rad': [13, 1, 101, 1],
     'max_rad': [14, 1, 101, 1],
     'max frame displacement': 10,
@@ -40,13 +40,12 @@ EXAMPLE_CHILD_PARAMETERS = {
     'number of tray sides': 6,
     'min_dist': [23, 3, 51, 1],
     'p_1': [105, 0, 255, 1],
-    'p_2': [2, 0, 20, 1],
+    'p_2': [2, 1, 20, 1],
     'min_rad': [13, 1, 101, 1],
     'max_rad': [14, 1, 101, 1],
     'max frame displacement': 10,
     'min frame life': 5,
-    'memory': 3,
-    'grayscale threshold': [50, 0, 255, 1]
+    'memory': 3
 }
 
 BACTERIA_PARAMETERS = {
