@@ -75,14 +75,7 @@ class VideoAnnotator:
                 frame, (cap.width, cap.height), 'RGB')
             info = self.td.get_info(f, ['x', 'y', 'r', parameter])
 
-            for xi, yi, r, param in info:
-                if parameter == 'particle':
-                    pygame.draw.circle(
-                        surface, col, (int(xi), int(yi)), int(r), 3)
-                else:
-                    col = np.multiply(cm.viridis(param), 255)
-                    pygame.draw.circle(
-                        surface, col, (int(xi), int(yi)), int(r))
+            surface = images.pygame_draw_circles(surface, info)
             if self.shrink_factor != 1:
                 surface = pygame.transform.scale(
                     surface,
@@ -132,13 +125,13 @@ def neighbors(data_store, frame):
 if __name__ == "__main__":
 
     dataframe = dataframes.DataStore(
-            "/home/ppxjd3/Videos/Solid/grid.hdf5",
+            "/home/ppxjd3/Code/ParticleTracking/test_video.hdf5",
             load=True)
-    # input_video = "/home/ppxjd3/Videos/solid_crop.mp4"
-    # VA = VideoAnnotator(
-    #         dataframe,
-    #         input_video,
-    #         shrink_factor=1)
-    # VA.add_coloured_circles('loc_rot_invar')
+    input_video = "/home/ppxjd3/Code/ParticleTracking/test_video.mp4"
+    VA = VideoAnnotator(
+            dataframe,
+            input_video,
+            shrink_factor=1)
+    VA.add_coloured_circles('particle')
     # # VA.add_annotations(voronoi=True, delaunay=True)
-    neighbors(dataframe, 0)
+    # neighbors(dataframe, 0)

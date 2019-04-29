@@ -9,12 +9,12 @@ from matplotlib import cm
 class VideoAnnotator:
 
     def __init__(self, filename, use_crop=True, frame_type='array'):
-        self.filename = os.path.split(filename)[0]
+        self.filename = os.path.splitext(filename)[0]
         if use_crop:
             self.input_video_filename = self.filename + '_crop.mp4'
             self.check_crop_exists()
         else:
-            self.input_video_filename = self.filename
+            self.input_video_filename = self.filename + '.mp4'
         self.frame_type = frame_type
 
     def check_crop_exists(self):
@@ -54,22 +54,25 @@ class VideoAnnotator:
         return frame
 
 
-class JamesAnnotateCircle(VideoAnnotator):
+class PygameAnnotateCircle(VideoAnnotator):
 
     def __init__(self, filename, data, parameter):
         self.data = data
         self.parameter = parameter
-        VideoAnnotator.__init__(filename, frame_type='surface')
-        self.output_filename = self.filename + '_particles.mp4'
+        VideoAnnotator.__init__(self, filename, frame_type='surface', use_crop=False)
+        self.output_video_filename = self.filename + '_particles.mp4'
 
     def process_frame(self, frame, f):
         info = self.data.get_info(f, ['x', 'y', 'r', self.parameter])
-        col = (255, 0, 0)
-        for xi, yi, r, param in info:
-            if self.parameter == 'particle':
-                pygame.draw.circle(frame, col, (int(xi), int(yi), int(r), 3))
-            else:
-                col = np.multiply(cm.viridis(param), 255)
-                pygame.draw.circle(
-                    frame, col, (int(xi), int(yi)), int(r))
+        frame = images.pygame_draw_circles(frame, info)
         return frame
+
+
+if __name__ == "__main__":
+    from ParticleTracking import dataframes
+    dataframe = dataframes.DataStore(
+            "/home/ppxjd3/Code/ParticleTracking/test_video.hdf5",
+            load=True)
+    input_video = "/home/ppxjd3/Code/ParticleTracking/test_video.mp4"
+    annotator = PygameAnnotateCircle(input_video, dataframe, 'particle')
+    annotator.annotate()
