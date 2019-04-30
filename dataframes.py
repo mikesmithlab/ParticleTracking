@@ -1,8 +1,9 @@
-import pandas as pd
-import numpy as np
 import os
-import itertools
 import warnings
+
+import numpy as np
+import pandas as pd
+
 warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 
 
