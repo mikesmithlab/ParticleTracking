@@ -74,13 +74,6 @@ def plot_shape_factor_histogram(filename, frame):
 def exponential(x, b):
     return (max(x)/np.exp(1))*np.exp(b*x)
 
-def order_quiver(datastore, frame):
-    data = datastore.get_info(frame, ['x', 'y', 'complex order'])
-    plt.figure()
-    plt.quiver(data[:, 0], data[:, 1], np.real(data[:, 2]), np.imag(data[:, 2]),
-               pivot='mid')
-    plt.show()
-
 if __name__ == "__main__":
     # plot_shape_factor_histogram("/home/ppxjd3/Videos/liquid_data.hdf5", 0)
     # filename = filedialogs.load_filename('Load a plotting dataframe', remove_ext=True)

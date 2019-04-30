@@ -115,23 +115,21 @@ def neighbors(data_store, frame):
     p.set_array(np.array(colors))
     ax.add_collection(p)
     fig.colorbar(p, ax=ax)
-    ax.set_xlim([data[:, 0].min()-rad, data[:, 0].max()+rad])
-    ax.set_ylim([data[:, 1].min()-rad, data[:, 1].max()+rad])
+    # ax.set_xlim([data[:, 0].min()-rad, data[:, 0].max()+rad])
+    # ax.set_ylim([data[:, 1].min()-rad, data[:, 1].max()+rad])
     ax.set_aspect('equal')
     ax.set_axis_off()
     plt.show()
 
 
 if __name__ == "__main__":
-
     dataframe = dataframes.DataStore(
-            "/home/ppxjd3/Code/ParticleTracking/test_video.hdf5",
-            load=True)
-    input_video = "/home/ppxjd3/Code/ParticleTracking/test_video.mp4"
-    VA = VideoAnnotator(
-            dataframe,
-            input_video,
-            shrink_factor=1)
-    VA.add_coloured_circles('particle')
+        "/home/ppxjd3/Videos/test_video.hdf5", load=True)
+    input_video = "/home/ppxjd3/Videos/test_video.mp4"
+    # VA = VideoAnnotator(
+    #         dataframe,
+    #         input_video,
+    #         shrink_factor=1)
+    # VA.add_coloured_circles('particle')
     # # VA.add_annotations(voronoi=True, delaunay=True)
-    # neighbors(dataframe, 0)
+    neighbors(dataframe, 0)
