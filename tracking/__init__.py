@@ -1,11 +1,11 @@
+import multiprocessing
 import os
-import numpy as np
-import trackpy as tp
-import multiprocessing as mp
-from Generic import video, images, audio
-from ParticleTracking import dataframes
 
+import trackpy
 from tqdm import tqdm
+
+from Generic import images, video
+from ParticleTracking import dataframes
 
 
 class ParticleTracker:
@@ -64,7 +64,8 @@ class ParticleTracker:
         self.filename = os.path.splitext(self.input_filename)[0]
         self.multiprocess = multiprocess
         self.data_filename = self.filename + '.hdf5'
-        self.num_processes = mp.cpu_count() // 2 if self.multiprocess else 1
+        cpus = multiprocess.cpu_count()
+        self.num_processes = cpus // 2 if self.multiprocess else 1
 
     def track(self):
         """Call this to start tracking"""
@@ -83,14 +84,13 @@ class ParticleTracker:
         crop = self.ip.crop
         data_store.add_crop(crop)
         data_store.save()
-        # np.savetxt(self.filename+'.txt', crop)
 
     def extra_steps(self):
         pass
 
     def _track_multiprocess(self):
         """Splits processing into chunks"""
-        p = mp.Pool(self.num_processes)
+        p = multiprocessing.Pool(self.num_processes)
         p.map(self._track_process, range(self.num_processes))
         self._cleanup_intermediate_dataframes()
 
@@ -130,7 +130,7 @@ class ParticleTracker:
             Sets the group number for multiprocessing to split the input.
         """
         # Create the DataStore instance
-        data_name = (str(group_number)+'.hdf5'
+        data_name = (str(group_number) + '.hdf5'
                      if self.multiprocess else self.data_filename)
         data = dataframes.DataStore(data_name, load=False)
 
@@ -140,8 +140,8 @@ class ParticleTracker:
         # Iterate over frames
         for f in tqdm(range(self.frame_div)):
             info, boundary, info_headings = self.analyse_frame()
-            data.add_tracking_data(start+f, info, col_names=info_headings)
-            data.add_boundary_data(start+f, boundary)
+            data.add_tracking_data(start + f, info, col_names=info_headings)
+            data.add_boundary_data(start + f, boundary)
         data.save()
 
     def _cleanup_intermediate_dataframes(self):
@@ -159,12 +159,12 @@ class ParticleTracker:
         data_store = dataframes.DataStore(self.data_filename,
                                           load=True)
         # Trackpy methods
-        data_store.particle_data = tp.link_df(
-                data_store.particle_data,
-                self.parameters['max frame displacement'],
-                memory=self.parameters['memory'])
-        data_store.particle_data = tp.filter_stubs(
-                data_store.particle_data, self.parameters['min frame life'])
+        data_store.particle_data = trackpy.link_df(
+            data_store.particle_data,
+            self.parameters['max frame displacement'],
+            memory=self.parameters['memory'])
+        data_store.particle_data = trackpy.filter_stubs(
+            data_store.particle_data, self.parameters['min frame life'])
 
         # Save DataStore
         data_store.save()
@@ -172,9 +172,3 @@ class ParticleTracker:
     def update_parameters(self, parameters):
         self.parameters = parameters
         self.ip.update_parameters(self.parameters)
-
-
-
-
-
-
