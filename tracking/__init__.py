@@ -1,4 +1,4 @@
-import multiprocessing
+import multiprocessing as mp
 import os
 
 import trackpy
@@ -64,7 +64,7 @@ class ParticleTracker:
         self.filename = os.path.splitext(self.input_filename)[0]
         self.multiprocess = multiprocess
         self.data_filename = self.filename + '.hdf5'
-        cpus = multiprocess.cpu_count()
+        cpus = mp.cpu_count()
         self.num_processes = cpus // 2 if self.multiprocess else 1
 
     def track(self):
@@ -90,7 +90,7 @@ class ParticleTracker:
 
     def _track_multiprocess(self):
         """Splits processing into chunks"""
-        p = multiprocessing.Pool(self.num_processes)
+        p = mp.Pool(self.num_processes)
         p.map(self._track_process, range(self.num_processes))
         self._cleanup_intermediate_dataframes()
 
