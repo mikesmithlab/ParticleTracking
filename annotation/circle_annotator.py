@@ -1,8 +1,6 @@
 from Generic import video, images
 import os
-from ParticleTracking import dataframes
 
-__all__ = ['CircleAnnotator']
 
 class CircleAnnotator(video.Annotator):
 
