@@ -46,4 +46,7 @@ def find_blue_hex_crop_and_mask(frame):
     return crop, mask_img, boundary
 
 def no_crop(frame):
-    return None, None, None
+    shp = np.shape(frame)
+    w, h = shp[:2]
+    boundary = np.array([[0, 0], [0, w], [w, h], [0, h]])
+    return None, None, boundary
