@@ -38,7 +38,7 @@ class CircleAnnotator(video.Annotator):
 if __name__ == "__main__":
     from ParticleTracking import dataframes
     dataframe = dataframes.DataStore(
-        "/home/ppxjd3/Code/ParticleTracking/test_video.hdf5", load=True)
-    input_video = "/home/ppxjd3/Code/ParticleTracking/test_video.mp4"
+        "/home/ppxjd3/Videos/test_video.hdf5", load=True)
+    input_video = "/home/ppxjd3/Videos/test_video.mp4"
     annotator = CircleAnnotator(input_video, dataframe, 'particle')
     annotator.annotate()
