@@ -5,7 +5,7 @@ from math import pi
 import matplotlib.pyplot as plt
 from ParticleTracking import dataframes
 import multiprocessing as mp
-
+from shapely.geometry import Polygon, Point
 
 from . import order, voronoi_cells, polygon_distances, correlations, level
 
@@ -98,13 +98,26 @@ class PropertyCalculator:
         arr = [a for sublist in arr for a in sublist]
         return arr
 
-    def distance(self):
+    def distance(self, multiprocess=False):
         boundary = self.td.get_boundary(0)
-        x = self.td.get_column('x')
-        y = self.td.get_column('y')
-        points = np.vstack((x, y)).transpose()
-        distance = polygon_distances.to_points(boundary, points)
+        self.boundary = Polygon(boundary)
+        points = self.td.get_column(['x', 'y'])
+
+        if multiprocess:
+            n = len(points)
+            points_list = [points[:n//4, :], points[n//4:2*n//4, :],
+                           points[2*n//4:3*n//4, :], points[3*n//4:, :]]
+            p = mp.Pool(4)
+            distance = p.map(self.distance_process, points_list)
+            distance = self.flatten(distance)
+        else:
+            distance = self.distance_process(points)
         self.td.add_particle_property('Edge Distance', distance)
+
+    def distance_process(self, points):
+        distance = [self.boundary.exterior.distance(Point(p)) for p in
+                    tqdm(points, 'Edge distance')]
+        return distance
 
     def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
         data = self.td.get_info(
