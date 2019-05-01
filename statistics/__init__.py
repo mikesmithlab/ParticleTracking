@@ -4,6 +4,7 @@ import numpy as np
 from math import pi
 import matplotlib.pyplot as plt
 from ParticleTracking import dataframes
+import multiprocessing as mp
 
 
 from . import order, voronoi_cells, polygon_distances, correlations, level
@@ -42,6 +43,48 @@ class PropertyCalculator:
         self.td.add_frame_property('mean order', frame_order)
         self.td.add_frame_property('susceptibility', frame_sus)
 
+    def order_mp(self):
+        p = mp.Pool(4)
+        chunk = self.td.num_frames // 4
+        print(chunk, self.td.num_frames)
+        starts = [0, chunk, 2 * chunk, 3 * chunk]
+        ends = [chunk, 2 * chunk, 3 * chunk, self.td.num_frames]
+        orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus = \
+            zip(*p.map(self.order_process, list(zip(starts, ends))))
+        orders_complex = self.flatten(orders_complex)
+        orders_abs = self.flatten(orders_abs)
+        no_of_neighbors = self.flatten(no_of_neighbors)
+        frame_order = self.flatten(frame_order)
+        frame_sus = self.flatten(frame_sus)
+        self.td.add_particle_property('complex order', orders_complex)
+        self.td.add_particle_property('real order', orders_abs)
+        self.td.add_particle_property('neighbors', no_of_neighbors)
+        self.td.add_frame_property('mean order', frame_order)
+        self.td.add_frame_property('susceptibility', frame_sus)
+
+    def order_process(self, bounds):
+        start, end = bounds
+        orders_complex = []
+        orders_abs = []
+        no_of_neighbors = []
+        frame_order = []
+        frame_sus = []
+        for n in tqdm(range(start, end), 'Order'):
+
+            points = self.td.get_info(n, ['x', 'y'])
+            orders, neighbors = order.order_and_neighbors(points)
+
+            orders_r = np.abs(orders)
+
+            orders_complex.extend(list(orders))
+            orders_abs.extend(list(orders_r))
+
+            no_of_neighbors.extend(list(neighbors))
+
+            frame_order.append(np.mean(orders_r))
+            frame_sus.append(np.var(orders_r))
+        return orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus
+
     def density(self):
 
         densities = np.array([])
@@ -63,6 +106,49 @@ class PropertyCalculator:
         self.td.add_particle_property('shape factor', shape_factor)
         self.td.add_particle_property('on edge', edges)
         self.td.add_frame_property('local density', density_mean)
+
+    def density_mp(self):
+        p = mp.Pool(4)
+        chunk = self.td.num_frames // 4
+        print(chunk, self.td.num_frames)
+        starts = [0, chunk, 2*chunk, 3*chunk]
+        ends = [chunk, 2*chunk, 3*chunk, self.td.num_frames]
+        densities, shape_factor, edges, density_mean = zip(*p.map(
+            self.density_process, list(zip(starts, ends))))
+        densities = self.flatten(densities)
+        shape_factor = self.flatten(shape_factor)
+        edges = self.flatten(edges)
+        density_mean = self.flatten(density_mean)
+
+        self.td.add_particle_property('local density', densities)
+        self.td.add_particle_property('shape factor', shape_factor)
+        self.td.add_particle_property('on edge', edges)
+        self.td.add_frame_property('local density', density_mean)
+
+    @staticmethod
+    def flatten(arr):
+        arr = list(arr)
+        arr = [a for sublist in arr for a in sublist]
+        return arr
+
+    def density_process(self, bounds):
+        start, end = bounds
+        densities = np.array([])
+        shape_factor = np.array([])
+        edges = np.array([])
+        density_mean = []
+        for n in tqdm(range(start, end)):
+            particles = self.td.get_info(n, ['x', 'y', 'size'])
+            boundary = self.td.get_boundary(n)
+            area, sf, edge = voronoi_cells.calculate(
+                particles, boundary)
+            density = (particles[:, :2].mean() ** 2 * pi) / area
+            densities = np.append(densities, density)
+            shape_factor = np.append(shape_factor, sf)
+            edges = np.append(edges, edge)
+            density_mean.append(np.mean(density))
+        return densities, shape_factor, edges, density_mean
+
 
     def distance(self):
         boundary = self.td.get_boundary(0)
