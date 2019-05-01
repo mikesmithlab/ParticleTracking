@@ -18,25 +18,8 @@ class PropertyCalculator:
         self.core_name = os.path.splitext(self.td.filename)[0]
 
     def order(self):
-        orders_complex = []
-        orders_abs = []
-        no_of_neighbors = []
-        frame_order = []
-        frame_sus = []
-        for n in tqdm(range(self.td.num_frames), 'Order'):
-            points = self.td.get_info(n, ['x', 'y'])
-            orders, neighbors = order.order_and_neighbors(points)
-
-            orders_r = np.abs(orders)
-
-            orders_complex.extend(list(orders))
-            orders_abs.extend(list(orders_r))
-
-            no_of_neighbors.extend(list(neighbors))
-
-            frame_order.append(np.mean(orders_r))
-            frame_sus.append(np.var(orders_r))
-
+        orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus = \
+            self.order_process([0, self.td.num_frames])
         self.td.add_particle_property('complex order', orders_complex)
         self.td.add_particle_property('real order', orders_abs)
         self.td.add_particle_property('neighbors', no_of_neighbors)
@@ -46,7 +29,6 @@ class PropertyCalculator:
     def order_mp(self):
         p = mp.Pool(4)
         chunk = self.td.num_frames // 4
-        print(chunk, self.td.num_frames)
         starts = [0, chunk, 2 * chunk, 3 * chunk]
         ends = [chunk, 2 * chunk, 3 * chunk, self.td.num_frames]
         orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus = \
@@ -64,26 +46,16 @@ class PropertyCalculator:
 
     def order_process(self, bounds):
         start, end = bounds
-        orders_complex = []
-        orders_abs = []
-        no_of_neighbors = []
-        frame_order = []
-        frame_sus = []
-        for n in tqdm(range(start, end), 'Order'):
-
-            points = self.td.get_info(n, ['x', 'y'])
-            orders, neighbors = order.order_and_neighbors(points)
-
-            orders_r = np.abs(orders)
-
-            orders_complex.extend(list(orders))
-            orders_abs.extend(list(orders_r))
-
-            no_of_neighbors.extend(list(neighbors))
-
-            frame_order.append(np.mean(orders_r))
-            frame_sus.append(np.var(orders_r))
-        return orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus
+        orders, neighbors = zip(*[
+            order.order_and_neighbors(self.td.get_info(n, ['x', 'y']))
+            for n in tqdm(range(start, end))])
+        orders_r = [np.abs(sublist) for sublist in orders]
+        frame_order = [np.mean(sublist) for sublist in orders_r]
+        frame_sus = [np.var(sublist) for sublist in orders_r]
+        orders = self.flatten(orders)
+        orders_r = self.flatten(orders_r)
+        neighbors = self.flatten(neighbors)
+        return orders, orders_r, neighbors, frame_order, frame_sus
 
     def density(self):
 

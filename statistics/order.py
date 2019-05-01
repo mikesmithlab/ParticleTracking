@@ -3,6 +3,7 @@ import numpy as np
 from math import exp
 from numba import jit
 
+
 def order_and_neighbors(points):
     list_indices, point_indices = find_delaunay_indices(points)
     neighbors = count_delaunay_neighbors(list_indices)
