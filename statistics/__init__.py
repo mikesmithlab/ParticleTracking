@@ -43,7 +43,7 @@ class PropertyCalculator:
         start, end = bounds
         orders, neighbors = zip(*[
             order.order_and_neighbors(self.td.get_info(n, ['x', 'y']))
-            for n in tqdm(range(start, end))])
+            for n in tqdm(range(start, end), 'Order')])
         orders_r = [np.abs(sublist) for sublist in orders]
         frame_order = [np.mean(sublist) for sublist in orders_r]
         frame_sus = [np.var(sublist) for sublist in orders_r]
