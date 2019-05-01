@@ -17,27 +17,22 @@ class PropertyCalculator:
         self.td.fill_frame_data()
         self.core_name = os.path.splitext(self.td.filename)[0]
 
-    def order(self):
-        orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus = \
-            self.order_process([0, self.td.num_frames])
-        self.td.add_particle_property('complex order', orders_complex)
-        self.td.add_particle_property('real order', orders_abs)
-        self.td.add_particle_property('neighbors', no_of_neighbors)
-        self.td.add_frame_property('mean order', frame_order)
-        self.td.add_frame_property('susceptibility', frame_sus)
-
-    def order_mp(self):
-        p = mp.Pool(4)
-        chunk = self.td.num_frames // 4
-        starts = [0, chunk, 2 * chunk, 3 * chunk]
-        ends = [chunk, 2 * chunk, 3 * chunk, self.td.num_frames]
-        orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus = \
-            zip(*p.map(self.order_process, list(zip(starts, ends))))
-        orders_complex = self.flatten(orders_complex)
-        orders_abs = self.flatten(orders_abs)
-        no_of_neighbors = self.flatten(no_of_neighbors)
-        frame_order = self.flatten(frame_order)
-        frame_sus = self.flatten(frame_sus)
+    def order(self, multiprocess=False):
+        if not multiprocess:
+            orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus = \
+                self.order_process([0, self.td.num_frames])
+        else:
+            p = mp.Pool()
+            chunk = self.td.num_frames // 4
+            starts = [0, chunk, 2 * chunk, 3 * chunk]
+            ends = [chunk, 2 * chunk, 3 * chunk, self.td.num_frames]
+            orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus = \
+                zip(*p.map(self.order_process, list(zip(starts, ends))))
+            orders_complex = self.flatten(orders_complex)
+            orders_abs = self.flatten(orders_abs)
+            no_of_neighbors = self.flatten(no_of_neighbors)
+            frame_order = self.flatten(frame_order)
+            frame_sus = self.flatten(frame_sus)
         self.td.add_particle_property('complex order', orders_complex)
         self.td.add_particle_property('real order', orders_abs)
         self.td.add_particle_property('neighbors', no_of_neighbors)
