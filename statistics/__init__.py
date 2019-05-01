@@ -99,8 +99,6 @@ class PropertyCalculator:
         return arr
 
     def distance(self, multiprocess=False):
-        boundary = self.td.get_boundary(0)
-        self.boundary = Polygon(boundary)
         points = self.td.get_column(['x', 'y'])
 
         if multiprocess:
@@ -115,9 +113,7 @@ class PropertyCalculator:
         self.td.add_particle_property('Edge Distance', distance)
 
     def distance_process(self, points):
-        distance = [self.boundary.exterior.distance(Point(p)) for p in
-                    tqdm(points, 'Edge distance')]
-        return distance
+        return polygon_distances.to_points(self.td.get_boundary(0), points)
 
     def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
         data = self.td.get_info(
