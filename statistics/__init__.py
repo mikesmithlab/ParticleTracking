@@ -10,6 +10,7 @@ from tqdm import tqdm
 from ParticleTracking import dataframes
 from . import order, voronoi_cells, polygon_distances, correlations, level
 
+from memory_profiler import profile
 
 # from pathos import multiprocessing as mp
 
@@ -20,6 +21,7 @@ Also need to make the following changes to multiprocessing.connection.py module:
 https://github.com/python/cpython/commit/bccacd19fa7b56dcf2fbfab15992b6b94ab6666b
 """
 
+
 class PropertyCalculator:
 
     def __init__(self, datastore):
@@ -28,40 +30,32 @@ class PropertyCalculator:
         self.core_name = os.path.splitext(self.td.filename)[0]
         # self.name = name
 
-    def order(self, multiprocess=False):
-        if not multiprocess:
-            orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus = \
-                self.order_process([0, self.td.num_frames])
+    def order(self, multiprocessing=False):
+        if multiprocessing:
+            p = mp.Pool(4, maxtasksperchild=1)
+            orders, neighbors, orders_r, mean, sus = zip(
+                *p.map(self.order_process, tqdm(range(self.td.num_frames))))
+            p.close()
+            p.join()
         else:
-            with mp.Pool(4) as p:
-                chunk = self.td.num_frames // 4
-                starts = [0, chunk, 2 * chunk, 3 * chunk]
-                ends = [chunk, 2 * chunk, 3 * chunk, self.td.num_frames]
-                orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus = \
-                    zip(*p.map(self.order_process, list(zip(starts, ends))))
-            orders_complex = flatten(orders_complex)
-            orders_abs = flatten(orders_abs)
-            no_of_neighbors = flatten(no_of_neighbors)
-            frame_order = flatten(frame_order)
-            frame_sus = flatten(frame_sus)
-        self.td.add_particle_property('complex order', orders_complex)
-        self.td.add_particle_property('real order', orders_abs)
-        self.td.add_particle_property('neighbors', no_of_neighbors)
-        self.td.add_frame_property('mean order', frame_order)
-        self.td.add_frame_property('susceptibility', frame_sus)
-
-    def order_process(self, bounds):
-        start, end = bounds
-        orders, neighbors = zip(*[
-            order.order_and_neighbors(self.td.get_info(n, ['x', 'y']))
-            for n in tqdm(range(start, end), 'Order')])
-        orders_r = [np.abs(sublist) for sublist in orders]
-        frame_order, frame_sus = zip(
-            *[[np.mean(sublist), np.var(sublist)] for sublist in orders_r])
+            orders, neighbors, orders_r, mean, sus = zip(
+                *map(self.order_process, tqdm(range(self.td.num_frames))))
         orders = flatten(orders)
         orders_r = flatten(orders_r)
         neighbors = flatten(neighbors)
-        return orders, orders_r, neighbors, frame_order, frame_sus
+        self.td.add_particle_property('complex order', orders)
+        self.td.add_particle_property('real order', orders_r)
+        self.td.add_particle_property('neighbors', neighbors)
+        self.td.add_frame_property('mean order', mean)
+        self.td.add_frame_property('susceptibility', sus)
+
+    def order_process(self, n):
+        particles = self.td.get_info(n, ['x', 'y'])
+        orders, neighbors = order.order_and_neighbors(particles)
+        orders_r = np.abs(orders)
+        mean_order = np.mean(orders_r)
+        sus = np.var(orders_r)
+        return orders, neighbors, orders_r, mean_order, sus
 
     def density(self, multiprocess=False):
         if not multiprocess:
