@@ -2,6 +2,7 @@ import multiprocessing as mp
 import os
 import sys
 from math import pi
+from itertools import repeat
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -53,44 +54,27 @@ class PropertyCalculator:
             [mean, sus])
 
     def density(self, multiprocess=False):
-        if not multiprocess:
-            densities, shape_factor, edges, density_mean = \
-                self.density_process([0, self.td.num_frames])
+        points = self.td.get_info_all_frames(['x', 'y', 'r'])
+        boundary = self.td.get_boundary(0)
+        if multiprocess:
+            p = mp.Pool(4)
+            densities, shape_factor, edges, density_mean = zip(
+                *p.starmap(voronoi_cells.density,
+                           tqdm(zip(points, repeat(boundary)),
+                                total=len(points))))
+            p.close()
+            p.join()
         else:
-
-            with mp.Pool(4) as p:
-                chunk = self.td.num_frames // 4
-                starts = [0, chunk, 2 * chunk, 3 * chunk]
-                ends = [chunk, 2 * chunk, 3 * chunk, self.td.num_frames]
-                densities, shape_factor, edges, density_mean = zip(*p.map(
-                    self.density_process, list(zip(starts, ends))))
-            densities = flatten(densities)
-            shape_factor = flatten(shape_factor)
-            edges = flatten(edges)
-            density_mean = flatten(density_mean)
-
-        self.td.add_particle_property('local density', densities)
-        self.td.add_particle_property('shape factor', shape_factor)
-        self.td.add_particle_property('on edge', edges)
+            densities, shape_factor, edges, density_mean = zip(
+                *map(voronoi_cells.density,
+                     tqdm(zip(points, repeat(boundary)), total=len(points))))
+        densities = flatten(densities)
+        shape_factor = flatten(shape_factor)
+        edges = flatten(edges)
+        self.td.add_particle_properties(
+            ['local density', 'shape factor', 'on edge'],
+            [densities, shape_factor, edges])
         self.td.add_frame_property('local density', density_mean)
-
-    def density_process(self, bounds):
-        start, end = bounds
-        densities = np.array([])
-        shape_factor = np.array([])
-        edges = np.array([])
-        density_mean = []
-        for n in tqdm(range(start, end), 'density'):
-            particles = self.td.get_info(n, ['x', 'y', 'size'])
-            boundary = self.td.get_boundary(n)
-            area, sf, edge = voronoi_cells.calculate(
-                particles, boundary)
-            density = (particles[:, :2].mean() ** 2 * pi) / area
-            densities = np.append(densities, density)
-            shape_factor = np.append(shape_factor, sf)
-            edges = np.append(edges, edge)
-            density_mean.append(np.mean(density))
-        return densities, shape_factor, edges, density_mean
 
     def distance(self, multiprocess=False):
         points = self.td.get_column(['x', 'y'])

@@ -7,6 +7,12 @@ import cv2
 import pyclipper
 
 
+def density(particles, boundary):
+    area, shape_factor, on_edge = calculate(particles, boundary)
+    density = (particles[:, :2].mean() ** 2 * pi) / area
+    mean = np.mean(density)
+    return density, shape_factor, on_edge, mean
+
 def calculate(particles, boundary):
     # boundary = Polygon(boundary)
     vor = sp.Voronoi(particles[:, :2])
