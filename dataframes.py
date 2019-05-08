@@ -161,9 +161,18 @@ class DataStore:
 
     def get_info_all_frames(self, headings):
         all_headings = ['frame'] + headings
-        df = self.particle_data[all_headings].copy()
-        return [df.loc[df['frame'] == frame, headings].values
-                for frame in tqdm(range(self.num_frames))]
+        df = self.particle_data[all_headings].values
+        info = self.stack_info(df)
+        return info
+
+    @staticmethod
+    def stack_info(arr):
+        f = arr[:, 0]
+        _, c = np.unique(f, return_counts=True)
+        indices = np.insert(np.cumsum(c), 0, 0)
+        info = [arr[indices[i]:indices[i + 1], 1:]
+             for i in range(len(c))]
+        return info
 
     def get_column(self, name):
         """

@@ -12,7 +12,10 @@ def order_and_neighbors(points):
     orders = calculate_orders(angles, list_indices)
     neighbors = np.uint8(neighbors)
     orders = np.complex64(orders)
-    return orders, neighbors
+    orders_abs = np.abs(orders)
+    mean = np.mean(orders_abs)
+    sus = np.var(orders_abs)
+    return orders, neighbors, orders_abs, mean, sus
 
 
 def find_delaunay_indices(points):
