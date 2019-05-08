@@ -45,11 +45,12 @@ class PropertyCalculator:
         orders = flatten(orders)
         orders_r = flatten(orders_r)
         neighbors = flatten(neighbors)
-        self.td.add_particle_property('complex order', orders)
-        self.td.add_particle_property('real order', orders_r)
-        self.td.add_particle_property('neighbors', neighbors)
-        self.td.add_frame_property('mean order', mean)
-        self.td.add_frame_property('susceptibility', sus)
+        self.td.add_particle_properties(
+            ['complex order', 'real order', 'neighbors'],
+            [orders, orders_r, neighbors])
+        self.td.add_frame_properties(
+            ['mean order', 'susceptibility'],
+            [mean, sus])
 
     def density(self, multiprocess=False):
         if not multiprocess:

@@ -206,6 +206,11 @@ class DataStore:
         self.particle_data[heading] = values
         self.save()
 
+    def add_particle_properties(self, headings, values):
+        for heading, value in zip(headings, values):
+            self.particle_data[heading] = value
+        self.save()
+
     def add_frame_property(self, heading, values):
         """
         Adds a new column to the frame dataframe
@@ -219,6 +224,11 @@ class DataStore:
             Must be the same shape as other columns in the dataframe
         """
         self.frame_data[heading] = values
+        self.save()
+
+    def add_frame_properties(self, headings, values):
+        for heading, value in zip(headings, values):
+            self.frame_data[heading] = value
         self.save()
 
     def save(self):
