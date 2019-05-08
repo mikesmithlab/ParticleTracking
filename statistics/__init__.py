@@ -1,14 +1,24 @@
-import os
-from tqdm import tqdm
-import numpy as np
-from math import pi
-import matplotlib.pyplot as plt
-from ParticleTracking import dataframes
 import multiprocessing as mp
-from shapely.geometry import Polygon, Point
+import os
+import sys
+from math import pi
 
+import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
+
+from ParticleTracking import dataframes
 from . import order, voronoi_cells, polygon_distances, correlations, level
 
+
+# from pathos import multiprocessing as mp
+
+"""
+Multiprocessing will only work on linux systems.
+
+Also need to make the following changes to multiprocessing.connection.py module:
+https://github.com/python/cpython/commit/bccacd19fa7b56dcf2fbfab15992b6b94ab6666b
+"""
 
 class PropertyCalculator:
 
@@ -16,23 +26,24 @@ class PropertyCalculator:
         self.td = datastore
         self.td.fill_frame_data()
         self.core_name = os.path.splitext(self.td.filename)[0]
+        # self.name = name
 
     def order(self, multiprocess=False):
         if not multiprocess:
             orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus = \
                 self.order_process([0, self.td.num_frames])
         else:
-            p = mp.Pool()
-            chunk = self.td.num_frames // 4
-            starts = [0, chunk, 2 * chunk, 3 * chunk]
-            ends = [chunk, 2 * chunk, 3 * chunk, self.td.num_frames]
-            orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus = \
-                zip(*p.map(self.order_process, list(zip(starts, ends))))
-            orders_complex = self.flatten(orders_complex)
-            orders_abs = self.flatten(orders_abs)
-            no_of_neighbors = self.flatten(no_of_neighbors)
-            frame_order = self.flatten(frame_order)
-            frame_sus = self.flatten(frame_sus)
+            with mp.Pool(4) as p:
+                chunk = self.td.num_frames // 4
+                starts = [0, chunk, 2 * chunk, 3 * chunk]
+                ends = [chunk, 2 * chunk, 3 * chunk, self.td.num_frames]
+                orders_complex, orders_abs, no_of_neighbors, frame_order, frame_sus = \
+                    zip(*p.map(self.order_process, list(zip(starts, ends))))
+            orders_complex = flatten(orders_complex)
+            orders_abs = flatten(orders_abs)
+            no_of_neighbors = flatten(no_of_neighbors)
+            frame_order = flatten(frame_order)
+            frame_sus = flatten(frame_sus)
         self.td.add_particle_property('complex order', orders_complex)
         self.td.add_particle_property('real order', orders_abs)
         self.td.add_particle_property('neighbors', no_of_neighbors)
@@ -45,11 +56,11 @@ class PropertyCalculator:
             order.order_and_neighbors(self.td.get_info(n, ['x', 'y']))
             for n in tqdm(range(start, end), 'Order')])
         orders_r = [np.abs(sublist) for sublist in orders]
-        frame_order = [np.mean(sublist) for sublist in orders_r]
-        frame_sus = [np.var(sublist) for sublist in orders_r]
-        orders = self.flatten(orders)
-        orders_r = self.flatten(orders_r)
-        neighbors = self.flatten(neighbors)
+        frame_order, frame_sus = zip(
+            *[[np.mean(sublist), np.var(sublist)] for sublist in orders_r])
+        orders = flatten(orders)
+        orders_r = flatten(orders_r)
+        neighbors = flatten(neighbors)
         return orders, orders_r, neighbors, frame_order, frame_sus
 
     def density(self, multiprocess=False):
@@ -57,17 +68,17 @@ class PropertyCalculator:
             densities, shape_factor, edges, density_mean = \
                 self.density_process([0, self.td.num_frames])
         else:
-            p = mp.Pool(4)
-            chunk = self.td.num_frames // 4
-            print(chunk, self.td.num_frames)
-            starts = [0, chunk, 2 * chunk, 3 * chunk]
-            ends = [chunk, 2 * chunk, 3 * chunk, self.td.num_frames]
-            densities, shape_factor, edges, density_mean = zip(*p.map(
-                self.density_process, list(zip(starts, ends))))
-            densities = self.flatten(densities)
-            shape_factor = self.flatten(shape_factor)
-            edges = self.flatten(edges)
-            density_mean = self.flatten(density_mean)
+
+            with mp.Pool(4) as p:
+                chunk = self.td.num_frames // 4
+                starts = [0, chunk, 2 * chunk, 3 * chunk]
+                ends = [chunk, 2 * chunk, 3 * chunk, self.td.num_frames]
+                densities, shape_factor, edges, density_mean = zip(*p.map(
+                    self.density_process, list(zip(starts, ends))))
+            densities = flatten(densities)
+            shape_factor = flatten(shape_factor)
+            edges = flatten(edges)
+            density_mean = flatten(density_mean)
 
         self.td.add_particle_property('local density', densities)
         self.td.add_particle_property('shape factor', shape_factor)
@@ -92,12 +103,6 @@ class PropertyCalculator:
             density_mean.append(np.mean(density))
         return densities, shape_factor, edges, density_mean
 
-    @staticmethod
-    def flatten(arr):
-        arr = list(arr)
-        arr = [a for sublist in arr for a in sublist]
-        return arr
-
     def distance(self, multiprocess=False):
         points = self.td.get_column(['x', 'y'])
 
@@ -105,9 +110,9 @@ class PropertyCalculator:
             n = len(points)
             points_list = [points[:n//4, :], points[n//4:2*n//4, :],
                            points[2*n//4:3*n//4, :], points[3*n//4:, :]]
-            p = mp.Pool(4)
-            distance = p.map(self.distance_process, points_list)
-            distance = self.flatten(distance)
+            with mp.Pool(4) as p:
+                distance = p.map(self.distance_process, points_list)
+            distance = flatten(distance)
         else:
             distance = self.distance_process(points)
         self.td.add_particle_property('Edge Distance', distance)
@@ -136,3 +141,10 @@ class PropertyCalculator:
         points = np.vstack((x, y)).transpose()
         boundary = self.td.get_boundary(0)
         level.check_level(points, boundary)
+
+
+def flatten(arr):
+    arr = list(arr)
+    arr = [a for sublist in arr for a in sublist]
+    return arr
+

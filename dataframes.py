@@ -218,7 +218,10 @@ class DataStore:
         store = pd.HDFStore(self.filename)
         self.particle_data = store['data']
         self.boundary_data = store['boundary']
-        self.crop = store['crop'].values.tolist()
+        try:
+            self.crop = store['crop'].values.tolist()
+        except:
+            self.crop = None
         try:
             self.frame_data = store['frame']
             print('Using stored frame_data')

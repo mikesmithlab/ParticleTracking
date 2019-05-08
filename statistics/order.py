@@ -10,6 +10,8 @@ def order_and_neighbors(points):
     vectors = find_vectors(points, list_indices, point_indices)
     angles = calculate_angles(vectors)
     orders = calculate_orders(angles, list_indices)
+    neighbors = np.uint8(neighbors)
+    orders = np.complex64(orders)
     return orders, neighbors
 
 
