@@ -4,6 +4,8 @@ import warnings
 import numpy as np
 import pandas as pd
 
+from tqdm import tqdm
+
 warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 
 
@@ -152,9 +154,16 @@ class DataStore:
             Contains information specified by headings for all the
             points in frame
         """
-        info = self.particle_data.loc[
-            self.particle_data['frame'] == frame, headings].values
+        all_headings = ['frame'] + headings
+        df = self.particle_data[all_headings].copy()
+        info = df.loc[df['frame'] == frame, headings].values
         return info
+
+    def get_info_all_frames(self, headings):
+        all_headings = ['frame'] + headings
+        df = self.particle_data[all_headings].copy()
+        return [df.loc[df['frame'] == frame, headings].values
+                for frame in tqdm(range(self.num_frames))]
 
     def get_column(self, name):
         """

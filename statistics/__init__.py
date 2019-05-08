@@ -6,6 +6,7 @@ from math import pi
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
+from numba import jit
 
 from ParticleTracking import dataframes
 from . import order, voronoi_cells, polygon_distances, correlations, level
@@ -31,15 +32,16 @@ class PropertyCalculator:
         # self.name = name
 
     def order(self, multiprocessing=False):
+        points = stack_points(self.td.get_column(['x', 'y', 'frame']))
         if multiprocessing:
-            p = mp.Pool(4, maxtasksperchild=1)
+            p = mp.Pool(4)
             orders, neighbors, orders_r, mean, sus = zip(
-                *p.map(self.order_process, tqdm(range(self.td.num_frames))))
+                *p.map(order_process, tqdm(points)))
             p.close()
             p.join()
         else:
             orders, neighbors, orders_r, mean, sus = zip(
-                *map(self.order_process, tqdm(range(self.td.num_frames))))
+                *map(order_process, tqdm(range(self.td.num_frames))))
         orders = flatten(orders)
         orders_r = flatten(orders_r)
         neighbors = flatten(neighbors)
@@ -49,13 +51,7 @@ class PropertyCalculator:
         self.td.add_frame_property('mean order', mean)
         self.td.add_frame_property('susceptibility', sus)
 
-    def order_process(self, n):
-        particles = self.td.get_info(n, ['x', 'y'])
-        orders, neighbors = order.order_and_neighbors(particles)
-        orders_r = np.abs(orders)
-        mean_order = np.mean(orders_r)
-        sus = np.var(orders_r)
-        return orders, neighbors, orders_r, mean_order, sus
+
 
     def density(self, multiprocess=False):
         if not multiprocess:
@@ -136,9 +132,24 @@ class PropertyCalculator:
         boundary = self.td.get_boundary(0)
         level.check_level(points, boundary)
 
+def order_process(points):
+    orders, neighbors = order.order_and_neighbors(points)
+    orders_r = np.abs(orders)
+    mean_order = np.mean(orders_r)
+    sus = np.var(orders_r)
+    return orders, neighbors, orders_r, mean_order, sus
+
 
 def flatten(arr):
     arr = list(arr)
     arr = [a for sublist in arr for a in sublist]
     return arr
 
+
+def stack_points(points):
+    f = points[:, 2]
+    v, c = np.unique(f, return_counts=True)
+    indices = np.insert(np.cumsum(c), 0, 0)
+    p = [points[indices[i]:indices[i+1], :2]
+            for i in range(len(c))]
+    return p
