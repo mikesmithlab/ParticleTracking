@@ -37,12 +37,12 @@ class PropertyCalculator:
         if multiprocessing:
             p = mp.Pool(4)
             orders, neighbors, orders_r, mean, sus = zip(
-                *p.map(order.order_and_neighbors, tqdm(points)))
+                *p.map(order.order_and_neighbors, tqdm(points, 'Order')))
             p.close()
             p.join()
         else:
             orders, neighbors, orders_r, mean, sus = zip(
-                *map(order.order_and_neighbors, tqdm(points)))
+                *map(order.order_and_neighbors, tqdm(points, 'Order')))
         orders = flatten(orders)
         orders_r = flatten(orders_r)
         neighbors = flatten(neighbors)

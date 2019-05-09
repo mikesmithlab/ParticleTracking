@@ -138,7 +138,7 @@ class ParticleTracker:
         self.cap = video.ReadVideo(self.input_filename)
         self.cap.set_frame(start)
         # Iterate over frames
-        for f in tqdm(range(self.frame_div)):
+        for f in tqdm(range(self.frame_div), 'Tracking'):
             info, boundary, info_headings = self.analyse_frame()
             data.add_tracking_data(start + f, info, col_names=info_headings)
             data.add_boundary_data(start + f, boundary)
