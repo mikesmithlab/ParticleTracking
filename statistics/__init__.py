@@ -33,25 +33,28 @@ class PropertyCalculator:
         # self.name = name
 
     def order(self, multiprocessing=False):
-        points = self.td.get_info_all_frames(['x', 'y'])
-        if multiprocessing:
-            p = mp.Pool(4)
-            orders, neighbors, orders_r, mean, sus = zip(
-                *p.map(order.order_and_neighbors, tqdm(points, 'Order')))
-            p.close()
-            p.join()
+        if 'real order' in self.td.get_headings():
+            pass
         else:
-            orders, neighbors, orders_r, mean, sus = zip(
-                *map(order.order_and_neighbors, tqdm(points, 'Order')))
-        orders = flatten(orders)
-        orders_r = flatten(orders_r)
-        neighbors = flatten(neighbors)
-        self.td.add_particle_properties(
-            ['complex order', 'real order', 'neighbors'],
-            [orders, orders_r, neighbors])
-        self.td.add_frame_properties(
-            ['mean order', 'susceptibility'],
-            [mean, sus])
+            points = self.td.get_info_all_frames(['x', 'y'])
+            if multiprocessing:
+                p = mp.Pool(4)
+                orders, neighbors, orders_r, mean, sus = zip(
+                    *p.map(order.order_and_neighbors, tqdm(points, 'Order')))
+                p.close()
+                p.join()
+            else:
+                orders, neighbors, orders_r, mean, sus = zip(
+                    *map(order.order_and_neighbors, tqdm(points, 'Order')))
+            orders = flatten(orders)
+            orders_r = flatten(orders_r)
+            neighbors = flatten(neighbors)
+            self.td.add_particle_properties(
+                ['complex order', 'real order', 'neighbors'],
+                [orders, orders_r, neighbors])
+            self.td.add_frame_properties(
+                ['mean order', 'susceptibility'],
+                [mean, sus])
 
     def density(self, multiprocess=False):
         points = self.td.get_info_all_frames(['x', 'y', 'r'])
