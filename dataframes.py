@@ -109,12 +109,10 @@ class DataStore:
             If None will
         """
         col_names = ['x', 'y', 'r'] if col_names is None else col_names
-        frame_list = np.ones((np.shape(tracked_data)[0], 1)) * frame
-        tracked_data = np.concatenate((tracked_data, frame_list), axis=1)
-        col_names.append('frame')
-
+        frame_list = np.ones(np.shape(tracked_data)[0]) * frame
         data_dict = {name: tracked_data[:, i]
                      for i, name in enumerate(col_names)}
+        data_dict['frame'] = frame_list
         new_particles = pd.DataFrame(data_dict)
 
         self.particle_data = pd.concat([self.particle_data, new_particles])

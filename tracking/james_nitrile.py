@@ -1,5 +1,5 @@
 from Generic import images, video, audio
-from ParticleTracking.tracking import ParticleTracker
+from ParticleTracking.tracking import ParticleTracker2 as ParticleTracker
 from ParticleTracking import configurations, dataframes, preprocessing
 import numpy as np
 from numba import jit
@@ -19,11 +19,17 @@ class JamesPT(ParticleTracker):
             self.cap = video.ReadVideo(self.input_filename)
             self.frame = self.cap.read_next_frame()
 
-    def analyse_frame(self):
-        if self.tracking:
-            frame = self.cap.read_next_frame()
-        else:
-            frame = self.cap.find_frame(self.parameters['frame'][0])
+        self.headings = ('x', 'y', 'r')
+
+    def analyse_frame(self, frame_and_f):
+        # print(frame_and_f)
+        frame = frame_and_f[0]
+
+        f = frame_and_f[1]
+        # if self.tracking:
+        #     frame = self.cap.read_next_frame()
+        # else:
+        #     frame = self.cap.find_frame(self.parameters['frame'][0])
         new_frame, boundary, cropped_frame = self.ip.process(frame)
         circles = images.find_circles(
             new_frame,
@@ -34,11 +40,13 @@ class JamesPT(ParticleTracker):
             self.parameters['max_rad'][0])
         circles = get_points_inside_boundary(circles, boundary)
         circles = check_circles_bg_color(circles, new_frame, 150)
-        if self.tracking:
-            return circles, boundary, ['x', 'y', 'r']
-        else:
-            annotated_frame = images.draw_circles(cropped_frame, circles)
-            return new_frame, annotated_frame
+        # self.data.add_tracking_data(f, circles, col_names=self.headings)
+        return circles, f
+        # if self.tracking:
+        #     return circles, boundary
+        # else:
+        #     annotated_frame = images.draw_circles(cropped_frame, circles)
+        #     return new_frame, annotated_frame
 
 
     def extra_steps(self):
@@ -122,6 +130,6 @@ if __name__ == '__main__':
     from Generic import filedialogs
     file = filedialogs.load_filename('Load a video')
 
-    jpt = JamesPT(file)
+    jpt = JamesPT(file, tracking=True, multiprocess=True)
     jpt.track()
 
