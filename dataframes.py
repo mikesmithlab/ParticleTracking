@@ -115,10 +115,13 @@ class DataStore:
 
         data_dict = {name: tracked_data[:, i]
                      for i, name in enumerate(col_names)}
-        new_particles = pd.DataFrame(
-            data_dict, index=np.arange(1, np.shape(tracked_data)[0] + 1))
+        new_particles = pd.DataFrame(data_dict)
 
         self.particle_data = pd.concat([self.particle_data, new_particles])
+
+    def drop_frame_col(self):
+        if self.particle_data.index.name == 'frame':
+            self.particle_data = self.particle_data.drop('frame', 1)
 
     def add_boundary_data(self, frame, boundary):
         """
