@@ -4,6 +4,7 @@ from ParticleTracking import configurations, dataframes, preprocessing
 import numpy as np
 from numba import jit
 import matplotlib.path as mpath
+import pandas as pd
 
 
 class JamesPT(ParticleTracker):
@@ -21,11 +22,13 @@ class JamesPT(ParticleTracker):
 
         self.headings = ('x', 'y', 'r')
 
-    def analyse_frame(self, frame_and_f):
+    def analyse_frame(self, args):
+        frame = args[0]
+        f = args[1]
         # print(frame_and_f)
-        frame = frame_and_f[0]
-
-        f = frame_and_f[1]
+        # frame = frame_and_f[0]
+        #
+        # f = frame_and_f[1]
         # if self.tracking:
         #     frame = self.cap.read_next_frame()
         # else:
@@ -40,8 +43,9 @@ class JamesPT(ParticleTracker):
             self.parameters['max_rad'][0])
         circles = get_points_inside_boundary(circles, boundary)
         circles = check_circles_bg_color(circles, new_frame, 150)
+        circles = {'x': circles[:, 0], 'y': circles[:, 1], 'r': circles[:, 2], 'frame': f}
         # self.data.add_tracking_data(f, circles, col_names=self.headings)
-        return circles, f
+        return circles # pd.DataFrame(circles)
         # if self.tracking:
         #     return circles, boundary
         # else:

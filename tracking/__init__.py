@@ -1,10 +1,11 @@
 import multiprocessing as mp
 from multiprocessing.pool import ThreadPool, Pool
 import os
-
+import pandas as pd
 import numpy as np
 import trackpy
 from tqdm import tqdm
+import time
 
 from Generic import images, video
 from ParticleTracking import dataframes
@@ -206,23 +207,35 @@ class ParticleTracker2:
     def track(self):
         self._get_video_info()
         cap = video.ReadVideo(self.input_filename)
-        self.data = dataframes.DataStore(self.data_filename, load=False)
-        frame_chunks = cap.frame_chunks(200)
+        # self.data = dataframes.DataStore(self.data_filename, load=False)
+        frames = cap.frames()
+        self.data = pd.DataFrame()
         if self.multiprocess:
             p = ThreadPool(4)
-            for frames in frame_chunks:
-                res = []
-                p.map_async(self.analyse_frame, tqdm(frames, total=200),
-                            callback=res.append)
+            res = []
+            for frame in tqdm(frames, 'track', total=cap.num_frames):
+                r = p.apply_async(self.analyse_frame, (frame, ), callback=self.append_data)
+                res.append(r)
+                if len(res) > 50:
+                    for r in res:
+                        r.wait()
+                    res = []
+            for r in tqdm(res, 'wait'):
+                r.wait()
             p.close()
             p.join()
         else:
             map(self.analyse_frame, tqdm(frames, total=cap.num_frames))
-        print(res)
+        self.data = self.data.set_index('frame')
+        self.data = self.data.sort_index()
+        print(self.data.head())
         # print(len(np.unique(self.data.particle_data.frame)))
         # self._link_trajectories()
         # self.extra_steps()
         # print(self.data.inspect_dataframes())
+
+    def append_data(self, data):
+        self.data = pd.concat([self.data, pd.DataFrame(data)])
 
     def add_data(self, data):
         print(data[1])
