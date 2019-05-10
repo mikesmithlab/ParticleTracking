@@ -90,8 +90,8 @@ class ParticleTracker:
 
     def _track_multiprocess(self):
         """Splits processing into chunks"""
-        p = mp.Pool(self.num_processes)
-        p.map(self._track_process, range(self.num_processes))
+        with mp.Pool(self.num_processes) as p:
+            p.map(self._track_process, range(self.num_processes))
         self._cleanup_intermediate_dataframes()
 
     def _get_video_info(self):
