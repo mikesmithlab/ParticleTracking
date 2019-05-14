@@ -157,9 +157,7 @@ class DataStore:
             Contains information specified by headings for all the
             points in frame
         """
-        all_headings = ['frame'] + headings
-        df = self.particle_data[all_headings].copy()
-        info = df.loc[df['frame'] == frame, headings].values
+        info = self.particle_data.loc[frame, headings].values
         return info
 
     def get_info_all_frames(self, headings):
