@@ -35,7 +35,7 @@ class PropertyCalculator:
     def order(self, multiprocessing=False, overwrite=False):
         if ('real order' in self.td.get_headings()) and (overwrite is False):
             return 0
-        rad = self.td.get_column('r').mean()*3
+        rad = self.td.get_column('r').mean()*4
         points = self.td.get_info_all_frames(['x', 'y'])
         if multiprocessing:
             p = mp.Pool(4)
@@ -131,4 +131,4 @@ if __name__ == "__main__":
     file = filedialogs.load_filename()
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
-    calc.order(multiprocessing=False, overwrite=True)
+    calc.order(multiprocessing=True, overwrite=True)

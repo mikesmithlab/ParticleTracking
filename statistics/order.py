@@ -53,5 +53,5 @@ def calculate_orders(angles, list_indices, inside):
                  for k, l in zip(parts, inside)]
     neighbors = [sum([item for item in sublist])
                  for sublist in inside]
-    orders = [a/b for a, b in zip(parts_sum, neighbors)]
+    orders = [a/b if b != 0 else 0 for a, b in zip(parts_sum, neighbors)]
     return orders, neighbors
