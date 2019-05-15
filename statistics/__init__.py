@@ -2,7 +2,7 @@ import multiprocessing as mp
 import os
 import sys
 from math import pi
-from itertools import repeat
+from itertools import repeat, starmap
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,8 +10,8 @@ from tqdm import tqdm
 from numba import jit
 
 from ParticleTracking import dataframes
-from . import order, voronoi_cells, polygon_distances, correlations, level
-
+# from . import order, voronoi_cells, polygon_distances, correlations, level
+from ParticleTracking.statistics import order, voronoi_cells, polygon_distances, correlations, level
 from memory_profiler import profile
 
 # from pathos import multiprocessing as mp
@@ -32,29 +32,29 @@ class PropertyCalculator:
         self.core_name = os.path.splitext(self.td.filename)[0]
         # self.name = name
 
-    def order(self, multiprocessing=False):
-        if 'real order' in self.td.get_headings():
-            pass
+    def order(self, multiprocessing=False, overwrite=False):
+        if ('real order' in self.td.get_headings()) and (overwrite is False):
+            return 0
+        rad = self.td.get_column('r').mean()*3
+        points = self.td.get_info_all_frames(['x', 'y'])
+        if multiprocessing:
+            p = mp.Pool(4)
+            orders, neighbors, orders_r, mean, sus = zip(
+                *p.starmap(order.order_and_neighbors, tqdm(zip(points, repeat(rad)), 'Order', total=len(points))))
+            p.close()
+            p.join()
         else:
-            points = self.td.get_info_all_frames(['x', 'y'])
-            if multiprocessing:
-                p = mp.Pool(4)
-                orders, neighbors, orders_r, mean, sus = zip(
-                    *p.map(order.order_and_neighbors, tqdm(points, 'Order')))
-                p.close()
-                p.join()
-            else:
-                orders, neighbors, orders_r, mean, sus = zip(
-                    *map(order.order_and_neighbors, tqdm(points, 'Order')))
-            orders = flatten(orders)
-            orders_r = flatten(orders_r)
-            neighbors = flatten(neighbors)
-            self.td.add_particle_properties(
-                ['complex order', 'real order', 'neighbors'],
-                [orders, orders_r, neighbors])
-            self.td.add_frame_properties(
-                ['mean order', 'susceptibility'],
-                [mean, sus])
+            orders, neighbors, orders_r, mean, sus = zip(
+                *starmap(order.order_and_neighbors, tqdm(zip(points, repeat(rad)), 'Order', total=len(points))))
+        orders = flatten(orders)
+        orders_r = flatten(orders_r)
+        neighbors = flatten(neighbors)
+        self.td.add_particle_properties(
+            ['complex order', 'real order', 'neighbors'],
+            [orders, orders_r, neighbors])
+        self.td.add_frame_properties(
+            ['mean order', 'susceptibility'],
+            [mean, sus])
 
     def density(self, multiprocess=False):
         points = self.td.get_info_all_frames(['x', 'y', 'r'])
@@ -123,3 +123,12 @@ def flatten(arr):
     arr = list(arr)
     arr = [a for sublist in arr for a in sublist]
     return arr
+
+
+if __name__ == "__main__":
+    from Generic import filedialogs
+    from ParticleTracking import dataframes, statistics
+    file = filedialogs.load_filename()
+    data = dataframes.DataStore(file, load=True)
+    calc = statistics.PropertyCalculator(data)
+    calc.order(multiprocessing=False, overwrite=True)
