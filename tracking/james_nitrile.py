@@ -115,7 +115,7 @@ def read_audio_file(file, frames):
     wav_l = wav[:, 0]
     # wav = audio.digitise(wav)
     freqs = audio.frame_frequency(wav_l, frames, 48000)
-    d = (freqs - 1000)/2
+    d = (freqs - 1000)/15
     return d
 
 if __name__ == '__main__':
