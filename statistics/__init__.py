@@ -58,8 +58,7 @@ class PropertyCalculator:
 
     def density(self, multiprocess=False):
         points = self.td.get_info_all_frames(['x', 'y', 'r'])
-        boundary = self.td.get_boundary()
-        print(boundary)
+        boundary = self.td.get_metadata('boundary')
         if multiprocess:
             p = mp.Pool(4)
             densities, shape_factor, edges, density_mean = zip(
