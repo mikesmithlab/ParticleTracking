@@ -64,4 +64,4 @@ if __name__ == "__main__":
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
     calc.order(multiprocessing=True, overwrite=True)
-    print(data.particle_data.head())
+    print(data.df.head())

@@ -6,20 +6,20 @@ import pandas as pd
 
 class DataStore:
     def __init__(self, filename, load=True):
-        self.particle_data = pd.DataFrame()
+        self.df = pd.DataFrame()
         self.metadata = {}
         self.filename = os.path.splitext(filename)[0] + '.hdf5'
         if load:
             self.load()
 
     def get_headings(self):
-        return self.particle_data.columns.values.tolist()
+        return self.df.columns.values.tolist()
 
     def get_column(self, name):
-        return self.particle_data[name].values
+        return self.df[name].values
 
     def add_particle_property(self, heading, values):
-        self.particle_data[heading] = values
+        self.df[heading] = values
 
     def add_particle_properties(self, headings, values):
         for heading, value in zip(headings, values):
@@ -27,7 +27,7 @@ class DataStore:
 
     def get_info_all_frames(self, headings):
         all_headings = ['frame'] + headings
-        data = self.particle_data.reset_index()[all_headings].values
+        data = self.df.reset_index()[all_headings].values
         info = self.stack_info(data)
         return info
 
@@ -46,7 +46,7 @@ class DataStore:
                      for i, name in enumerate(col_names)}
         data_dict['frame'] = frame
         new_df = pd.DataFrame(data_dict).set_index('frame')
-        self.particle_data = self.particle_data.append(new_df)
+        self.df = self.df.append(new_df)
 
     def add_metadata(self, name, data):
         self.metadata[name] = data
@@ -55,42 +55,42 @@ class DataStore:
         return self.metadata[name]
 
     def get_info(self, frame, headings):
-        return self.particle_data.loc[frame, headings].values
+        return self.df.loc[frame, headings].values
 
     def reset_index(self):
-        self.particle_data = self.particle_data.reset_index()
+        self.df = self.df.reset_index()
 
     def save(self):
         with pd.HDFStore(self.filename) as store:
-            store.put('df', self.particle_data)
+            store.put('df', self.df)
             store.get_storer('df').attrs.metadata = self.metadata
 
     def load(self):
         with pd.HDFStore(self.filename) as store:
-            self.particle_data = store.get('df')
+            self.df = store.get('df')
             self.metadata = store.get_storer('df').attrs.metadata
 
     def get_crop(self):
         return self.metadata['crop']
 
     def set_frame_index(self):
-        if 'frame' in self.particle_data.columns.values.tolist():
-            if self.particle_data.index.name == 'frame':
-               self.particle_data = self.particle_data.drop('frame', 1)
+        if 'frame' in self.df.columns.values.tolist():
+            if self.df.index.name == 'frame':
+               self.df = self.df.drop('frame', 1)
             else:
-                self.particle_data = self.particle_data.set_index('frame')
+                self.df = self.df.set_index('frame')
 
     def add_frame_property(self, heading, values):
         prop = pd.Series(values,
                          index=pd.Index(np.arange(len(values)), name='frame'))
-        self.particle_data[heading] = prop
+        self.df[heading] = prop
 
     def add_frame_properties(self, headings, values):
         for heading, value in zip(headings, values):
             self.add_frame_property(heading, value)
 
     def append_store(self, store):
-        self.particle_data = self.particle_data.append(store.particle_data)
+        self.df = self.df.append(store.particle_data)
         self.metadata = {**self.metadata, **store.metadata}
 
 
@@ -110,6 +110,6 @@ if __name__ == "__main__":
     from Generic import filedialogs
     file = filedialogs.load_filename()
     DS = DataStore(file)
-    print(DS.particle_data.head())
-    print(DS.particle_data.tail())
+    print(DS.df.head())
+    print(DS.df.tail())
     print(DS.metadata)

@@ -167,14 +167,14 @@ class ParticleTracker:
                                           load=True)
         # Trackpy methods
         data_store.reset_index()
-        data_store.particle_data = trackpy.link_df(
-            data_store.particle_data,
+        data_store.df = trackpy.link_df(
+            data_store.df,
             self.parameters['max frame displacement'],
             memory=self.parameters['memory'])
-        data_store.particle_data = trackpy.filter_stubs(
-            data_store.particle_data, self.parameters['min frame life'])
+        data_store.df = trackpy.filter_stubs(
+            data_store.df, self.parameters['min frame life'])
         data_store.set_frame_index()
-        print(data_store.particle_data.head(5))
+        print(data_store.df.head(5))
         # Save DataStore
         data_store.save()
 

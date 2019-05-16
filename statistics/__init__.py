@@ -28,9 +28,7 @@ class PropertyCalculator:
 
     def __init__(self, datastore):
         self.td = datastore
-        # self.td.fill_frame_data()
         self.core_name = os.path.splitext(self.td.filename)[0]
-        # self.name = name
 
     def order(self, multiprocessing=False, overwrite=False):
         if ('real order' in self.td.get_headings()) and (overwrite is False):

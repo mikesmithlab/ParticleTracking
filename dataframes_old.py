@@ -25,7 +25,7 @@ class DataStore:
         Location of the datastore
 
     num_frames: int
-        The number of frames in `particle_data`
+        The number of frames in `df`
 
     Methods
     -------
@@ -36,7 +36,7 @@ class DataStore:
         Gets the info defined by headings for frame_no
 
     get_column(column)
-        Gets the column defined by the string `column` from `particle_data`
+        Gets the column defined by the string `column` from `df`
 
     add_particle_property(heading, values)
         Adds `values` to column `heading`
@@ -73,7 +73,7 @@ class DataStore:
         print('')
 
     def get_headings(self):
-        """Returns the headings of `particle_data` as a list"""
+        """Returns the headings of `df` as a list"""
         headings = self.particle_data.columns.values.tolist()
         return headings
 
