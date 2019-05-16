@@ -90,7 +90,7 @@ class DataStore:
             self.add_frame_property(heading, value)
 
     def append_store(self, store):
-        self.df = self.df.append(store.particle_data)
+        self.df = self.df.append(store.df)
         self.metadata = {**self.metadata, **store.metadata}
 
 
@@ -113,3 +113,4 @@ if __name__ == "__main__":
     print(DS.df.head())
     print(DS.df.tail())
     print(DS.metadata)
+    print(DS.df.dtypes)
