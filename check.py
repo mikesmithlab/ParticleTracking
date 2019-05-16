@@ -12,7 +12,7 @@ def tracking(filename):
     data_name = core_name + '.hdf5'
     out_name = core_name + '_check.png'
     data = dataframes.DataStore(data_name)
-    crop = data.crop
+    crop = data.df.metadata['crop']
     vid = video.ReadVideo(vid_name)
     print(vid_name)
     frames = np.arange(4)*vid.num_frames//4
