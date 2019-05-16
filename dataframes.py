@@ -5,6 +5,18 @@ import pandas as pd
 
 
 class DataStore:
+    """
+    Manages HDFStore containing particle data and metadata
+
+    Attributes
+    ----------
+    df : pandas dataframe
+        Contains info on particle positions and properties.
+        Index of dataframe is the video frame.
+
+    metadata : dict
+        Dictionary containing any metadata values.
+    """
     def __init__(self, filename, load=True):
         self.df = pd.DataFrame()
         self.metadata = {}
@@ -12,24 +24,161 @@ class DataStore:
         if load:
             self.load()
 
-    def get_headings(self):
-        return self.df.columns.values.tolist()
+    def add_frame_property(self, heading, values):
+        """
+        Add data for each frame.
+
+        Parameters
+        ----------
+        heading: str
+            title of dataframe column
+
+        values: arraylike
+            array of values with length = num_frames
+        """
+        prop = pd.Series(values,
+                         index=pd.Index(np.arange(len(values)), name='frame'))
+        self.df[heading] = prop
+
+    def add_metadata(self, name, data):
+        """
+        Add metadata to store.
+
+        Parameters
+        ----------
+        name: str
+            string key for dictionary
+
+        data: Any
+            Anything that can be saved as a dictionary item
+        """
+        self.metadata[name] = data
+
+    def add_particle_property(self, heading, values):
+        """
+        Add properties for each particle in the dataframe
+
+        Parameters
+        ----------
+        heading: str
+            Title of dataframe column
+
+        values: arraylike
+            Array of values with same length as dataframe
+
+        """
+        self.df[heading] = values
+
+    def add_tracking_data(self, frame, tracked_data, col_names=None):
+        """
+        Add tracked data for each frame.
+
+        Parameters
+        ----------
+        frame: int
+            Frame number
+
+        tracked_data: arraylike
+            (N, D) shape array of N particles with D properties
+
+        col_names: list of str
+            Titles of each D properties for dataframe columns
+        """
+        col_names = ['x', 'y', 'r'] if col_names is None else col_names
+        data_dict = {name: tracked_data[:, i]
+                     for i, name in enumerate(col_names)}
+        data_dict['frame'] = frame
+        new_df = pd.DataFrame(data_dict).set_index('frame')
+        self.df = self.df.append(new_df)
+
+    def append_store(self, store):
+        """
+        Append an instance of this class to itself.
+
+        Parameters
+        ----------
+        store: seperate instance of this class
+        """
+        self.df = self.df.append(store.df)
+        self.metadata = {**self.metadata, **store.metadata}
 
     def get_column(self, name):
         return self.df[name].values
 
-    def add_particle_property(self, heading, values):
-        self.df[heading] = values
+    def get_headings(self):
+        """
+        Get dataframe headings
 
-    def add_particle_properties(self, headings, values):
-        for heading, value in zip(headings, values):
-            self.add_particle_property(heading, value)
+        Returns
+        -------
+        list of dataframe column titles
+        """
+        return self.df.columns.values.tolist()
+
+    def get_info(self, frame, headings):
+        """
+        Get information on particles in a particular frame.
+
+        Parameters
+        ----------
+        frame: int
+
+        headings: list of str
+            Titles of dataframe columns to be returned
+        """
+        return self.df.loc[frame, headings].values
 
     def get_info_all_frames(self, headings):
+        """
+        Get info from all frames stacked into list of lists.
+
+        Parameters
+        ----------
+        headings : list of str
+            Dataframe columns
+        """
         all_headings = ['frame'] + headings
         data = self.df.reset_index()[all_headings].values
         info = self.stack_info(data)
         return info
+
+    def get_metadata(self, name):
+        """
+        Return item from the metadata dictionary
+        Parameters
+        ----------
+        name : str
+            metadata dictionary key
+
+        Returns
+        -------
+        dictionary item for given key
+        """
+        return self.metadata[name]
+
+    def load(self):
+        """Load HDFStore"""
+        with pd.HDFStore(self.filename) as store:
+            self.df = store.get('df')
+            self.metadata = store.get_storer('df').attrs.metadata
+
+    def reset_index(self):
+        """Move frame index to column"""
+        self.df = self.df.reset_index()
+
+    def save(self):
+        """Save HDFStore"""
+        with pd.HDFStore(self.filename) as store:
+            store.put('df', self.df)
+            store.get_storer('df').attrs.metadata = self.metadata
+
+    def set_frame_index(self):
+        """Move frame column to index"""
+        if 'frame' in self.df.columns.values.tolist():
+            if self.df.index.name == 'frame':
+               self.df = self.df.drop('frame', 1)
+            else:
+                self.df = self.df.set_index('frame')
 
     @staticmethod
     def stack_info(arr):
@@ -39,59 +188,6 @@ class DataStore:
         info = [arr[indices[i]:indices[i + 1], 1:]
              for i in range(len(c))]
         return info
-
-    def add_tracking_data(self, frame, tracked_data, col_names=None):
-        col_names = ['x', 'y', 'r'] if col_names is None else col_names
-        data_dict = {name: tracked_data[:, i]
-                     for i, name in enumerate(col_names)}
-        data_dict['frame'] = frame
-        new_df = pd.DataFrame(data_dict).set_index('frame')
-        self.df = self.df.append(new_df)
-
-    def add_metadata(self, name, data):
-        self.metadata[name] = data
-
-    def get_metadata(self, name):
-        return self.metadata[name]
-
-    def get_info(self, frame, headings):
-        return self.df.loc[frame, headings].values
-
-    def reset_index(self):
-        self.df = self.df.reset_index()
-
-    def save(self):
-        with pd.HDFStore(self.filename) as store:
-            store.put('df', self.df)
-            store.get_storer('df').attrs.metadata = self.metadata
-
-    def load(self):
-        with pd.HDFStore(self.filename) as store:
-            self.df = store.get('df')
-            self.metadata = store.get_storer('df').attrs.metadata
-
-    def get_crop(self):
-        return self.metadata['crop']
-
-    def set_frame_index(self):
-        if 'frame' in self.df.columns.values.tolist():
-            if self.df.index.name == 'frame':
-               self.df = self.df.drop('frame', 1)
-            else:
-                self.df = self.df.set_index('frame')
-
-    def add_frame_property(self, heading, values):
-        prop = pd.Series(values,
-                         index=pd.Index(np.arange(len(values)), name='frame'))
-        self.df[heading] = prop
-
-    def add_frame_properties(self, headings, values):
-        for heading, value in zip(headings, values):
-            self.add_frame_property(heading, value)
-
-    def append_store(self, store):
-        self.df = self.df.append(store.df)
-        self.metadata = {**self.metadata, **store.metadata}
 
 
 def concatenate_datastore(datastore_list, new_filename):
