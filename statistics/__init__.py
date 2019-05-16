@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 from numba import jit
 
-from ParticleTracking import dataframes
+from ParticleTracking import dataframes2
 # from . import order, voronoi_cells, polygon_distances, correlations, level
 from ParticleTracking.statistics import order, voronoi_cells, polygon_distances, correlations, level
 from memory_profiler import profile
@@ -58,7 +58,8 @@ class PropertyCalculator:
 
     def density(self, multiprocess=False):
         points = self.td.get_info_all_frames(['x', 'y', 'r'])
-        boundary = self.td.get_boundary(0)
+        boundary = self.td.get_boundary()
+        print(boundary)
         if multiprocess:
             p = mp.Pool(4)
             densities, shape_factor, edges, density_mean = zip(
@@ -69,7 +70,7 @@ class PropertyCalculator:
             p.join()
         else:
             densities, shape_factor, edges, density_mean = zip(
-                *map(voronoi_cells.density,
+                *starmap(voronoi_cells.density,
                      tqdm(zip(points, repeat(boundary)), total=len(points))))
         densities = flatten(densities)
         shape_factor = flatten(shape_factor)

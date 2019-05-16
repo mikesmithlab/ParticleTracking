@@ -50,7 +50,6 @@ class DataStore:
         self.particle_data = self.particle_data.append(new_df)
 
     def add_boundary_data(self, frame, boundary):
-        if frame == 0:
             self.boundary = boundary
 
     def get_info(self, frame, headings):
@@ -95,6 +94,9 @@ class DataStore:
         self.particle_data = self.particle_data.append(store.particle_data)
         self.crop = store.crop
         self.boundary = store.boundary
+
+    def get_boundary(self):
+        return self.boundary
 
 
 def concatenate_datastore(datastore_list, new_filename):
