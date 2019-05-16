@@ -168,7 +168,7 @@ class SimplePolygon:
 
 if __name__ == "__main__":
     from Generic import filedialogs
-    from ParticleTracking import dataframes2 as dataframes, statistics
+    from ParticleTracking import dataframes, statistics
     file = filedialogs.load_filename()
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)

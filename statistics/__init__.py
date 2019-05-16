@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 from numba import jit
 
-from ParticleTracking import dataframes2
+from ParticleTracking import dataframes
 # from . import order, voronoi_cells, polygon_distances, correlations, level
 from ParticleTracking.statistics import order, voronoi_cells, polygon_distances, correlations, level
 from memory_profiler import profile
