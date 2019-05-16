@@ -52,6 +52,8 @@ class PropertyCalculator:
         self.td.add_frame_property('order_mean', mean)
         self.td.add_frame_property('order_sus', sus)
 
+        self.td.save()
+
     def density(self, multiprocess=False):
         points = self.td.get_info_all_frames(['x', 'y', 'r'])
         boundary = self.td.get_metadata('boundary')
@@ -60,13 +62,16 @@ class PropertyCalculator:
             densities, shape_factor, edges, density_mean = zip(
                 *p.starmap(voronoi_cells.density,
                            tqdm(zip(points, repeat(boundary)),
+                                'Density',
                                 total=len(points))))
             p.close()
             p.join()
         else:
             densities, shape_factor, edges, density_mean = zip(
                 *starmap(voronoi_cells.density,
-                     tqdm(zip(points, repeat(boundary)), total=len(points))))
+                     tqdm(zip(points, repeat(boundary)),
+                          'Density',
+                          total=len(points))))
         densities = flatten(densities)
         shape_factor = flatten(shape_factor)
         edges = flatten(edges)
@@ -75,6 +80,8 @@ class PropertyCalculator:
         self.td.add_particle_property('shape_factor', shape_factor)
         self.td.add_particle_property('on_edge', edges)
         self.td.add_metadata('density', np.mean(density_mean))
+
+        self.td.save()
 
     def distance(self, multiprocess=False):
         points = self.td.get_column(['x', 'y'])
@@ -90,8 +97,10 @@ class PropertyCalculator:
             distance = self.distance_process(points)
         self.td.add_particle_property('edge_distance', distance)
 
+        self.td.save()
+
     def distance_process(self, points):
-        return polygon_distances.to_points(self.td.get_boundary(0), points)
+        return polygon_distances.to_points(self.td.get_metadata('boundary'), points)
 
     # def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
     #     data = self.td.get_info(
@@ -121,4 +130,15 @@ def flatten(arr):
     arr = [a for sublist in arr for a in sublist]
     return arr
 
+
+if __name__ == "__main__":
+    from Generic import filedialogs
+    from ParticleTracking import dataframes, statistics
+    file = filedialogs.load_filename()
+    data = dataframes.DataStore(file, load=True)
+    calc = statistics.PropertyCalculator(data)
+    calc.order(multiprocessing=False, overwrite=True)
+    calc.density()
+    calc.distance()
+    print(data.df.head())
 
