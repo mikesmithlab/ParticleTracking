@@ -22,7 +22,7 @@ class CircleAnnotator(video.Annotator):
         if self.crop:
             crop_name = os.path.splitext(filename)[0]+'_crop.mp4'
             if not os.path.exists(crop_name):
-                    crop = self.data.crop
+                    crop = self.data.metadata['crop']
                     print(crop)
                     video.crop_video(filename,
                                      crop[0][0],
