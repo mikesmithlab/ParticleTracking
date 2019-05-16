@@ -5,7 +5,7 @@ import trackpy
 from tqdm import tqdm
 
 from Generic import images, video
-from ParticleTracking import dataframes
+from ParticleTracking import dataframes2 as dataframes
 
 
 class ParticleTracker:
@@ -139,8 +139,13 @@ class ParticleTracker:
         start = self.frame_div * group_number
         self.cap = video.ReadVideo(self.input_filename)
         self.cap.set_frame(start)
+        if group_number == 3:
+            missing = self.num_frames - 4*(self.num_frames//4)
+            frame_div = self.frame_div + missing
+        else:
+            frame_div = self.frame_div
         # Iterate over frames
-        for f in tqdm(range(self.frame_div), 'Tracking'):
+        for f in tqdm(range(frame_div), 'Tracking'):
             info, boundary, info_headings = self.analyse_frame()
             data.add_tracking_data(start + f, info, col_names=info_headings)
             data.add_boundary_data(start + f, boundary)
@@ -161,13 +166,15 @@ class ParticleTracker:
         data_store = dataframes.DataStore(self.data_filename,
                                           load=True)
         # Trackpy methods
+        data_store.reset_index()
         data_store.particle_data = trackpy.link_df(
             data_store.particle_data,
             self.parameters['max frame displacement'],
             memory=self.parameters['memory'])
         data_store.particle_data = trackpy.filter_stubs(
             data_store.particle_data, self.parameters['min frame life'])
-
+        data_store.set_frame_index()
+        print(data_store.particle_data.head(5))
         # Save DataStore
         data_store.save()
 

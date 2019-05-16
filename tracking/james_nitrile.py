@@ -1,6 +1,7 @@
 from Generic import images, video, audio
 from ParticleTracking.tracking import ParticleTracker
-from ParticleTracking import configurations, dataframes, preprocessing
+from ParticleTracking import configurations, preprocessing
+from ParticleTracking import dataframes2 as dataframes
 import numpy as np
 from numba import jit
 import matplotlib.path as mpath
@@ -122,6 +123,6 @@ if __name__ == '__main__':
     from Generic import filedialogs
     file = filedialogs.load_filename('Load a video')
 
-    jpt = JamesPT(file)
+    jpt = JamesPT(file, tracking=True, multiprocess=True)
     jpt.track()
 
