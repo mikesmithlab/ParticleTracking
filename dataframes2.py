@@ -7,8 +7,7 @@ import pandas as pd
 class DataStore:
     def __init__(self, filename, load=True):
         self.particle_data = pd.DataFrame()
-        self.crop = []
-        self.boundary = []
+        self.metadata = {}
         self.filename = os.path.splitext(filename)[0] + '.hdf5'
         if load:
             self.load()
@@ -49,30 +48,30 @@ class DataStore:
         new_df = pd.DataFrame(data_dict).set_index('frame')
         self.particle_data = self.particle_data.append(new_df)
 
-    def add_boundary_data(self, frame, boundary):
-            self.boundary = boundary
+    def add_metadata(self, name, data):
+        self.metadata[name] = data
+
+    def get_metadata(self, name):
+        return self.metadata[name]
 
     def get_info(self, frame, headings):
         return self.particle_data.loc[frame, headings].values
 
     def reset_index(self):
         self.particle_data = self.particle_data.reset_index()
-        print(self.particle_data.head())
 
     def save(self):
         with pd.HDFStore(self.filename) as store:
             store.put('df', self.particle_data)
-            store.get_storer('df').attrs.crop = self.crop
-            store.get_storer('df').attrs.boundary = self.boundary
+            store.get_storer('df').attrs.metadata = self.metadata
 
     def load(self):
         with pd.HDFStore(self.filename) as store:
             self.particle_data = store.get('df')
-            self.crop = store.get_storer('df').attrs.crop
-            self.boundary = store.get_storer('df').attrs.boundary
+            self.metadata = store.get_storer('df').attrs.metadata
 
-    def add_crop(self, crop):
-        self.crop = crop
+    def get_crop(self):
+        return self.metadata['crop']
 
     def set_frame_index(self):
         if 'frame' in self.particle_data.columns.values.tolist():
@@ -92,11 +91,7 @@ class DataStore:
 
     def append_store(self, store):
         self.particle_data = self.particle_data.append(store.particle_data)
-        self.crop = store.crop
-        self.boundary = store.boundary
-
-    def get_boundary(self):
-        return self.boundary
+        self.metadata = {**self.metadata, **store.metadata}
 
 
 def concatenate_datastore(datastore_list, new_filename):
@@ -117,3 +112,4 @@ if __name__ == "__main__":
     DS = DataStore(file)
     print(DS.particle_data.head())
     print(DS.particle_data.tail())
+    print(DS.metadata)

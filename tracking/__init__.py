@@ -82,7 +82,7 @@ class ParticleTracker:
         data_store = dataframes.DataStore(self.data_filename,
                                           load=True)
         crop = self.ip.crop
-        data_store.add_crop(crop)
+        data_store.add_metadata('crop', crop)
         data_store.save()
 
     def extra_steps(self):
@@ -148,7 +148,8 @@ class ParticleTracker:
         for f in tqdm(range(frame_div), 'Tracking'):
             info, boundary, info_headings = self.analyse_frame()
             data.add_tracking_data(start + f, info, col_names=info_headings)
-            data.add_boundary_data(start + f, boundary)
+            if f == 0:
+                data.add_metadata('boundary', boundary)
         data.save()
 
     def _cleanup_intermediate_dataframes(self):
