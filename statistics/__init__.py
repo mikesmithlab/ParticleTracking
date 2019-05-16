@@ -1,20 +1,12 @@
 import multiprocessing as mp
 import os
-import sys
-from math import pi
 from itertools import repeat, starmap
 
-import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
-from numba import jit
 
-from ParticleTracking import dataframes
-# from . import order, voronoi_cells, polygon_distances, correlations, level
-from ParticleTracking.statistics import order, voronoi_cells, polygon_distances, correlations, level
-from memory_profiler import profile
-
-# from pathos import multiprocessing as mp
+from ParticleTracking.statistics import order, voronoi_cells, \
+    polygon_distances, correlations, level
 
 """
 Multiprocessing will only work on linux systems.
@@ -37,22 +29,28 @@ class PropertyCalculator:
         points = self.td.get_info_all_frames(['x', 'y'])
         if multiprocessing:
             p = mp.Pool(4)
-            orders, neighbors, orders_r, mean, sus = zip(
-                *p.starmap(order.order_and_neighbors, tqdm(zip(points, repeat(rad)), 'Order', total=len(points))))
+            orders_r, orders_i, orders_mag, neighbors, mean, sus = zip(
+                *p.starmap(order.order_and_neighbors,
+                           tqdm(zip(points, repeat(rad)),
+                                'Order', total=len(points))))
             p.close()
             p.join()
         else:
-            orders, neighbors, orders_r, mean, sus = zip(
-                *starmap(order.order_and_neighbors, tqdm(zip(points, repeat(rad)), 'Order', total=len(points))))
-        orders = flatten(orders)
+            orders_r, orders_i, orders_mag, neighbors, mean, sus = zip(
+                *starmap(order.order_and_neighbors,
+                         tqdm(zip(points, repeat(rad)),
+                              'Order', total=len(points))))
         orders_r = flatten(orders_r)
+        orders_i = flatten(orders_i)
+        orders_mag = flatten(orders_mag)
         neighbors = flatten(neighbors)
-        self.td.add_particle_properties(
-            ['complex order', 'real order', 'neighbors'],
-            [orders, orders_r, neighbors])
-        self.td.add_frame_properties(
-            ['mean order', 'susceptibility'],
-            [mean, sus])
+
+        self.td.add_particle_property('order_r', orders_r)
+        self.td.add_particle_property('order_i', orders_i)
+        self.td.add_particle_property('order_mag', orders_mag)
+        self.td.add_particle_property('neighbors', neighbors)
+        self.td.add_frame_property('order_mean', mean)
+        self.td.add_frame_property('order_sus', sus)
 
     def density(self, multiprocess=False):
         points = self.td.get_info_all_frames(['x', 'y', 'r'])
@@ -72,10 +70,11 @@ class PropertyCalculator:
         densities = flatten(densities)
         shape_factor = flatten(shape_factor)
         edges = flatten(edges)
-        self.td.add_particle_properties(
-            ['local density', 'shape factor', 'on edge'],
-            [densities, shape_factor, edges])
-        self.td.add_frame_property('local density', density_mean)
+
+        self.td.add_particle_property('density', densities)
+        self.td.add_particle_property('shape_factor', shape_factor)
+        self.td.add_particle_property('on_edge', edges)
+        self.td.add_metadata('density', np.mean(density_mean))
 
     def distance(self, multiprocess=False):
         points = self.td.get_column(['x', 'y'])
@@ -89,25 +88,25 @@ class PropertyCalculator:
             distance = flatten(distance)
         else:
             distance = self.distance_process(points)
-        self.td.add_particle_property('Edge Distance', distance)
+        self.td.add_particle_property('edge_distance', distance)
 
     def distance_process(self, points):
         return polygon_distances.to_points(self.td.get_boundary(0), points)
 
-    def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
-        data = self.td.get_info(
-            frame_no, ['x', 'y', 'r', 'complex order', 'Edge Distance'])
-        boundary = self.td.get_boundary(frame_no)
-
-        r, g, g6 = correlations.corr(data, boundary, r_min, r_max, dr)
-        plt.figure()
-        plt.plot(r, g)
-        plt.show()
-
-        corr_data = dataframes.CorrData(self.core_name)
-        corr_data.add_row(r, frame_no, 'r')
-        corr_data.add_row(g, frame_no, 'g')
-        corr_data.add_row(g6, frame_no, 'g6')
+    # def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
+    #     data = self.td.get_info(
+    #         frame_no, ['x', 'y', 'r', 'complex order', 'Edge Distance'])
+    #     boundary = self.td.get_boundary(frame_no)
+    #
+    #     r, g, g6 = correlations.corr(data, boundary, r_min, r_max, dr)
+    #     plt.figure()
+    #     plt.plot(r, g)
+    #     plt.show()
+    #
+    #     corr_data = dataframes.CorrData(self.core_name)
+    #     corr_data.add_row(r, frame_no, 'r')
+    #     corr_data.add_row(g, frame_no, 'g')
+    #     corr_data.add_row(g6, frame_no, 'g6')
 
     def check_level(self):
         x = self.td.get_column('x')

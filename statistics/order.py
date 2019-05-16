@@ -1,7 +1,5 @@
-import scipy.spatial as sp
 import numpy as np
-from math import exp
-from numba import jit
+import scipy.spatial as sp
 
 
 def order_and_neighbors(points, threshold):
@@ -11,11 +9,12 @@ def order_and_neighbors(points, threshold):
     angles = calculate_angles(vectors)
     orders, neighbors = calculate_orders(angles, list_indices, inside_threshold)
     neighbors = np.uint8(neighbors)
-    orders = np.complex64(orders)
     orders_abs = np.abs(orders)
+    orders_r = np.real(orders).astype(np.float32)
+    orders_i = np.imag(orders).astype(np.float32)
     mean = np.mean(orders_abs)
     sus = np.var(orders_abs)
-    return orders, neighbors, orders_abs, mean, sus
+    return orders_r, orders_i, orders_abs, neighbors, mean, sus
 
 
 def find_delaunay_indices(points):
@@ -63,5 +62,5 @@ if __name__ == "__main__":
     file = filedialogs.load_filename()
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
-    calc.order(multiprocessing=True, overwrite=True)
+    calc.order(multiprocessing=False, overwrite=True)
     print(data.df.head())

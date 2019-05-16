@@ -1,10 +1,11 @@
-import scipy.spatial as sp
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.path as mpath
-from math import pi, sqrt
+from math import pi
+
 import cv2
+import matplotlib.path as mpath
+import matplotlib.pyplot as plt
+import numpy as np
 import pyclipper
+import scipy.spatial as sp
 
 
 def density(particles, boundary):
@@ -174,3 +175,4 @@ if __name__ == "__main__":
     calc = statistics.PropertyCalculator(data)
     calc.density()
     print(data.df.head())
+    print(data.metadata)
