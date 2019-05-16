@@ -40,10 +40,12 @@ class PropertyCalculator:
                 *starmap(order.order_and_neighbors,
                          tqdm(zip(points, repeat(rad)),
                               'Order', total=len(points))))
-        orders_r = flatten(orders_r)
-        orders_i = flatten(orders_i)
-        orders_mag = flatten(orders_mag)
-        neighbors = flatten(neighbors)
+        orders_r = np.float32(flatten(orders_r))
+        orders_i = np.float32(flatten(orders_i))
+        orders_mag = np.float32(flatten(orders_mag))
+        neighbors = np.uint8(flatten(neighbors))
+        mean = np.float32(mean)
+        sus = np.float32(sus)
 
         self.data.add_particle_property('order_r', orders_r)
         self.data.add_particle_property('order_i', orders_i)
@@ -72,8 +74,8 @@ class PropertyCalculator:
                      tqdm(zip(points, repeat(boundary)),
                           'Density',
                           total=len(points))))
-        densities = flatten(densities)
-        shape_factor = flatten(shape_factor)
+        densities = np.float32(flatten(densities))
+        shape_factor = np.float32(flatten(shape_factor))
         edges = flatten(edges)
 
         self.data.add_particle_property('density', densities)
@@ -95,6 +97,7 @@ class PropertyCalculator:
             distance = flatten(distance)
         else:
             distance = self.distance_process(points)
+        distance = np.float32(distance)
         self.data.add_particle_property('edge_distance', distance)
 
         self.data.save()
@@ -137,8 +140,9 @@ if __name__ == "__main__":
     file = filedialogs.load_filename()
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
-    calc.order(multiprocessing=False, overwrite=True)
-    calc.density()
+    # calc.order(multiprocessing=False, overwrite=True)
+    # calc.density()
     calc.distance()
     print(data.df.head())
+    print(data.df.dtypes)
 
