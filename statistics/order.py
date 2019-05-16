@@ -55,3 +55,13 @@ def calculate_orders(angles, list_indices, inside):
                  for sublist in inside]
     orders = [a/b if b != 0 else 0 for a, b in zip(parts_sum, neighbors)]
     return orders, neighbors
+
+
+if __name__ == "__main__":
+    from Generic import filedialogs
+    from ParticleTracking import dataframes2 as dataframes, statistics
+    file = filedialogs.load_filename()
+    data = dataframes.DataStore(file, load=True)
+    calc = statistics.PropertyCalculator(data)
+    calc.order(multiprocessing=True, overwrite=True)
+    print(data.particle_data.head())

@@ -28,7 +28,7 @@ class PropertyCalculator:
 
     def __init__(self, datastore):
         self.td = datastore
-        self.td.fill_frame_data()
+        # self.td.fill_frame_data()
         self.core_name = os.path.splitext(self.td.filename)[0]
         # self.name = name
 
@@ -125,10 +125,3 @@ def flatten(arr):
     return arr
 
 
-if __name__ == "__main__":
-    from Generic import filedialogs
-    from ParticleTracking import dataframes, statistics
-    file = filedialogs.load_filename()
-    data = dataframes.DataStore(file, load=True)
-    calc = statistics.PropertyCalculator(data)
-    calc.order(multiprocessing=True, overwrite=True)

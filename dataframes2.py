@@ -13,6 +13,34 @@ class DataStore:
         if load:
             self.load()
 
+    def get_headings(self):
+        return self.particle_data.columns.values.tolist()
+
+    def get_column(self, name):
+        return self.particle_data[name].values
+
+    def add_particle_property(self, heading, values):
+        self.particle_data[heading] = values
+
+    def add_particle_properties(self, headings, values):
+        for heading, value in zip(headings, values):
+            self.add_particle_property(heading, value)
+
+    def get_info_all_frames(self, headings):
+        all_headings = ['frame'] + headings
+        data = self.particle_data.reset_index()[all_headings].values
+        info = self.stack_info(data)
+        return info
+
+    @staticmethod
+    def stack_info(arr):
+        f = arr[:, 0]
+        _, c = np.unique(f, return_counts=True)
+        indices = np.insert(np.cumsum(c), 0, 0)
+        info = [arr[indices[i]:indices[i + 1], 1:]
+             for i in range(len(c))]
+        return info
+
     def add_tracking_data(self, frame, tracked_data, col_names=None):
         col_names = ['x', 'y', 'r'] if col_names is None else col_names
         data_dict = {name: tracked_data[:, i]
@@ -58,6 +86,10 @@ class DataStore:
         prop = pd.Series(values,
                          index=pd.Index(np.arange(len(values)), name='frame'))
         self.particle_data[heading] = prop
+
+    def add_frame_properties(self, headings, values):
+        for heading, value in zip(headings, values):
+            self.add_frame_property(heading, value)
 
     def append_store(self, store):
         self.particle_data = self.particle_data.append(store.particle_data)
