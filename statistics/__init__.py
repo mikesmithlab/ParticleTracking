@@ -19,14 +19,14 @@ https://github.com/python/cpython/commit/bccacd19fa7b56dcf2fbfab15992b6b94ab6666
 class PropertyCalculator:
 
     def __init__(self, datastore):
-        self.td = datastore
-        self.core_name = os.path.splitext(self.td.filename)[0]
+        self.data = datastore
+        self.core_name = os.path.splitext(self.data.filename)[0]
 
     def order(self, multiprocessing=False, overwrite=False):
-        if ('real order' in self.td.get_headings()) and (overwrite is False):
+        if ('real order' in self.data.get_headings()) and (overwrite is False):
             return 0
-        rad = self.td.get_column('r').mean()*4
-        points = self.td.get_info_all_frames(['x', 'y'])
+        rad = self.data.get_column('r').mean() * 4
+        points = self.data.get_info_all_frames(['x', 'y'])
         if multiprocessing:
             p = mp.Pool(4)
             orders_r, orders_i, orders_mag, neighbors, mean, sus = zip(
@@ -45,18 +45,18 @@ class PropertyCalculator:
         orders_mag = flatten(orders_mag)
         neighbors = flatten(neighbors)
 
-        self.td.add_particle_property('order_r', orders_r)
-        self.td.add_particle_property('order_i', orders_i)
-        self.td.add_particle_property('order_mag', orders_mag)
-        self.td.add_particle_property('neighbors', neighbors)
-        self.td.add_frame_property('order_mean', mean)
-        self.td.add_frame_property('order_sus', sus)
+        self.data.add_particle_property('order_r', orders_r)
+        self.data.add_particle_property('order_i', orders_i)
+        self.data.add_particle_property('order_mag', orders_mag)
+        self.data.add_particle_property('neighbors', neighbors)
+        self.data.add_frame_property('order_mean', mean)
+        self.data.add_frame_property('order_sus', sus)
 
-        self.td.save()
+        self.data.save()
 
     def density(self, multiprocess=False):
-        points = self.td.get_info_all_frames(['x', 'y', 'r'])
-        boundary = self.td.get_metadata('boundary')
+        points = self.data.get_info_all_frames(['x', 'y', 'r'])
+        boundary = self.data.get_metadata('boundary')
         if multiprocess:
             p = mp.Pool(4)
             densities, shape_factor, edges, density_mean = zip(
@@ -76,15 +76,15 @@ class PropertyCalculator:
         shape_factor = flatten(shape_factor)
         edges = flatten(edges)
 
-        self.td.add_particle_property('density', densities)
-        self.td.add_particle_property('shape_factor', shape_factor)
-        self.td.add_particle_property('on_edge', edges)
-        self.td.add_metadata('density', np.mean(density_mean))
+        self.data.add_particle_property('density', densities)
+        self.data.add_particle_property('shape_factor', shape_factor)
+        self.data.add_particle_property('on_edge', edges)
+        self.data.add_metadata('density', np.mean(density_mean))
 
-        self.td.save()
+        self.data.save()
 
     def distance(self, multiprocess=False):
-        points = self.td.get_column(['x', 'y'])
+        points = self.data.get_column(['x', 'y'])
 
         if multiprocess:
             n = len(points)
@@ -95,17 +95,17 @@ class PropertyCalculator:
             distance = flatten(distance)
         else:
             distance = self.distance_process(points)
-        self.td.add_particle_property('edge_distance', distance)
+        self.data.add_particle_property('edge_distance', distance)
 
-        self.td.save()
+        self.data.save()
 
     def distance_process(self, points):
-        return polygon_distances.to_points(self.td.get_metadata('boundary'), points)
+        return polygon_distances.to_points(self.data.get_metadata('boundary'), points)
 
     # def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
-    #     data = self.td.get_info(
+    #     data = self.data.get_info(
     #         frame_no, ['x', 'y', 'r', 'complex order', 'Edge Distance'])
-    #     boundary = self.td.get_boundary(frame_no)
+    #     boundary = self.data.get_boundary(frame_no)
     #
     #     r, g, g6 = correlations.corr(data, boundary, r_min, r_max, dr)
     #     plt.figure()
@@ -118,10 +118,10 @@ class PropertyCalculator:
     #     corr_data.add_row(g6, frame_no, 'g6')
 
     def check_level(self):
-        x = self.td.get_column('x')
-        y = self.td.get_column('y')
+        x = self.data.get_column('x')
+        y = self.data.get_column('y')
         points = np.vstack((x, y)).transpose()
-        boundary = self.td.get_boundary(0)
+        boundary = self.data.get_boundary(0)
         level.check_level(points, boundary)
 
 
