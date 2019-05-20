@@ -1,6 +1,7 @@
 from Generic import images, video
 from ParticleTracking.tracking import ParticleTracker
 from ParticleTracking import configurations, preprocessing
+import numpy as np
 
 
 class Bacteria(ParticleTracker):
@@ -54,20 +55,30 @@ class Bacteria(ParticleTracker):
         new_frame, boundary, cropped_frame = self.ip.process(frame)
 
         ### ONLY EDIT BETWEEN THESE COMMENTS
-        info = images.find_circles(
-            new_frame,
-            self.parameters['min_dist'][0],
-            self.parameters['p_1'][0],
-            self.parameters['p_2'][0],
-            self.parameters['min_rad'][0],
-            self.parameters['max_rad'][0])
-        info_headings = ['x', 'y', 'r']
+        self.blurred_img = images.gaussian_blur(self.im0.copy())
+        thresh = images.adaptive_threshold(self.blurred_img,
+                                    self.parameters['adaptive threshold block size'][0],
+                                    self.parameters['adaptive threshold C'][0],
+                                    self.parameters['adaptive threshold mode'][0])
+
+        contours = images.find_contours(thresh)
+        box_info = []
+        for index, contour in enumerate(contours):
+            if index == 0:
+                info = [images.rotated_bounding_rectangle(contour)]
+                box_info = info[5]
+            else:
+                info_bacterium = images.rotated_bounding_rectangle(contour)
+                info.append(info_bacterium)
+                box_info.append(info_bacterium[5])
+        info_headings = ['x', 'y', 'theta', 'width', 'length', 'box']
+
         ### ONLY EDIT BETWEEN THESE COMMENTS
         if self.tracking:
             return info, boundary, info_headings
         else:
             # THIS NEXT LINE CAN BE EDITED TOO
-            annotated_frame = images.draw_circles(cropped_frame, info)
+            annotated_frame = images.draw_contours(cropped_frame, np.array(box_info))
             return new_frame, annotated_frame
 
     def extra_steps(self):
@@ -83,6 +94,7 @@ class Bacteria(ParticleTracker):
 
 if __name__ == "__main__":
     from Generic import filedialogs
-    file = filedialogs.load_filename('Load a video')
+    #file = filedialogs.load_filename('Load a video')
+    file = '/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.avi'
     tracker = Bacteria(file, tracking=True, multiprocess=False)
     tracker.track()

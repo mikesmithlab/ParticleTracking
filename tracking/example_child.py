@@ -54,13 +54,14 @@ class ExampleChild(ParticleTracker):
         new_frame, boundary, cropped_frame = self.ip.process(frame)
 
         ### ONLY EDIT BETWEEN THESE COMMENTS
-        info = images.find_circles(
+        info =images.find_circles(
             new_frame,
             self.parameters['min_dist'][0],
             self.parameters['p_1'][0],
             self.parameters['p_2'][0],
             self.parameters['min_rad'][0],
             self.parameters['max_rad'][0])
+
         info_headings = ['x', 'y', 'r']
         ### ONLY EDIT BETWEEN THESE COMMENTS
         if self.tracking:

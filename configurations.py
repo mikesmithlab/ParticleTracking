@@ -10,6 +10,8 @@ Each dictionary MUST contain the following keys:
     'min frame life' : trackpy
     'memory' : trackpy
 
+For many parameter sets we have [start value, min value, max value, ?]
+
 The trackpy keys can be ignored if the _link_trajectories method is overwritten
 
 Dictionary items with parameters than can be controlled in a gui should
