@@ -44,7 +44,7 @@ def threshold(frame, parameters):
 def adaptive_threshold(frame, parameters):
     block = parameters['adaptive threshold block size'][0]
     const = parameters['adaptive threshold C'][0]
-    invert = parameters['adaptive threshold invert'][0]
+    invert = parameters['adaptive threshold mode'][0]
     if invert == 1:
         return images.adaptive_threshold(frame, block, const, mode=cv2.THRESH_BINARY_INV)
     else:
