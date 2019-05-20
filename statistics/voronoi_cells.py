@@ -9,8 +9,9 @@ import scipy.spatial as sp
 
 
 def density(particles, boundary):
-    area, shape_factor, on_edge = calculate(particles, boundary)
-    density = (particles[:, :2].mean() ** 2 * pi) / area
+    voronoi_cell_area, shape_factor, on_edge = calculate(particles, boundary)
+    particle_area = (particles[:, 2].mean() ** 2 * pi)
+    density = particle_area / voronoi_cell_area
     mean = np.mean(density)
     return density, shape_factor, on_edge, mean
 
@@ -173,6 +174,6 @@ if __name__ == "__main__":
     file = filedialogs.load_filename()
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
-    calc.density()
+    calc.density(multiprocess=True)
     print(data.df.head())
     print(data.metadata)
