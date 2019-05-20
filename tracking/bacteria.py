@@ -55,18 +55,22 @@ class Bacteria(ParticleTracker):
         new_frame, boundary, cropped_frame = self.ip.process(frame)
 
         ### ONLY EDIT BETWEEN THESE COMMENTS
-        self.blurred_img = images.gaussian_blur(self.im0.copy())
+        '''
         thresh = images.adaptive_threshold(self.blurred_img,
                                     self.parameters['adaptive threshold block size'][0],
                                     self.parameters['adaptive threshold C'][0],
                                     self.parameters['adaptive threshold mode'][0])
+        '''
 
-        contours = images.find_contours(thresh)
+        contours = images.find_contours(new_frame)
+        #images.display(images.draw_contours(new_frame, contours))
         box_info = []
+
+
         for index, contour in enumerate(contours):
             if index == 0:
                 info = [images.rotated_bounding_rectangle(contour)]
-                box_info = info[5]
+                #box_info = info[5]
             else:
                 info_bacterium = images.rotated_bounding_rectangle(contour)
                 info.append(info_bacterium)
@@ -93,8 +97,12 @@ class Bacteria(ParticleTracker):
 
 
 if __name__ == "__main__":
-    from Generic import filedialogs
-    #file = filedialogs.load_filename('Load a video')
+
+    from ParticleTracking.tracking.tracking_gui import TrackingGui
+
     file = '/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.avi'
-    tracker = Bacteria(file, tracking=True, multiprocess=False)
-    tracker.track()
+    tracker = Bacteria(file)
+    gui = TrackingGui(tracker)
+
+
+
