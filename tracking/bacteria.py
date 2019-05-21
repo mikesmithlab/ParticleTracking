@@ -128,11 +128,11 @@ if __name__ == "__main__":
     from ParticleTracking.tracking.tracking_gui import TrackingGui
 
     file = '/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.avi'
-    tracker = Bacteria(file, tracking=True)
-    tracker.track()
+    tracker = Bacteria(file, tracking=False)
+    #tracker.track()
 
 
-    #gui = TrackingGui(tracker)
+    gui = TrackingGui(tracker)
 
 
 

@@ -11,18 +11,16 @@ class BacteriaAnnotator(video.Annotator):
         self.crop = crop
         in_name = filename
         out_name = os.path.splitext(filename)[0]+'_'+parameter+'.mp4'
-        video.Annotator.__init__(self, in_name, out_name, frames_as_surface=True)
+        # frames_as_surface - if True returns pygames_surface else returns numpy array.
+        video.Annotator.__init__(self, in_name, out_name, frames_as_surface=False)
 
     def process_frame(self, frame, f):
         print(np.shape(frame))
 
         if self.parameter == 'box':
             info = self.data.get_info(f, ['box','classifier'])
-            print(info[1])
 
             for bacterium in info:
-                print(bacterium[0])
-                print(bacterium[1])
                 if bacterium[1] == 1:
                     annotated_frame = images.draw_contours(frame, [
                         bacterium[0]], col=(0, 0, 255))
