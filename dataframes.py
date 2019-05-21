@@ -85,8 +85,14 @@ class DataStore:
             Titles of each D properties for dataframe columns
         """
         col_names = ['x', 'y', 'r'] if col_names is None else col_names
-        data_dict = {name: tracked_data[:, i]
-                     for i, name in enumerate(col_names)}
+        if type(tracked_data) == list:
+            data_dict = {name: tracked_data[i]
+                         for i, name in enumerate(col_names)}
+        elif type(tracked_data) == np.ndarray:
+            data_dict = {name: tracked_data[:, i]
+                         for i, name in enumerate(col_names)}
+        else:
+            print('type wrong')
         data_dict['frame'] = frame
         new_df = pd.DataFrame(data_dict).set_index('frame')
         self.df = self.df.append(new_df)

@@ -65,10 +65,9 @@ class Bacteria(ParticleTracker):
         contours = images.find_contours(new_frame)
         #images.display(images.draw_contours(new_frame, contours))
 
-        box_info = []
 
-        index = 0
-        for contour in contours:
+
+        for index,contour in enumerate(contours):
             info_bacterium = images.rotated_bounding_rectangle(contour)
             area = info_bacterium[3]*info_bacterium[4]
 
@@ -76,29 +75,42 @@ class Bacteria(ParticleTracker):
             Here we attempt to classify whether it is a bit of noise
             single bacterium, dividing or a clump of them
             '''
-            if area < self.parameters['min area bacterium']:
-                classifier = 0 # ie mistake it is not a bacterium
-            elif (area > self.parameters['max area bacterium']) & (area <= 2.5* self.parameters['max area bacterium']):
-                classifier = 2 # probably a dividing bacterium
-            elif (area > 2.5* self.parameters['max area bacterium']):
-                classifier = 3 # probably an aggregate
+
+
+            if area < self.parameters['min area bacterium'][0]:
+                print(0)
+                classifier = int(0) # ie mistake it is not a bacterium
+            elif (area > self.parameters['max area bacterium'][0]) & (area <= 2.5* self.parameters['max area bacterium'][0]):
+                print(1)
+                classifier = int(2) # probably a dividing bacterium
+            elif (area > 2.5* self.parameters['max area bacterium'][0]):
+                classifier = int(3) # probably an aggregate
             else:
-                classifier = 1 # single bacterium
-            if classifier > 0:
-                info = [info_bacterium, classifier]
-                index = 1
+                classifier = int(1) # single bacterium
+
+            info_bacterium.append(classifier)
+            if index == 0:
+                info = [info_bacterium]
             else:
                 info.append(info_bacterium)
 
-        info_headings = ['x', 'y', 'theta', 'width', 'length', 'box', 'classifier']
 
         ### ONLY EDIT BETWEEN THESE COMMENTS
         if self.tracking:
+            info = list(zip(*info))
+            info_headings = ['x', 'y', 'theta', 'width', 'length', 'box',
+                             'classifier']
             return info, boundary, info_headings
         else:
+            
             for bacterium in info:
+                print(bacterium)
                 if bacterium[6] == 1:
-                    annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=BlUE)
+                    annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=images.BLUE)
+                elif bacterium[6] == 2:
+                    annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=images.RED)
+                elif bacterium[6] == 3:
+                    annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=images.GREEN)
             return new_frame, annotated_frame
 
     def extra_steps(self):
