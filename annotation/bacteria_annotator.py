@@ -14,21 +14,24 @@ class BacteriaAnnotator(video.Annotator):
         video.Annotator.__init__(self, in_name, out_name, frames_as_surface=True)
 
     def process_frame(self, frame, f):
+        print(np.shape(frame))
 
         if self.parameter == 'box':
             info = self.data.get_info(f, ['box','classifier'])
             print(info[1])
 
             for bacterium in info:
+                print(bacterium[0])
+                print(bacterium[1])
                 if bacterium[1] == 1:
                     annotated_frame = images.draw_contours(frame, [
-                        np.array(bacterium[0])], col=(0, 0, 255))
+                        bacterium[0]], col=(0, 0, 255))
                 elif bacterium[1] == 2:
                     annotated_frame = images.draw_contours(frame, [
-                        np.array(bacterium[0])], col=(255, 0, 0))
+                        bacterium[0]], col=(255, 0, 0))
                 elif bacterium[1] == 3:
                     annotated_frame = images.draw_contours(frame, [
-                        np.array(bacterium[0])], col=(0, 255, 0))
+                        bacterium[0]], col=(0, 255, 0))
 
 
         return annotated_frame
@@ -41,6 +44,6 @@ if __name__ == "__main__":
     from ParticleTracking import dataframes
     dataframe = dataframes.DataStore(
         '/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.hdf5', load=True)
-    input_video = '/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.avi'
+    input_video = '/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.mp4'
     annotator = BacteriaAnnotator(input_video, dataframe, 'box')
     annotator.annotate()
