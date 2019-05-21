@@ -77,16 +77,15 @@ class Bacteria(ParticleTracker):
             '''
 
 
-            if area < self.parameters['min area bacterium'][0]:
-                print(0)
+            if area <= 0.6*self.parameters['area bacterium'][0]:
+
                 classifier = int(0) # ie mistake it is not a bacterium
-            elif (area > self.parameters['max area bacterium'][0]) & (area <= 2.5* self.parameters['max area bacterium'][0]):
-                print(1)
-                classifier = int(2) # probably a dividing bacterium
-            elif (area > 2.5* self.parameters['max area bacterium'][0]):
-                classifier = int(3) # probably an aggregate
+            elif (area > 1.8*self.parameters['area bacterium'][0]) & (area <= 2.9*self.parameters['area bacterium'][0]):
+                classifier = int(2) # probably a dividing bacterium - Red
+            elif (area > (2.8* self.parameters['area bacterium'][0])):
+                classifier = int(3) # probably an aggregate - Green
             else:
-                classifier = int(1) # single bacterium
+                classifier = int(1) # single bacterium - Blue
 
             info_bacterium.append(classifier)
             if index == 0:
@@ -104,13 +103,13 @@ class Bacteria(ParticleTracker):
         else:
             
             for bacterium in info:
-                print(bacterium)
+
                 if bacterium[6] == 1:
-                    annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=images.BLUE)
+                    annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=(0, 0 ,255))
                 elif bacterium[6] == 2:
-                    annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=images.RED)
+                    annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=(255, 0, 0))
                 elif bacterium[6] == 3:
-                    annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=images.GREEN)
+                    annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=(0, 255, 0))
             return new_frame, annotated_frame
 
     def extra_steps(self):
@@ -129,8 +128,11 @@ if __name__ == "__main__":
     from ParticleTracking.tracking.tracking_gui import TrackingGui
 
     file = '/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.avi'
-    tracker = Bacteria(file)
-    gui = TrackingGui(tracker)
+    tracker = Bacteria(file, tracking=True)
+    tracker.track()
+
+
+    #gui = TrackingGui(tracker)
 
 
 
