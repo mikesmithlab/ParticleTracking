@@ -64,25 +64,41 @@ class Bacteria(ParticleTracker):
 
         contours = images.find_contours(new_frame)
         #images.display(images.draw_contours(new_frame, contours))
+
         box_info = []
 
+        index = 0
+        for contour in contours:
+            info_bacterium = images.rotated_bounding_rectangle(contour)
+            area = info_bacterium[3]*info_bacterium[4]
 
-        for index, contour in enumerate(contours):
-            if index == 0:
-                info = [images.rotated_bounding_rectangle(contour)]
-                #box_info = info[5]
+            '''
+            Here we attempt to classify whether it is a bit of noise
+            single bacterium, dividing or a clump of them
+            '''
+            if area < self.parameters['min area bacterium']:
+                classifier = 0 # ie mistake it is not a bacterium
+            elif (area > self.parameters['max area bacterium']) & (area <= 2.5* self.parameters['max area bacterium']):
+                classifier = 2 # probably a dividing bacterium
+            elif (area > 2.5* self.parameters['max area bacterium']):
+                classifier = 3 # probably an aggregate
             else:
-                info_bacterium = images.rotated_bounding_rectangle(contour)
+                classifier = 1 # single bacterium
+            if classifier > 0:
+                info = [info_bacterium, classifier]
+                index = 1
+            else:
                 info.append(info_bacterium)
-                box_info.append(info_bacterium[5])
-        info_headings = ['x', 'y', 'theta', 'width', 'length', 'box']
+
+        info_headings = ['x', 'y', 'theta', 'width', 'length', 'box', 'classifier']
 
         ### ONLY EDIT BETWEEN THESE COMMENTS
         if self.tracking:
             return info, boundary, info_headings
         else:
-            # THIS NEXT LINE CAN BE EDITED TOO
-            annotated_frame = images.draw_contours(cropped_frame, np.array(box_info))
+            for bacterium in info:
+                if bacterium[6] == 1:
+                    annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=BlUE)
             return new_frame, annotated_frame
 
     def extra_steps(self):
