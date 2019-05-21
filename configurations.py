@@ -50,6 +50,9 @@ EXAMPLE_CHILD_PARAMETERS = {
     'memory': 3
 }
 
+
+# min area is a threshold that is slightly larger than a single bacterium.
+#The aim is to be able to identify when a bacterium might be dividing.
 BACTERIA_PARAMETERS = {
     'crop method': 'no_crop',
     'method': ('grayscale', 'adaptive_threshold'),
@@ -57,7 +60,7 @@ BACTERIA_PARAMETERS = {
     'adaptive threshold block size': [53, 3, 101, 2],
     'adaptive threshold C': [-26, -30, 30, 1],
     'adaptive threshold mode': [0, 0, 1, 1],
-    'min area':[0, 2000, 200, 1],
+    'min area':[200, 0, 2000, 1],
     'max frame displacement': 10,
     'min frame life': 5,
     'memory': 3
