@@ -7,6 +7,12 @@ import numpy as np
 class Bacteria(ParticleTracker):
     """
     Example class for inheriting ParticleTracker
+
+    analyse_frame works by applying an adaptive threshold to the image.
+    It then finds the contours of the bacteria. We then fit the minimum
+    bounding rectangle to the bacterium before using the area of this
+    to define whether it is a single bacterium or multiple. This classification
+    is stored in 'classifier' field.
     """
 
     def __init__(self, filename, tracking=False, multiprocess=False):
@@ -34,18 +40,14 @@ class Bacteria(ParticleTracker):
 
     def analyse_frame(self):
         """
-        Change steps in this method.
-
         This is done every frame
 
         Returns
         -------
         info:
             (N, X) array containing X values for N tracked objects
-        boundary:
-            from preprocessor
         info_headings:
-            List of X strings describing the values in circles
+            List of X strings describing the values for each object
 
         """
         if self.tracking:
@@ -54,38 +56,35 @@ class Bacteria(ParticleTracker):
             frame = self.cap.find_frame(self.parameters['frame'][0])
         new_frame, boundary, cropped_frame = self.ip.process(frame)
 
-        ### ONLY EDIT BETWEEN THESE COMMENTS
-        '''
-        thresh = images.adaptive_threshold(self.blurred_img,
-                                    self.parameters['adaptive threshold block size'][0],
-                                    self.parameters['adaptive threshold C'][0],
-                                    self.parameters['adaptive threshold mode'][0])
-        '''
-
         contours = images.find_contours(new_frame)
-        #images.display(images.draw_contours(new_frame, contours))
-
 
 
         for index,contour in enumerate(contours):
+            '''
+            We fit the bounded rectangle to the bacterium contour
+            we then overwrite the x and y coords with contour centre of mass.
+            '''
             info_bacterium = images.rotated_bounding_rectangle(contour)
             area = info_bacterium[3]*info_bacterium[4]
 
+            if area <= 0.6*self.parameters['area bacterium'][0]:
+                #classify small things as noise.
+                classifier = int(0) # ie mistake it is not a bacterium
+            else:
+                #overwrite x and y
+                info_bacterium[0], info_bacterium[1] = images.find_contour_centre(contour)
             '''
             Here we attempt to classify whether it is a bit of noise
             single bacterium, dividing or a clump of them
             '''
-
-
-            if area <= 0.6*self.parameters['area bacterium'][0]:
-
-                classifier = int(0) # ie mistake it is not a bacterium
+            if (area > 0.6*self.parameters['area bacterium'][0]) & (area <= 1.8*self.parameters['area bacterium'][0]):
+                classifier = int(1)  # single bacterium - Blue
             elif (area > 1.8*self.parameters['area bacterium'][0]) & (area <= 2.9*self.parameters['area bacterium'][0]):
                 classifier = int(2) # probably a dividing bacterium - Red
             elif (area > (2.8* self.parameters['area bacterium'][0])):
                 classifier = int(3) # probably an aggregate - Green
-            else:
-                classifier = int(1) # single bacterium - Blue
+
+
 
             info_bacterium.append(classifier)
             if index == 0:
@@ -93,8 +92,6 @@ class Bacteria(ParticleTracker):
             else:
                 info.append(info_bacterium)
 
-
-        ### ONLY EDIT BETWEEN THESE COMMENTS
         if self.tracking:
             info = list(zip(*info))
             info_headings = ['x', 'y', 'theta', 'width', 'length', 'box',
@@ -114,25 +111,23 @@ class Bacteria(ParticleTracker):
 
     def extra_steps(self):
         """
-        Add extra steps here which can be performed after tracking.
-
-        Accepts no arguments and cannot return.
-
-        This is done once.
+        x and y are moved to x_raw, y_raw and a smoothed version of x and y
+        are added to each frame.
         """
-        pass
+        print(self.data_store.head())
+
 
 
 if __name__ == "__main__":
 
     from ParticleTracking.tracking.tracking_gui import TrackingGui
 
-    file = '/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.avi'
-    tracker = Bacteria(file, tracking=False)
-    #tracker.track()
+    file = '/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.mp4'
+    tracker = Bacteria(file, tracking=True)
+    tracker.track()
 
 
-    gui = TrackingGui(tracker)
+    #gui = TrackingGui(tracker)
 
 
 

@@ -31,16 +31,6 @@ class BacteriaAnnotator(video.Annotator):
                 if bacterium[1] != 0:
                     annotated_frame = images.draw_contours(frame, [
                         bacterium[0]], col=colors[bacterium[1]])
-            # for bacterium in info:
-            #     if bacterium[1] == 1:
-            #         annotated_frame = images.draw_contours(frame, [
-            #             bacterium[0]], col=(0, 0, 255))
-            #     elif bacterium[1] == 2:
-            #         annotated_frame = images.draw_contours(frame, [
-            #             bacterium[0]], col=(255, 0, 0))
-            #     elif bacterium[1] == 3:
-            #         annotated_frame = images.draw_contours(frame, [
-            #             bacterium[0]], col=(0, 255, 0))
         return annotated_frame
 
     def _add_number(self, frame, f):
@@ -51,7 +41,7 @@ class BacteriaAnnotator(video.Annotator):
         classifier = self.data.get_info(f, 'classifier')
         for index, particle in enumerate(particles):
             if classifier[index] != 0:
-                frame = cv2.putText(frame, str(int(particle)), (int(x[index]), int(y[index])), font, 1, colors[int(classifier[index])], 1, cv2.LINE_AA)
+                frame = cv2.putText(frame, str(int(particles[index])), (int(x[index]), int(y[index])), font, 1, colors[int(classifier[index])], 1, cv2.LINE_AA)
         return frame
 
     def check_crop(self, filename):

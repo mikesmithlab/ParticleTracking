@@ -174,7 +174,6 @@ class ParticleTracker:
         data_store.df = trackpy.filter_stubs(
             data_store.df, self.parameters['min frame life'])
         data_store.set_frame_index()
-        print(data_store.df.head(5))
         # Save DataStore
         data_store.save()
 

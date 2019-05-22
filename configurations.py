@@ -60,7 +60,7 @@ BACTERIA_PARAMETERS = {
     'adaptive threshold C': [-26, -30, 30, 1],
     'adaptive threshold mode': [0, 0, 1, 1],
     'area bacterium': [114, 0, 500, 1],
-    'max frame displacement': 10,
+    'max frame displacement': 20,
     'min frame life': 5,
     'memory': 3
     }
