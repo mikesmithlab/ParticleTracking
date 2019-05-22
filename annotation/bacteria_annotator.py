@@ -1,6 +1,7 @@
 from Generic import video, images
 import os
 from cv2 import FONT_HERSHEY_PLAIN as font
+import cv2
 import pygame
 import numpy as np
 
@@ -25,27 +26,32 @@ class BacteriaAnnotator(video.Annotator):
     def _draw_boxes(self, frame, f):
         if self.parameter == 'box':
             info = self.data.get_info(f, ['box', 'classifier'])
-
+            colors = {1: (0, 0, 255), 2: (255, 0, 0), 3: (0, 255, 0)}
             for bacterium in info:
-                if bacterium[1] == 1:
+                if bacterium[1] != 0:
                     annotated_frame = images.draw_contours(frame, [
-                        bacterium[0]], col=(0, 0, 255))
-                elif bacterium[1] == 2:
-                    annotated_frame = images.draw_contours(frame, [
-                        bacterium[0]], col=(255, 0, 0))
-                elif bacterium[1] == 3:
-                    annotated_frame = images.draw_contours(frame, [
-                        bacterium[0]], col=(0, 255, 0))
+                        bacterium[0]], col=colors[bacterium[1]])
+            # for bacterium in info:
+            #     if bacterium[1] == 1:
+            #         annotated_frame = images.draw_contours(frame, [
+            #             bacterium[0]], col=(0, 0, 255))
+            #     elif bacterium[1] == 2:
+            #         annotated_frame = images.draw_contours(frame, [
+            #             bacterium[0]], col=(255, 0, 0))
+            #     elif bacterium[1] == 3:
+            #         annotated_frame = images.draw_contours(frame, [
+            #             bacterium[0]], col=(0, 255, 0))
         return annotated_frame
 
     def _add_number(self, frame, f):
-        info = self.data.get_info(f, ['x', 'y', 'particle'])
-        x,y,particle_num = zip(*info)
-        print('frame')
-        print(particle_num)
-
-
-        #cv2.putText(frame, )
+        colors = {1: (0, 0, 255), 2: (255, 0, 0), 3: (0, 255, 0)}
+        x = self.data.get_info(f, 'x')
+        y = self.data.get_info(f, 'y')
+        particles = self.data.get_info(f, 'particle')
+        classifier = self.data.get_info(f, 'classifier')
+        for index, particle in enumerate(particles):
+            if classifier[index] != 0:
+                frame = cv2.putText(frame, str(int(particle)), (int(x[index]), int(y[index])), font, 1, colors[int(classifier[index])], 1, cv2.LINE_AA)
         return frame
 
     def check_crop(self, filename):
