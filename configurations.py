@@ -56,11 +56,10 @@ EXAMPLE_CHILD_PARAMETERS = {
 BACTERIA_PARAMETERS = {
     'crop method': 'no_crop',
     'method': ('grayscale', 'adaptive_threshold'),
-    'grayscale threshold': [50, 0, 255, 1],
     'adaptive threshold block size': [53, 3, 101, 2],
     'adaptive threshold C': [-26, -30, 30, 1],
     'adaptive threshold mode': [0, 0, 1, 1],
-    'area bacterium':[93, 0, 500, 1],
+    'area bacterium': [114, 0, 500, 1],
     'max frame displacement': 10,
     'min frame life': 5,
     'memory': 3

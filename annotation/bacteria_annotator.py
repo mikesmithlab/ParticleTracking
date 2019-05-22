@@ -1,5 +1,7 @@
 from Generic import video, images
 import os
+from cv2 import FONT_HERSHEY_PLAIN as font
+import pygame
 import numpy as np
 
 
@@ -15,10 +17,14 @@ class BacteriaAnnotator(video.Annotator):
         video.Annotator.__init__(self, in_name, out_name, frames_as_surface=False)
 
     def process_frame(self, frame, f):
-        print(np.shape(frame))
+        annotated_frame = self._draw_boxes(frame, f)
+        annotated_frame = self._add_number(annotated_frame, f)
 
+        return annotated_frame
+
+    def _draw_boxes(self, frame, f):
         if self.parameter == 'box':
-            info = self.data.get_info(f, ['box','classifier'])
+            info = self.data.get_info(f, ['box', 'classifier'])
 
             for bacterium in info:
                 if bacterium[1] == 1:
@@ -30,9 +36,17 @@ class BacteriaAnnotator(video.Annotator):
                 elif bacterium[1] == 3:
                     annotated_frame = images.draw_contours(frame, [
                         bacterium[0]], col=(0, 255, 0))
-
-
         return annotated_frame
+
+    def _add_number(self, frame, f):
+        info = self.data.get_info(f, ['x', 'y', 'particle'])
+        x,y,particle_num = zip(*info)
+        print('frame')
+        print(particle_num)
+
+
+        #cv2.putText(frame, )
+        return frame
 
     def check_crop(self, filename):
         return filename
