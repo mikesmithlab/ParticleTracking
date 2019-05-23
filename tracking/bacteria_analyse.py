@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import trackpy as tp
+from ParticleTracking import dataframes
 
 
 
@@ -15,21 +16,23 @@ if __name__ == '__main__':
 
     filename = '/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.hdf5'
 
-    df = pd.read_hdf(filename)
+    data_store = dataframes.DataStore(filename)
+    df1 = data_store.df
 
-    smoothing = 25
+    print(df1.columns.values)
 
 
+    print(df1.head())
 
-    traj = df[df['particle'] == 22]
+    traj = df1[df1['particle'] == 22]
+
+    print(traj.head())
 
     plt.figure()
-    plt.plot(traj['x'], traj['y'], 'rx')
-
-    traj = traj.rolling(smoothing, win_type='bartlett').mean()
-
-    plt.plot(traj['x'], traj['y'], 'b-')
+    plt.plot(traj['x raw'],traj['y raw'],'rx')
+    plt.plot(traj['x'],traj['y'],'b.')
     plt.show()
+
 
 
 
