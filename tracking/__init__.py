@@ -78,11 +78,9 @@ class ParticleTracker:
         self.extra_steps()
 
     def save_crop(self):
-        data_store = dataframes.DataStore(self.data_filename,
-                                          load=True)
-        crop = self.ip.crop
-        data_store.add_metadata('crop', crop)
-        data_store.save()
+        with dataframes.DataStore(self.data_filename) as data:
+            crop = self.ip.crop
+            data.add_metadata('crop', crop)
 
     def extra_steps(self):
         pass
@@ -133,23 +131,21 @@ class ParticleTracker:
         # Create the DataStore instance
         data_name = (str(group_number) + '.hdf5'
                      if self.multiprocess else self.data_filename)
-        data = dataframes.DataStore(data_name, load=False)
-
-        start = self.frame_div * group_number
-        self.cap = video.ReadVideo(self.input_filename)
-        self.cap.set_frame(start)
-        if group_number == 3:
-            missing = self.num_frames - 4*(self.num_frames//4)
-            frame_div = self.frame_div + missing
-        else:
-            frame_div = self.frame_div
-        # Iterate over frames
-        for f in tqdm(range(frame_div), 'Tracking'):
-            info, boundary, info_headings = self.analyse_frame()
-            data.add_tracking_data(start + f, info, col_names=info_headings)
-            if f == 0:
-                data.add_metadata('boundary', boundary)
-        data.save()
+        with dataframes.DataStore(data_name, load=False) as data:
+            start = self.frame_div * group_number
+            self.cap = video.ReadVideo(self.input_filename)
+            self.cap.set_frame(start)
+            if group_number == 3:
+                missing = self.num_frames - 4*(self.num_frames//4)
+                frame_div = self.frame_div + missing
+            else:
+                frame_div = self.frame_div
+            # Iterate over frames
+            for f in tqdm(range(frame_div), 'Tracking'):
+                info, boundary, info_headings = self.analyse_frame()
+                data.add_tracking_data(start + f, info, col_names=info_headings)
+                if f == 0:
+                    data.add_metadata('boundary', boundary)
 
     def _cleanup_intermediate_dataframes(self):
         """Concatenates and removes intermediate dataframes"""
@@ -163,19 +159,16 @@ class ParticleTracker:
     def _link_trajectories(self):
         """Implements the trackpy functions link_df and filter_stubs"""
         # Reload DataStore
-        data_store = dataframes.DataStore(self.data_filename,
-                                          load=True)
-        # Trackpy methods
-        data_store.reset_index()
-        data_store.df = trackpy.link_df(
-            data_store.df,
-            self.parameters['max frame displacement'],
-            memory=self.parameters['memory'])
-        data_store.df = trackpy.filter_stubs(
-            data_store.df, self.parameters['min frame life'])
-        data_store.set_frame_index()
-        # Save DataStore
-        data_store.save()
+        with dataframes.DataStore(self.data_filename) as data:
+            # Trackpy methods
+            data.reset_index()
+            data.df = trackpy.link_df(
+                data.df,
+                self.parameters['max frame displacement'],
+                memory=self.parameters['memory'])
+            data.df = trackpy.filter_stubs(
+                data.df, self.parameters['min frame life'])
+            data.set_frame_index()
 
     def update_parameters(self, parameters):
         self.parameters = parameters
