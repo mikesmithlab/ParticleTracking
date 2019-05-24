@@ -156,7 +156,6 @@ class DataStore:
         return info
 
     def get_info_all_frames_generator(self, headings):
-        print(self.df.head(3))
         for f in range(self.num_frames):
             yield self.df.loc[f, headings].values
 

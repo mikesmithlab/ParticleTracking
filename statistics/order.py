@@ -1,5 +1,19 @@
 import numpy as np
 import scipy.spatial as sp
+import pandas as pd
+
+def order_process(features):
+    # features = features.copy()
+    points = features[['x', 'y', 'r']].values
+    orders_r, orders_i, orders_mag, neighbors, mean, sus = \
+        order_and_neighbors(points[:, :2], np.mean(points[:, 2]) * 4)
+    features['order_r'] = orders_r
+    features['order_i'] = orders_i
+    features['order_mag'] = orders_mag
+    features['neighbors'] = neighbors
+    features['order_mean'] = mean
+    features['order_sus'] = sus
+    return features
 
 
 def order_and_neighbors(points, threshold):
@@ -8,7 +22,7 @@ def order_and_neighbors(points, threshold):
     inside_threshold = filter_vectors_length(vectors, threshold)
     angles = calculate_angles(vectors)
     orders, neighbors = calculate_orders(angles, list_indices, inside_threshold)
-    # neighbors = np.uint8(neighbors)
+    neighbors = np.uint8(neighbors)
     orders_abs = np.abs(orders)
     orders_r = np.real(orders)
     orders_i = np.imag(orders)
