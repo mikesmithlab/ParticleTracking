@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+import cv2
 
 
 class Bacteria(ParticleTracker):
@@ -36,8 +37,10 @@ class Bacteria(ParticleTracker):
         self.parameters = configurations.BACTERIA_PARAMETERS
         self.ip = preprocessing.Preprocessor(self.parameters)
         self.input_filename = filename
+
         if self.tracking:
             ParticleTracker.__init__(self, multiprocess=multiprocess)
+            self.old_info = None
         else:
             self.cap = video.ReadVideo(self.input_filename)
             self.frame = self.cap.read_next_frame()
@@ -54,6 +57,8 @@ class Bacteria(ParticleTracker):
             List of X strings describing the values for each object
 
         """
+        info = None
+
         if self.tracking:
             frame = self.cap.read_next_frame()
         else:
@@ -73,34 +78,33 @@ class Bacteria(ParticleTracker):
             width = info_bacterium[4]
 
             if area <= 0.6*self.parameters['area bacterium'][0]:
-                #classify small things as noise.
-                classifier = int(0) # ie mistake it is not a bacterium
+                #classify small things as noise. We do not store
+                pass
             else:
                 #overwrite x and y
                 info_bacterium[0], info_bacterium[1] = images.find_contour_centre(contour)
-            '''
-            Here we attempt to classify whether it is a bit of noise
-            single bacterium, dividing or a clump of them
-            '''
-            if (area > 0.6*self.parameters['area bacterium'][0]) & (area <= 1.8*self.parameters['area bacterium'][0]):
-                classifier = int(1)  # single bacterium - Blue
-            elif (area > 1.8*self.parameters['area bacterium'][0]) & (area <= 2.9*self.parameters['area bacterium'][0]):
-                classifier = int(2) # probably a dividing bacterium - Red
-                if width > self.parameters['width bacterium'][0]:
-                    classifier = int(3)
-            elif (area > (2.8* self.parameters['area bacterium'][0])):
-                classifier = int(3) # probably an aggregate - Green
+                '''
+                Here we attempt to classify whether it is a bit of noise
+                single bacterium, dividing or a clump of them
+                '''
+                if (area > 0.6*self.parameters['area bacterium'][0]) & (area <= 1.8*self.parameters['area bacterium'][0]):
+                    classifier = int(0)  # single bacterium - Blue
+                elif (area > 1.8*self.parameters['area bacterium'][0]):
+                    classifier = int(1) # probably a dividing bacterium - Red
 
-            if classifier == 3:
-                self._split_bacteria(info_bacterium, contour)
+                if self.tracking:
+                    #This splitting relies on historical info so won't work with gui.
+                    if classifier == 1:
+                        self._split_bacteria(cropped_frame,new_frame,info_bacterium[5])
 
-            info_bacterium.append(classifier)
-            if index == 0:
-                info = [info_bacterium]
-            else:
-                info.append(info_bacterium)
+                info_bacterium.append(classifier)
+                if info is None:
+                    info = [info_bacterium]
+                else:
+                    info.append(info_bacterium)
 
         if self.tracking:
+            self.old_info = info.copy()
             info = list(zip(*info))
             info_headings = ['x', 'y', 'theta', 'width', 'length', 'box',
                              'classifier']
@@ -109,19 +113,41 @@ class Bacteria(ParticleTracker):
             
             for bacterium in info:
 
-                if bacterium[6] == 1:
+                if bacterium[6] == 0:
                     annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=(0, 0 ,255))
-                elif bacterium[6] == 2:
+                elif bacterium[6] == 1:
                     annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=(255, 0, 0))
-                elif bacterium[6] == 3:
-                    annotated_frame = images.draw_contours(cropped_frame, [np.array(bacterium[5])], col=(0, 255, 0))
+
             return new_frame, annotated_frame
 
-    def _split_bacteria(self,info_bacterium, contour):
-        temp_img, rect = images.cut_out_object(self.frame, contour, buffer=5)
-        new_img = images.watershed(temp_img)
+    def _split_bacteria(self,frame,bwframe, box):
+        if self.old_info is None:
+            pass
+        else:
+            pts = []
+            for index,row in enumerate(self.old_info):
+                if cv2.pointPolygonTest(box,(row[0],row[1]),False) == 1:
+                    pts.append(index)
+            if len(pts) == 1:
+                #If there is only one point in the previous frame
+                #this means this is a bacterium undergoing division
+                classifier = 2
+            else:
+                '''
+                If more than 1 then these points were previously separate
+                They are therefore currently stuck together and we need to separate them.
+                The method is to mask the image with the box of the other bacterium's bounding
+                boxes from the previous frame. Then calculate the contour on what remains.
+                '''
 
-        images.display(new_img)
+                bwim,r=images.cut_out_object(bwframe,box)
+                images.display(bwim)
+                im2 = images.draw_contours(bwim,[np.array(self.old_info[pts[0]][5])],col=255,thickness=-1)
+                images.display(im2)
+
+
+
+
 
     def extra_steps(self):
         """
@@ -159,11 +185,11 @@ if __name__ == "__main__":
     from ParticleTracking.tracking.tracking_gui import TrackingGui
 
     file = '/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.mp4'
-    tracker = Bacteria(file, tracking=False)
-    #tracker.track()
+    tracker = Bacteria(file, tracking=True)
+    tracker.track()
 
 
-    gui = TrackingGui(tracker)
+    #gui = TrackingGui(tracker)
 
 
 
