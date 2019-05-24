@@ -51,8 +51,15 @@ EXAMPLE_CHILD_PARAMETERS = {
 }
 
 
-# min area is a threshold that is slightly larger than a single bacterium.
-#The aim is to be able to identify when a bacterium might be dividing.
+'''
+min area is a threshold that is slightly larger than a single bacterium.
+The aim is to be able to identify when a bacterium might be dividing.
+
+colors 1 = Green = single bacteria
+       2 = Blue  = dividing bacteria
+       3 = Red = Sticking bacteria
+       4 = turquoise = not classified
+'''
 BACTERIA_PARAMETERS = {
     'crop method': 'no_crop',
     'method': ('grayscale', 'adaptive_threshold'),
@@ -64,7 +71,9 @@ BACTERIA_PARAMETERS = {
     'max frame displacement': 20,
     'min frame life': 5,
     'memory': 3,
-    'trajectory smoothing': 1
+    'trajectory smoothing': 1,
+    'outside cutoff': 2,
+    'colors': {1:(0,255,0),2:(255,0,0),3:(0,0,255),4:(255,255,0)}
     }
 
 

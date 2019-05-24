@@ -26,7 +26,7 @@ class BacteriaAnnotator(video.Annotator):
     def _draw_boxes(self, frame, f):
         if self.parameter == 'box':
             info = self.data.get_info(f, ['box', 'classifier'])
-            colors = {1: (0, 0, 255), 2: (255, 0, 0), 3: (0, 255, 0)}
+            colors = {1: (0, 0, 255), 2: (255, 0, 0), 3: (255,255,0) ,4: (0, 255, 0)}
             for bacterium in info:
                 if bacterium[1] != 0:
                     annotated_frame = images.draw_contours(frame, [
@@ -34,7 +34,7 @@ class BacteriaAnnotator(video.Annotator):
         return annotated_frame
 
     def _add_number(self, frame, f):
-        colors = {1: (0, 0, 255), 2: (255, 0, 0), 3: (0, 255, 0)}
+        colors = {1: (0, 0, 255), 2: (255, 0, 0), 4: (0, 255, 0)}
         x = self.data.get_info(f, 'x')
         y = self.data.get_info(f, 'y')
         particles = self.data.get_info(f, 'particle')
