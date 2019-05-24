@@ -26,21 +26,22 @@ class PropertyCalculator:
         if ('real order' in self.data.get_headings()) and (overwrite is False):
             return 0
         rad = self.data.get_column('r').mean() * 4
-        points = self.data.get_info_all_frames(['x', 'y'])
+        # points = self.data.get_info_all_frames(['x', 'y'])
+        points = self.data.get_info_all_frames_generator(['x', 'y'])
         print('points got')
         if multiprocessing:
             p = mp.Pool(4)
             orders_r, orders_i, orders_mag, neighbors, mean, sus = zip(
                 *p.starmap(order.order_and_neighbors,
                            tqdm(zip(points, repeat(rad)),
-                                'Order', total=len(points))))
+                                'Order', total=self.data.num_frames)))
             p.close()
             p.join()
         else:
             orders_r, orders_i, orders_mag, neighbors, mean, sus = zip(
                 *starmap(order.order_and_neighbors,
                          tqdm(zip(points, repeat(rad)),
-                              'Order', total=len(points))))
+                              'Order', total=self.data.num_frames)))
         orders_r = np.float32(flatten(orders_r))
         orders_i = np.float32(flatten(orders_i))
         orders_mag = np.float32(flatten(orders_mag))
@@ -141,9 +142,9 @@ if __name__ == "__main__":
     file = filedialogs.load_filename()
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
-    # calc.order(multiprocessing=False, overwrite=True)
+    calc.order(multiprocessing=True, overwrite=True)
     # calc.density()
-    calc.distance()
+    # calc.distance()
     print(data.df.head())
-    print(data.df.dtypes)
+    # print(data.df.dtypes)
 
