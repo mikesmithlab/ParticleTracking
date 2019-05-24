@@ -27,6 +27,7 @@ class PropertyCalculator:
             return 0
         rad = self.data.get_column('r').mean() * 4
         points = self.data.get_info_all_frames(['x', 'y'])
+        print('points got')
         if multiprocessing:
             p = mp.Pool(4)
             orders_r, orders_i, orders_mag, neighbors, mean, sus = zip(

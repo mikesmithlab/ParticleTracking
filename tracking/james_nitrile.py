@@ -41,14 +41,13 @@ class JamesPT(ParticleTracker):
             annotated_frame = images.draw_circles(cropped_frame, circles)
             return new_frame, annotated_frame
 
-
     def extra_steps(self):
         duty_cycle = read_audio_file(self.input_filename, self.num_frames)
         duty_cycle = np.uint16(duty_cycle)
-        data_store = dataframes.DataStore(self.data_filename,
-                                          load=True)
-        data_store.add_frame_property('Duty', duty_cycle)
-        data_store.save()
+        with dataframes.DataStore(self.data_filename) as data:
+            data = dataframes.DataStore(self.data_filename,
+                                              load=True)
+            data.add_frame_property('Duty', duty_cycle)
 
 
 @jit

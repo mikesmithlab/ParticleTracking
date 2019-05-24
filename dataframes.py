@@ -24,6 +24,13 @@ class DataStore:
         if load:
             self.load()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.save()
+        del self.df, self.metadata
+
     def add_frame_property(self, heading, values):
         """
         Add data for each frame.
