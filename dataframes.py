@@ -24,6 +24,13 @@ class DataStore:
         if load:
             self.load()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.save()
+        del self.df, self.metadata
+
     def add_frame_property(self, heading, values):
         """
         Add data for each frame.
@@ -148,6 +155,11 @@ class DataStore:
         info = self.stack_info(data)
         return info
 
+    def get_info_all_frames_generator(self, headings):
+        print(self.df.head(3))
+        for f in range(self.num_frames):
+            yield self.df.loc[f, headings].values
+
     def get_metadata(self, name):
         """
         Return item from the metadata dictionary
@@ -167,6 +179,7 @@ class DataStore:
         with pd.HDFStore(self.filename) as store:
             self.df = store.get('df')
             self.metadata = store.get_storer('df').attrs.metadata
+        self.num_frames = max(self.df.index.values)+1
 
     def reset_index(self):
         """Move frame index to column"""
