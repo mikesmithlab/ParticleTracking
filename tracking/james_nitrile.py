@@ -45,9 +45,8 @@ class JamesPT(ParticleTracker):
         duty_cycle = read_audio_file(self.input_filename, self.num_frames)
         duty_cycle = np.uint16(duty_cycle)
         with dataframes.DataStore(self.data_filename) as data:
-            data = dataframes.DataStore(self.data_filename,
-                                              load=True)
             data.add_frame_property('Duty', duty_cycle)
+            data.save()
 
 
 @jit
