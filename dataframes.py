@@ -156,7 +156,6 @@ class DataStore:
         return info
 
     def get_info_all_frames_generator(self, headings):
-        print(self.df.head(3))
         for f in range(self.num_frames):
             yield self.df.loc[f, headings].values
 
@@ -207,6 +206,27 @@ class DataStore:
         info = [arr[indices[i]:indices[i + 1], 1:]
              for i in range(len(c))]
         return info
+
+
+class MetaStore:
+    def __init__(self, filename):
+        self.filename = filename
+        self.metadata = self.load(filename)
+
+    @staticmethod
+    def load(filename):
+        with pd.HDFStore(filename) as store:
+            metadata = store.get_storer('df').attrs.metadata
+        return metadata
+
+    def add_metadata(self, metadata):
+        self.metadata.update(metadata)
+
+    def save(self):
+        with pd.HDFStore(self.filename) as store:
+            store.get_storer('df').attrs.metadata = self.metadata
+
+
 
 
 def concatenate_datastore(datastore_list, new_filename):

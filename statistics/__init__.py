@@ -4,6 +4,8 @@ from itertools import repeat, starmap
 
 import numpy as np
 from tqdm import tqdm
+import dask.dataframe as dd
+import pandas as pd
 
 from ParticleTracking.statistics import order, voronoi_cells, \
     polygon_distances, correlations, level
@@ -22,13 +24,31 @@ class PropertyCalculator:
         self.data = datastore
         self.core_name = os.path.splitext(self.data.filename)[0]
 
+    def order_dask(self):
+        print('Calculating order')
+        # self.data.df = self.data.df.loc[self.data.df.index<2000]
+        ddf = dd.from_pandas(self.data.df, npartitions=4)
+        print('made ddf')
+        new_cols = ['order_r', 'order_i', 'order_mag', 'neighbors', 'order_mean', 'order_sus']
+        cols = ddf.columns.values.tolist()
+        for item in new_cols:
+            if item not in cols:
+                cols += item
+        meta = pd.DataFrame(columns=cols)
+        self.data.df = (
+            ddf.groupby('frame')
+            .apply(order.order_process, meta=meta)
+            .compute(scheduler='processes'))
+
+    def order_apply(self):
+        self.data.df = self.data.df.groupby('frame').apply(order.order_process)
+
     def order(self, multiprocessing=False, overwrite=False):
         if ('real order' in self.data.get_headings()) and (overwrite is False):
             return 0
         rad = self.data.get_column('r').mean() * 4
         # points = self.data.get_info_all_frames(['x', 'y'])
         points = self.data.get_info_all_frames_generator(['x', 'y'])
-        print('points got')
         if multiprocessing:
             p = mp.Pool(4)
             orders_r, orders_i, orders_mag, neighbors, mean, sus = zip(
@@ -139,12 +159,25 @@ def flatten(arr):
 if __name__ == "__main__":
     from Generic import filedialogs
     from ParticleTracking import dataframes, statistics
+    import time
     file = filedialogs.load_filename()
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
-    calc.order(multiprocessing=True, overwrite=True)
+    t = time.time()
+    calc.order_apply_multi()
+    print(time.time() - t)
+    # t = time.time()
+    # calc.order(multiprocessing=True, overwrite=True)
+    # print(time.time() - t)
+    # # calc.order_apply()
+    # t = time.time()
+    # calc.order_dask()
+    # print(time.time() - t)
+    # t = time.time()
+    # calc.order_apply()
+    # print(time.time() - t)
     # calc.density()
     # calc.distance()
-    print(data.df.head())
+    # print(data.df.head())
     # print(data.df.dtypes)
 
