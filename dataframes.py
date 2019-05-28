@@ -208,6 +208,27 @@ class DataStore:
         return info
 
 
+class MetaStore:
+    def __init__(self, filename):
+        self.filename = filename
+        self.metadata = self.load(filename)
+
+    @staticmethod
+    def load(filename):
+        with pd.HDFStore(filename) as store:
+            metadata = store.get_storer('df').attrs.metadata
+        return metadata
+
+    def add_metadata(self, metadata):
+        self.metadata.update(metadata)
+
+    def save(self):
+        with pd.HDFStore(self.filename) as store:
+            store.get_storer('df').attrs.metadata = self.metadata
+
+
+
+
 def concatenate_datastore(datastore_list, new_filename):
     DS_out = DataStore(new_filename, load=False)
     for file in datastore_list:
