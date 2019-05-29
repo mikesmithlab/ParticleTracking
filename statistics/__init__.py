@@ -43,10 +43,10 @@ class PropertyCalculator:
     def order_apply(self):
         self.data.df = self.data.df.groupby('frame').apply(order.order_process)
 
-    def order(self, multiprocessing=False, overwrite=False):
+    def order(self, multiprocessing=False, overwrite=False, threshold=3):
         if ('real order' in self.data.get_headings()) and (overwrite is False):
             return 0
-        rad = self.data.get_column('r').mean() * 4
+        rad = self.data.get_column('r').mean() * threshold
         # points = self.data.get_info_all_frames(['x', 'y'])
         points = self.data.get_info_all_frames_generator(['x', 'y'])
         if multiprocessing:
