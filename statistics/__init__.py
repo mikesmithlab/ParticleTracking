@@ -24,22 +24,6 @@ class PropertyCalculator:
         self.data = datastore
         self.core_name = os.path.splitext(self.data.filename)[0]
 
-    def order_dask(self):
-        print('Calculating order')
-        # self.data.df = self.data.df.loc[self.data.df.index<2000]
-        ddf = dd.from_pandas(self.data.df, npartitions=4)
-        print('made ddf')
-        new_cols = ['order_r', 'order_i', 'order_mag', 'neighbors', 'order_mean', 'order_sus']
-        cols = ddf.columns.values.tolist()
-        for item in new_cols:
-            if item not in cols:
-                cols += item
-        meta = pd.DataFrame(columns=cols)
-        self.data.df = (
-            ddf.groupby('frame')
-            .apply(order.order_process, meta=meta)
-            .compute(scheduler='processes'))
-
     def order_apply(self):
         self.data.df = self.data.df.groupby('frame').apply(order.order_process)
 
@@ -51,31 +35,24 @@ class PropertyCalculator:
         points = self.data.get_info_all_frames_generator(['x', 'y'])
         if multiprocessing:
             p = mp.Pool(4)
-            orders_r, orders_i, orders_mag, neighbors, mean, sus = zip(
+            orders, neighbors = zip(
                 *p.starmap(order.order_and_neighbors,
                            tqdm(zip(points, repeat(rad)),
                                 'Order', total=self.data.num_frames)))
             p.close()
             p.join()
         else:
-            orders_r, orders_i, orders_mag, neighbors, mean, sus = zip(
+            orders, neighbors = zip(
                 *starmap(order.order_and_neighbors,
                          tqdm(zip(points, repeat(rad)),
                               'Order', total=self.data.num_frames)))
-        orders_r = np.float32(flatten(orders_r))
-        orders_i = np.float32(flatten(orders_i))
-        orders_mag = np.float32(flatten(orders_mag))
-        neighbors = np.uint8(flatten(neighbors))
-        mean = np.float32(mean)
-        sus = np.float32(sus)
-
+        orders = flatten(orders)
+        neighbors = np.array(flatten(neighbors), dtype=np.uint8)
+        orders_r = np.real(orders).astype(np.float32)
+        orders_i = np.imag(orders).astype(np.float32)
         self.data.add_particle_property('order_r', orders_r)
         self.data.add_particle_property('order_i', orders_i)
-        self.data.add_particle_property('order_mag', orders_mag)
         self.data.add_particle_property('neighbors', neighbors)
-        self.data.add_frame_property('order_mean', mean)
-        self.data.add_frame_property('order_sus', sus)
-
         self.data.save()
 
     def density(self, multiprocess=False):

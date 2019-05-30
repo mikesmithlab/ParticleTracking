@@ -23,12 +23,7 @@ def order_and_neighbors(points, threshold):
     angles = calculate_angles(vectors)
     orders, neighbors = calculate_orders(angles, list_indices, inside_threshold)
     neighbors = np.uint8(neighbors)
-    orders_abs = np.abs(orders)
-    orders_r = np.real(orders)
-    orders_i = np.imag(orders)
-    mean = np.mean(orders_abs)
-    sus = np.var(orders_abs)
-    return orders_r, orders_i, orders_abs, neighbors, mean, sus
+    return orders, neighbors
 
 
 def find_delaunay_indices(points):
@@ -78,4 +73,4 @@ if __name__ == "__main__":
     calc = statistics.PropertyCalculator(data)
     calc.order(multiprocessing=False, overwrite=True)
     print(data.df.head())
-    print(data.df.dtypes)
+    # print(data.df.dtypes)
