@@ -32,9 +32,10 @@ class JamesPT(ParticleTracker):
             self.parameters['p_1'][0],
             self.parameters['p_2'][0],
             self.parameters['min_rad'][0],
-            self.parameters['max_rad'][0])
+            self.parameters['max_rad'][0],
+            self.parameters['dp'][0])
         circles = get_points_inside_boundary(circles, boundary)
-        circles = check_circles_bg_color(circles, new_frame, 150)
+        # circles = check_circles_bg_color(circles, cropped_frame, 150)
         if self.tracking:
             return circles, boundary, ['x', 'y', 'r']
         else:
@@ -47,6 +48,9 @@ class JamesPT(ParticleTracker):
         with dataframes.DataStore(self.data_filename) as data:
             data.add_frame_property('Duty', duty_cycle)
             data.save()
+
+    def _link_trajectories(self):
+        pass
 
 
 @jit

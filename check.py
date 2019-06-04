@@ -49,4 +49,4 @@ def order(filename):
 if __name__ == "__main__":
     from Generic import filedialogs
     name = filedialogs.load_filename()
-    order(name)
+    tracking(name)
