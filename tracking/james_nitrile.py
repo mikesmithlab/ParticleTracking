@@ -35,7 +35,7 @@ class JamesPT(ParticleTracker):
             self.parameters['max_rad'][0],
             self.parameters['dp'][0])
         circles = get_points_inside_boundary(circles, boundary)
-        # circles = check_circles_bg_color(circles, cropped_frame, 150)
+        circles = check_circles_bg_color(circles, images.bgr_2_grayscale(cropped_frame), 150)
         if self.tracking:
             return circles, boundary, ['x', 'y', 'r']
         else:
