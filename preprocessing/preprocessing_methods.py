@@ -1,6 +1,9 @@
 from Generic import images
+import cv2
 
-
+def distance(frame, parameters):
+    dist = cv2.distanceTransform(frame, cv2.DIST_L2, 5)
+    return cv2.normalize(dist, dist, 0, 1.0, cv2.NORM_MINMAX)
 
 def grayscale(frame, parameters):
     return images.bgr_2_grayscale(frame)
