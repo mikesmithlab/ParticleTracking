@@ -42,7 +42,11 @@ TRACKPY_NITRILE_PARAMETERS = {
     'method': ('flip', 'crop_and_mask', 'grayscale', 'flip', 'threshold', 'distance'),
     'number of tray sides': 6,
     'threshold': [170, 1, 255, 1],
-    'threshold mode': cv2.THRESH_TOZERO_INV
+    'threshold mode': cv2.THRESH_TOZERO_INV,
+    'max frame displacement': 30,
+    'min frame displacement': 10,
+    'memory': 3,
+    'min frame life': 3
 }
 
 EXAMPLE_CHILD_PARAMETERS = {
