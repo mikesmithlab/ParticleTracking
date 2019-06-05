@@ -41,7 +41,7 @@ TRACKPY_NITRILE_PARAMETERS = {
     'crop method': 'find_blue_hex_crop_and_mask',
     'method': ('flip', 'crop_and_mask', 'grayscale', 'flip', 'threshold', 'distance'),
     'number of tray sides': 6,
-    'threshold': [100, 1, 255, 1],
+    'threshold': [170, 1, 255, 1],
     'threshold mode': cv2.THRESH_TOZERO_INV
 }
 

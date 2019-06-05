@@ -126,5 +126,5 @@ if __name__ == '__main__':
     from Generic import filedialogs
     file = filedialogs.load_filename('Load a video')
 
-    jpt = JamesPT(file, tracking=True, multiprocess=True)
+    jpt = JamesPT(file, tracking=True, multiprocess=False)
     jpt.track()
