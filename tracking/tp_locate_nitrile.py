@@ -45,7 +45,7 @@ class TrackpyPT(ParticleTracker):
             # Trackpy methods
             data.df = filter_near_edge(data.df, data.metadata['boundary'], 12)
             data.reset_index()
-            data.df = tp.link_df(
+            data.df = tp.link(
                 data.df,
                 self.parameters['max frame displacement'],
                 adaptive_stop=self.parameters['min frame displacement'],
