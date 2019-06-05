@@ -4,7 +4,6 @@ from ParticleTracking import configurations, preprocessing, dataframes
 import numpy as np
 from numba import jit
 import trackpy as tp
-import matplotlib.path as mpath
 
 
 class TrackpyPT(ParticleTracker):
@@ -39,6 +38,7 @@ class TrackpyPT(ParticleTracker):
         duty_cycle = np.uint16(duty_cycle)
         with dataframes.DataStore(self.data_filename) as data:
             data.add_frame_property('Duty', duty_cycle)
+            data.df = filter_near_edge(data.df, data.metadata['boundary'], 12)
             data.save()
 
     def _link_trajectories(self):
@@ -52,6 +52,22 @@ def read_audio_file(file, frames):
     freqs = audio.frame_frequency(wav_l, frames, 48000)
     d = (freqs - 1000) / 15
     return d
+
+
+def filter_near_edge(feat, boundary, threshold):
+    print('filtering at edge')
+    line_ends = [[boundary[i-1, :], boundary[i, :]] for i in range(6)]
+    a, b, c = zip(
+        *[[(yb - ya) / (xa - xb), 1, xa * (ya - yb) / (xa - xb) - ya] for
+          (xa, ya), (xb, yb) in line_ends])
+    a, b, c = np.array(a, ndmin=2), np.array(b, ndmin=2), np.array(c, ndmin=2)
+    points = feat[['x', 'y']].values
+    x, y = points[:, 0, np.newaxis], points[:, 1, np.newaxis]
+    d = np.abs(x@a + y@b + c) / (np.sqrt(a**2 + b**2))
+    d = np.min(d, axis=1)
+    return feat[d > threshold]
+
+
 
 if __name__ == '__main__':
     from Generic import filedialogs
