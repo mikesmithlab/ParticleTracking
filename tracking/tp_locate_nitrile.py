@@ -87,8 +87,7 @@ def filter_near_edge(feat, boundary, threshold):
 
 
 if __name__ == '__main__':
-    from Generic import filedialogs
-    file = "/home/ppxjd3/Videos/short.mp4"
+    file = "/home/ppxjd3/Videos/short.MP4"
 
     jpt = TrackpyPT(file, tracking=True, multiprocess=False)
     jpt.track()
