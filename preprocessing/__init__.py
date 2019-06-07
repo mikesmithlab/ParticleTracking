@@ -52,7 +52,7 @@ class Preprocessor:
 
     """
 
-    def __init__(self, parameters):
+    def __init__(self, parameters, return_all=True):
         """
         Parameters
         ----------
@@ -75,6 +75,7 @@ class Preprocessor:
         self.mask_img = np.array([])
         self.crop = []
         self.boundary = None
+        self.return_all = return_all
 
         self.calls = 0
 
@@ -116,4 +117,7 @@ class Preprocessor:
             if method == 'crop_and_mask':
                 cropped_frame = frame.copy()
         self.calls += 1
-        return frame, self.boundary, cropped_frame
+        if self.return_all:
+            return frame, self.boundary, cropped_frame
+        else:
+            return frame
