@@ -44,15 +44,12 @@ class TrackpyPT(ParticleTracker):
         with dataframes.DataStore(self.data_filename) as data:
             # Trackpy methods
             data.df = filter_near_edge(data.df, data.metadata['boundary'], 12)
-            data.reset_index()
-            data.df = tp.link(
-                data.df,
-                self.parameters['max frame displacement'],
-                adaptive_stop=self.parameters['min frame displacement'],
-                adaptive_step=0.9,
-                memory=self.parameters['memory'])
-            data.set_frame_index()
-
+            # data.reset_index()
+            # data.df = tp.link(
+            #     data.df,
+            #     self.parameters['max frame displacement'],
+            #     memory=self.parameters['memory'])
+            # data.set_frame_index()
 
 
 def read_audio_file(file, frames):
