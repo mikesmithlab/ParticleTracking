@@ -43,8 +43,7 @@ TRACKPY_NITRILE_PARAMETERS = {
     'number of tray sides': 6,
     'threshold': [170, 1, 255, 1],
     'threshold mode': cv2.THRESH_TOZERO_INV,
-    'max frame displacement': 30,
-    'min frame displacement': 10,
+    'search_range': 15,
     'memory': 3,
     'min frame life': 3
 }
