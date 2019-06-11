@@ -91,18 +91,25 @@ class DataStore:
         col_names: list of str
             Titles of each D properties for dataframe columns
         """
-        col_names = ['x', 'y', 'r'] if col_names is None else col_names
-        if type(tracked_data) == list:
-            data_dict = {name: tracked_data[i]
-                         for i, name in enumerate(col_names)}
-        elif type(tracked_data) == np.ndarray:
-            data_dict = {name: tracked_data[:, i]
-                         for i, name in enumerate(col_names)}
+        if isinstance(tracked_data, pd.DataFrame):
+            tracked_data['frame'] = frame
+            print(tracked_data.dtypes)
+            self.df = self.df.append(tracked_data.set_index('frame'))
         else:
-            print('type wrong')
-        data_dict['frame'] = frame
-        new_df = pd.DataFrame(data_dict).set_index('frame')
-        self.df = self.df.append(new_df)
+            if isinstance(tracked_data, np.ndarray):
+                col_names = ['x', 'y', 'r'] if col_names is None else col_names
+                data_dict = {name: tracked_data[:, i]
+                             for i, name in enumerate(col_names)}
+
+            elif isinstance(tracked_data, list):
+                data_dict = {name: tracked_data[i]
+                             for i, name in enumerate(col_names)}
+
+            else:
+                print('type wrong')
+            data_dict['frame'] = frame
+            new_df = pd.DataFrame(data_dict).set_index('frame')
+            self.df = self.df.append(new_df)
 
     def append_store(self, store):
         """

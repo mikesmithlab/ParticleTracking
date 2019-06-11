@@ -28,7 +28,7 @@ class TrackpyPT(ParticleTracker):
         circles = tp.locate(new_frame, 21, characterize=False)
         circles['r'] = 15
         if self.tracking:
-            return circles[['x', 'y', 'r']].values, boundary, ['x', 'y', 'r']
+            return circles[['x', 'y', 'r']], boundary, ['x', 'y', 'r']
         else:
             annotated_frame = images.draw_circles(cropped_frame, circles)
             return new_frame, annotated_frame

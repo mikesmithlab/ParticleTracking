@@ -7,6 +7,7 @@ from tqdm import tqdm
 from Generic import images, video
 from ParticleTracking import dataframes
 
+
 class ParticleTracker:
     """
     Class to track the locations of the particles in a video.
@@ -132,6 +133,7 @@ class ParticleTracker:
         data_name = (str(group_number) + '.hdf5'
                      if self.multiprocess else self.data_filename)
         with dataframes.DataStore(data_name, load=False) as data:
+            data.add_metadata('num_frames', self.num_frames)
             start = self.frame_div * group_number
             self.cap = video.ReadVideo(self.input_filename)
             self.cap.set_frame(start)
