@@ -1,20 +1,30 @@
-from ParticleTracking import dataframes
+import pandas as pd
 import trackpy as tp
-
+import os
 
 class Linker:
 
     def __init__(self, filename):
         self.filename = filename
-        self.data = dataframes.DataStore(self.filename)
-        self.data.reset_index()
+        file, ext = os.path.splitext(filename)
+        self.new_filename = file + '_new' + ext
 
     def link(self, search_range, memory=None):
-        self.data.df = tp.link(self.data.df, search_range, memory=memory)
+        with pd.HDFStore(self.filename) as old, pd.HDFStore(self.new_filename, 'w') as new:
+            data = old.get('df')
+            meta = old.get_storer('df').attrs.metadata
+            frames = (data.loc[f].reset_index() for f in range(100))
+            for linked in tp.link_df_iter(frames, search_range, memory=memory):
+                new.append('df', linked.set_index('frame'))
+            new.get_storer('df').attrs.metadata = meta
 
-    def filter(self, min_frame_life):
-        self.data.df = tp.filter_stubs(min_frame_life)
 
-    def quit(self):
-        self.data.set_frame_index()
-        self.data.save()
+if __name__ == "__main__":
+    from Generic import filedialogs
+    import time
+
+    file = filedialogs.load_filename()
+    linker = Linker(file)
+    t = time.time()
+    linker.link(15, 3)
+    print(time.time() - t)
