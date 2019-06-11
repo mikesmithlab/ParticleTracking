@@ -139,6 +139,10 @@ class DataStore:
         """
         return self.df.columns.values.tolist()
 
+    @property
+    def headings(self):
+        return self.df.columns.values.tolist()
+
     def get_info(self, frame, headings):
         """
         Get information on particles in a particular frame.
