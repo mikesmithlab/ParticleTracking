@@ -37,19 +37,12 @@ class TrackpyPT(ParticleTracker):
         duty_cycle = read_audio_file(self.input_filename, self.num_frames)
         duty_cycle = np.uint16(duty_cycle)
         with dataframes.DataStore(self.data_filename) as data:
+            data.df = filter_near_edge(data.df, data.metadata['boundary'], 12)
             data.add_frame_property('Duty', duty_cycle)
             data.save()
 
     def _link_trajectories(self):
-        with dataframes.DataStore(self.data_filename) as data:
-            # Trackpy methods
-            data.df = filter_near_edge(data.df, data.metadata['boundary'], 12)
-            # data.reset_index()
-            # data.df = tp.link(
-            #     data.df,
-            #     self.parameters['max frame displacement'],
-            #     memory=self.parameters['memory'])
-            # data.set_frame_index()
+        pass
 
 
 def read_audio_file(file, frames):
