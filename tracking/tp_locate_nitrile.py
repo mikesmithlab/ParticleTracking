@@ -37,6 +37,7 @@ class TrackpyPT(ParticleTracker):
         duty_cycle = read_audio_file(self.input_filename, self.num_frames)
         duty_cycle = np.uint16(duty_cycle)
         with dataframes.DataStore(self.data_filename) as data:
+            data.set_dtypes({'x': np.float32, 'y': np.float32, 'r': np.uint8})
             data.df = filter_near_edge(data.df, data.metadata['boundary'], 12)
             data.add_frame_property('Duty', duty_cycle)
             data.save()

@@ -31,6 +31,11 @@ class DataStore:
         self.save()
         del self.df, self.metadata
 
+    def set_dtypes(self, data_dict):
+        for key, value in data_dict.items():
+            if self.df[key].dtype != value:
+                self.df[key] = self.df[key].astype(value)
+
     def add_frame_property(self, heading, values):
         """
         Add data for each frame.
@@ -93,7 +98,6 @@ class DataStore:
         """
         if isinstance(tracked_data, pd.DataFrame):
             tracked_data['frame'] = frame
-            print(tracked_data.dtypes)
             self.df = self.df.append(tracked_data.set_index('frame'))
         else:
             if isinstance(tracked_data, np.ndarray):
