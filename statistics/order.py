@@ -5,14 +5,10 @@ import pandas as pd
 def order_process(features, rad_t=3):
     # features = features.copy()
     points = features[['x', 'y', 'r']].values
-    orders_r, orders_i, orders_mag, neighbors, mean, sus = \
-        order_and_neighbors(points[:, :2], np.mean(points[:, 2]) * rad_t)
-    features['order_r'] = orders_r
-    features['order_i'] = orders_i
-    features['order_mag'] = orders_mag
+    orders, neighbors = order_and_neighbors(points[:, :2], np.mean(points[:, 2]) * rad_t)
+    features['order_r'] = np.real(orders).astype('float32')
+    features['order_i'] = np.imag(orders).astype('float32')
     features['neighbors'] = neighbors
-    features['order_mean'] = mean
-    features['order_sus'] = sus
     return features
 
 

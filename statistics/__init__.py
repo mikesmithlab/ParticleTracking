@@ -5,6 +5,7 @@ from itertools import repeat, starmap
 import numpy as np
 from tqdm import tqdm
 import dask.dataframe as dd
+from dask.diagnostics import ProgressBar
 import pandas as pd
 
 from ParticleTracking.statistics import order, voronoi_cells, \
@@ -24,35 +25,16 @@ class PropertyCalculator:
         self.data = datastore
         self.core_name = os.path.splitext(self.data.filename)[0]
 
-    def order_apply(self):
-        self.data.df = self.data.df.groupby('frame').apply(order.order_process)
-
-    def order(self, multiprocessing=False, overwrite=False, threshold=3):
-        if ('real order' in self.data.get_headings()) and (overwrite is False):
-            return 0
-        rad = self.data.get_column('r').mean() * threshold
-        # points = self.data.get_info_all_frames(['x', 'y'])
-        points = self.data.get_info_all_frames_generator(['x', 'y'])
-        if multiprocessing:
-            p = mp.Pool(4)
-            orders, neighbors = zip(
-                *p.starmap(order.order_and_neighbors,
-                           tqdm(zip(points, repeat(rad)),
-                                'Order', total=self.data.num_frames)))
-            p.close()
-            p.join()
-        else:
-            orders, neighbors = zip(
-                *starmap(order.order_and_neighbors,
-                         tqdm(zip(points, repeat(rad)),
-                              'Order', total=self.data.num_frames)))
-        orders = flatten(orders)
-        neighbors = np.array(flatten(neighbors), dtype=np.uint8)
-        orders_r = np.real(orders).astype(np.float32)
-        orders_i = np.imag(orders).astype(np.float32)
-        self.data.add_particle_property('order_r', orders_r)
-        self.data.add_particle_property('order_i', orders_i)
-        self.data.add_particle_property('neighbors', neighbors)
+    def order(self):
+        dask_data = dd.from_pandas(self.data.df, chunksize=10000)
+        meta = dask_data._meta.copy()
+        meta['order_r'] = np.array([], dtype='float32')
+        meta['order_i'] = np.array([], dtype='float32')
+        meta['neighbors'] = np.array([], dtype='uint8')
+        with ProgressBar():
+            self.data.df = (dask_data.groupby('frame')
+                            .apply(order.order_process, meta=meta)
+                            .compute(scheduler='processes'))
         self.data.save()
 
     def density(self, multiprocess=False):
@@ -141,20 +123,6 @@ if __name__ == "__main__":
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
     t = time.time()
-    calc.order_apply_multi()
+    calc.order_dask()
     print(time.time() - t)
-    # t = time.time()
-    # calc.order(multiprocessing=True, overwrite=True)
-    # print(time.time() - t)
-    # # calc.order_apply()
-    # t = time.time()
-    # calc.order_dask()
-    # print(time.time() - t)
-    # t = time.time()
-    # calc.order_apply()
-    # print(time.time() - t)
-    # calc.density()
-    # calc.distance()
-    # print(data.df.head())
-    # print(data.df.dtypes)
 
