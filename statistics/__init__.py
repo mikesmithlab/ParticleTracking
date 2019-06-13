@@ -37,33 +37,18 @@ class PropertyCalculator:
                             .compute(scheduler='processes'))
         self.data.save()
 
-    def density(self, multiprocess=False):
-        points = self.data.get_info_all_frames(['x', 'y', 'r'])
-        boundary = self.data.get_metadata('boundary')
-        if multiprocess:
-            p = mp.Pool(4)
-            densities, shape_factor, edges, density_mean = zip(
-                *p.starmap(voronoi_cells.density,
-                           tqdm(zip(points, repeat(boundary)),
-                                'Density',
-                                total=len(points))))
-            p.close()
-            p.join()
-        else:
-            densities, shape_factor, edges, density_mean = zip(
-                *starmap(voronoi_cells.density,
-                     tqdm(zip(points, repeat(boundary)),
-                          'Density',
-                          total=len(points))))
-        densities = np.float32(flatten(densities))
-        shape_factor = np.float32(flatten(shape_factor))
-        edges = flatten(edges)
-
-        self.data.add_particle_property('density', densities)
-        self.data.add_particle_property('shape_factor', shape_factor)
-        self.data.add_particle_property('on_edge', edges)
-        self.data.add_metadata('density', np.mean(density_mean))
-
+    def density(self):
+        dask_data = dd.from_pandas(self.data.df, chunksize=10000)
+        meta = dask_data._meta.copy()
+        meta['density'] = np.array([], dtype='float32')
+        meta['shape_factor'] = np.array([], dtype='float32')
+        meta['on_edge'] = np.array([], dtype='bool')
+        with ProgressBar():
+            self.data.df = (dask_data.groupby('frame')
+                            .apply(voronoi_cells.density,
+                                   meta=meta,
+                                   boundary=self.data.metadata['boundary'])
+                            .compute(scheduler='processes'))
         self.data.save()
 
     def distance(self, multiprocess=False):
@@ -123,6 +108,7 @@ if __name__ == "__main__":
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
     t = time.time()
-    calc.order_dask()
+    calc.density(multiprocess=True)
+    print(data.df.head())
     print(time.time() - t)
 
