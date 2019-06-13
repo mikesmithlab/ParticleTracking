@@ -9,14 +9,7 @@ from dask.diagnostics import ProgressBar
 import pandas as pd
 
 from ParticleTracking.statistics import order, voronoi_cells, \
-    polygon_distances, correlations, level
-
-"""
-Multiprocessing will only work on linux systems.
-
-Also need to make the following changes to multiprocessing.connection.py module:
-https://github.com/python/cpython/commit/bccacd19fa7b56dcf2fbfab15992b6b94ab6666b
-"""
+    correlations, level, edge_distance
 
 
 class PropertyCalculator:
@@ -51,25 +44,9 @@ class PropertyCalculator:
                             .compute(scheduler='processes'))
         self.data.save()
 
-    def distance(self, multiprocess=False):
-        points = self.data.get_column(['x', 'y'])
-
-        if multiprocess:
-            n = len(points)
-            points_list = [points[:n//4, :], points[n//4:2*n//4, :],
-                           points[2*n//4:3*n//4, :], points[3*n//4:, :]]
-            with mp.Pool(4) as p:
-                distance = p.map(self.distance_process, points_list)
-            distance = flatten(distance)
-        else:
-            distance = self.distance_process(points)
-        distance = np.float32(distance)
-        self.data.add_particle_property('edge_distance', distance)
-
-        self.data.save()
-
-    def distance_process(self, points):
-        return polygon_distances.to_points(self.data.get_metadata('boundary'), points)
+    def distance(self):
+        self.data.df['edge_distance'] = edge_distance.distance(
+            self.data.df[['x', 'y']].values, self.data.metadata['boundary'])
 
     # def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
     #     data = self.data.get_info(
@@ -108,7 +85,7 @@ if __name__ == "__main__":
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
     t = time.time()
-    calc.density(multiprocess=True)
+    calc.distance()
     print(data.df.head())
     print(time.time() - t)
 
