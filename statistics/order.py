@@ -45,11 +45,12 @@ def calculate_angles(vectors):
 def calculate_orders(angles, list_indices, filtered):
     step = np.exp(6j * angles) * filtered
     list_indices -= 1
-    stacked = np.cumsum(np.vstack((step, filtered)), axis=1)[:, list_indices[1:]]
+    stacked = np.cumsum((step, filtered), axis=1)[:, list_indices[1:]]
     stacked[:, 1:] = np.diff(stacked, axis=1)
     neighbors = stacked[1, :]
+    indxs = neighbors != 0
     orders = np.zeros_like(neighbors)
-    orders[neighbors != 0] = stacked[0, neighbors != 0] / neighbors[neighbors != 0]
+    orders[indxs] = stacked[0, indxs] / neighbors[indxs]
     return orders, neighbors
 
 
