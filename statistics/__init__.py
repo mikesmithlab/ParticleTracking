@@ -44,20 +44,15 @@ class PropertyCalculator:
         self.data.df['edge_distance'] = edge_distance.distance(
             self.data.df[['x', 'y']].values, self.data.metadata['boundary'])
 
-    # def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
-    #     data = self.data.get_info(
-    #         frame_no, ['x', 'y', 'r', 'complex order', 'Edge Distance'])
-    #     boundary = self.data.get_boundary(frame_no)
-    #
-    #     r, g, g6 = correlations.corr(data, boundary, r_min, r_max, dr)
-    #     plt.figure()
-    #     plt.plot(r, g)
-    #     plt.show()
-    #
-    #     corr_data = dataframes.CorrData(self.core_name)
-    #     corr_data.add_row(r, frame_no, 'r')
-    #     corr_data.add_row(g, frame_no, 'g')
-    #     corr_data.add_row(g6, frame_no, 'g6')
+    def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
+        boundary = self.data.metadata['boundary']
+
+        r, g, g6 = correlations.corr(self.data.df.loc[frame_no],
+                                     boundary,
+                                     r_min,
+                                     r_max,
+                                     dr)
+        return r, g, g6
 
     def check_level(self):
         x = self.data.get_column('x')
@@ -81,7 +76,7 @@ if __name__ == "__main__":
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
     t = time.time()
-    calc.distance()
+    calc.correlations(10)
     print(data.df.head())
     print(time.time() - t)
 

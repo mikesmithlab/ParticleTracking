@@ -1,43 +1,32 @@
 import scipy.spatial as sp
 import numpy as np
-from numba import jit
 
 
-def corr(data, boundary, r_min, r_max, dr):
-    diameter = np.mean(np.real(data[:, 2])) * 2
+def corr(features, boundary, r_min, r_max, dr):
+    radius = features.r.mean()  # pixels
+    diameter = radius * 2
+    area = calculate_area_from_boundary(boundary)  # pixels squared
+    N = features.x.count()
+    density = N / area  # pixels^-2
 
-    area = calculate_area_from_boundary(boundary) / diameter
-    density = len(data) / area
+    dists = sp.distance.pdist(features[['x', 'y']].values)  # pixels
+    dists = sp.distance.squareform(dists)  # pixels
+    np.fill_diagonal(dists, 0)
 
-    dists = sp.distance.pdist(np.real(data[:, :2])/diameter)
-    dists = sp.distance.squareform(dists)
+    orders = features[['order_r']].values + 1j * features[['order_i']].values
+    order_grid = orders @ np.conj(orders).transpose()
 
-    r_values = np.arange(r_min, r_max, dr)
-    g = np.zeros(len(r_values))
-    g6 = np.zeros(len(r_values))
-    for i, r in enumerate(r_values):
-        # Find indices for points which are greater than (r+dr) from the
-        # boundary.
-        j_indices = np.squeeze(np.argwhere(data[:, 4] > r + dr))
+    r_values = np.arange(r_min, r_max, dr) * radius  # pixels
 
-        # Calculate divisor for each value of r, describing the expected
-        # number of pairs at this separation
-        n = len(j_indices)
-        divisor = 2 * np.pi * r * dr * density * (n - 1)
+    g, bins = np.histogram(dists, bins=r_values)
+    g6, bins = np.histogram(dists, bins=r_values, weights=order_grid)
 
-        # Remove points nearer than (r+dr) from one axis of dists
-        dists_include = dists[j_indices, :]
+    bin_centres = bins[1:] - (bins[1] - bins[0]) / 2
+    divisor = 2 * np.pi * r_values[:-1] * dr * density * (N - 1)  # unitless
 
-        # Count the number of pairs with distances in the bin
-        counted = np.argwhere(abs(dists_include - r - dr / 2) <= dr / 2)
-        g[i] = len(counted) / divisor
-
-        # Multiply and sum pairs of order parameters using vector
-        # dot product
-        order1s = data[counted[:, 0], 3]
-        order2s = data[counted[:, 1], 3]
-        g6[i] = np.abs(np.vdot(order1s, order2s)) / divisor
-    return r_values, g, g6
+    g = g / divisor
+    g6 = g / divisor
+    return bin_centres / diameter, g, g6
 
 
 def calculate_area_from_boundary(boundary):
@@ -49,7 +38,6 @@ def calculate_area_from_boundary(boundary):
     return area
 
 
-@jit
 def calculate_polygon_area(x, y):
     p1 = 0
     p2 = 0
@@ -59,7 +47,7 @@ def calculate_polygon_area(x, y):
     area = 0.5 * abs(p1-p2)
     return area
 
-@jit
+
 def sort_polygon_vertices(points):
     cx = np.mean(points[:, 0])
     cy = np.mean(points[:, 1])
