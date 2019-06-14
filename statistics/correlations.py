@@ -11,7 +11,6 @@ def corr(features, boundary, r_min, r_max, dr):
 
     dists = sp.distance.pdist(features[['x', 'y']].values)  # pixels
     dists = sp.distance.squareform(dists)  # pixels
-    np.fill_diagonal(dists, 0)
 
     orders = features[['order_r']].values + 1j * features[['order_i']].values
     order_grid = orders @ np.conj(orders).transpose()
