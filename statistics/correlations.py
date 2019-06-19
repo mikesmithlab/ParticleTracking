@@ -24,7 +24,7 @@ def corr(features, boundary, r_min, r_max, dr):
     divisor = 2 * np.pi * r_values[:-1] * dr * density * (N - 1)  # unitless
 
     g = g / divisor
-    g6 = g / divisor
+    g6 = g6 / divisor
     return bin_centres / diameter, g, g6
 
 
