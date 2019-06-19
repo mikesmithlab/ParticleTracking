@@ -5,7 +5,7 @@ import numpy as np
 from dask.diagnostics import ProgressBar
 
 from ParticleTracking.statistics import order, voronoi_cells, \
-    correlations, level, edge_distance
+    correlations, level, edge_distance, histograms
 
 
 class PropertyCalculator:
@@ -80,6 +80,10 @@ class PropertyCalculator:
         points = np.vstack((x, y)).transpose()
         boundary = self.data.get_boundary(0)
         level.check_level(points, boundary)
+
+    def histogram(self, frames, column, bins):
+        counts, bins = histograms.histogram(self.data.df, frames, column,
+                                            bins=bins)
 
 
 def flatten(arr):
