@@ -44,7 +44,24 @@ class PropertyCalculator:
         self.data.df['edge_distance'] = edge_distance.distance(
             self.data.df[['x', 'y']].values, self.data.metadata['boundary'])
 
-    def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
+    def correlations(self, frame_no, r_min=1, r_max=20, dr=0.02):
+        """
+        Calculates the positional and orientational correlations for a given
+        frame.
+
+        Parameters
+        ----------
+        frame_no: int
+        r_min: minimum radius
+        r_max: maximum radius
+        dr: bin width
+
+        Returns
+        -------
+        r: radius values in pixels
+        g: positional correlations
+        g6: orientational correlations
+        """
         boundary = self.data.metadata['boundary']
 
         r, g, g6 = correlations.corr(self.data.df.loc[frame_no],

@@ -25,7 +25,7 @@ def corr(features, boundary, r_min, r_max, dr):
 
     g = g / divisor
     g6 = g6 / divisor
-    return bin_centres / diameter, g, g6
+    return bin_centres, g, g6
 
 
 def calculate_area_from_boundary(boundary):
