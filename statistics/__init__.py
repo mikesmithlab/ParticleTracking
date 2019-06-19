@@ -84,7 +84,7 @@ class PropertyCalculator:
     def histogram(self, frames, column, bins):
         counts, bins = histograms.histogram(self.data.df, frames, column,
                                             bins=bins)
-
+        return counts, bins
 
 def flatten(arr):
     arr = list(arr)
