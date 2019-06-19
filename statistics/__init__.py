@@ -54,6 +54,9 @@ class PropertyCalculator:
                                      dr)
         return r, g, g6
 
+    def duty(self):
+        return self.data.df.groupby('frame').first()['Duty']
+
     def check_level(self):
         x = self.data.get_column('x')
         y = self.data.get_column('y')
