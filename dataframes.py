@@ -194,6 +194,7 @@ class DataStore:
             self.df = store.get('df')
             self.metadata = store.get_storer('df').attrs.metadata
         self.num_frames = max(self.df.index.values)+1
+        self.metadata['number_of_frames'] = self.num_frames
 
     def reset_index(self):
         """Move frame index to column"""
