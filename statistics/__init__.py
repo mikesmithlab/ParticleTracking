@@ -14,6 +14,14 @@ class PropertyCalculator:
         self.data = datastore
         self.core_name = os.path.splitext(self.data.filename)[0]
 
+    def count(self):
+        n = self.data.df.x.groupby('frame').count()
+        n_mean = n.mean()
+        n_std = n.std()
+        self.data.metadata['n'] = n_mean
+        self.data.metadata['n_err'] = n_std
+        self.data.save()
+
     def order(self):
         dask_data = dd.from_pandas(self.data.df, chunksize=10000)
         meta = dask_data._meta.copy()
