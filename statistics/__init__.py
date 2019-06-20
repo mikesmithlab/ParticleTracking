@@ -86,11 +86,6 @@ class PropertyCalculator:
                                             bins=bins)
         return counts, bins
 
-def flatten(arr):
-    arr = list(arr)
-    arr = [a for sublist in arr for a in sublist]
-    return arr
-
 
 if __name__ == "__main__":
     from Generic import filedialogs
