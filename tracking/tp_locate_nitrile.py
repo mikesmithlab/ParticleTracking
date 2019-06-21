@@ -1,9 +1,10 @@
-from Generic import images, video, audio
-from ParticleTracking.tracking import ParticleTracker
-from ParticleTracking import configurations, preprocessing, dataframes, statistics
 import numpy as np
-from numba import jit
 import trackpy as tp
+
+from Generic import images, video
+from ParticleTracking import configurations, preprocessing, dataframes, \
+    statistics
+from ParticleTracking.tracking import ParticleTracker
 
 
 class TrackpyPT(ParticleTracker):
@@ -44,9 +45,6 @@ class TrackpyPT(ParticleTracker):
 
     def _link_trajectories(self):
         pass
-
-
-
 
 
 def filter_near_edge(feat, boundary, threshold):

@@ -17,6 +17,7 @@ class DataStore:
     metadata : dict
         Dictionary containing any metadata values.
     """
+
     def __init__(self, filename, load=True):
         self.df = pd.DataFrame()
         self.metadata = {}
@@ -212,7 +213,7 @@ class DataStore:
         """Move frame column to index"""
         if 'frame' in self.df.columns.values.tolist():
             if self.df.index.name == 'frame':
-               self.df = self.df.drop('frame', 1)
+                self.df = self.df.drop('frame', 1)
             else:
                 self.df = self.df.set_index('frame')
 
@@ -222,7 +223,7 @@ class DataStore:
         _, c = np.unique(f, return_counts=True)
         indices = np.insert(np.cumsum(c), 0, 0)
         info = [arr[indices[i]:indices[i + 1], 1:]
-             for i in range(len(c))]
+                for i in range(len(c))]
         return info
 
 
@@ -230,7 +231,6 @@ def load_metadata(filename):
     with pd.HDFStore(filename) as store:
         metadata = store.get_storer('df').attrs.metadata
     return metadata
-
 
 
 def concatenate_datastore(datastore_list, new_filename):
@@ -241,12 +241,9 @@ def concatenate_datastore(datastore_list, new_filename):
     DS_out.save()
 
 
-
-
-
-
 if __name__ == "__main__":
     from Generic import filedialogs
+
     file = filedialogs.load_filename()
     DS = DataStore(file)
     print(DS.df.head())
