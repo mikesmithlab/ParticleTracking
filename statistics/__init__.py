@@ -20,7 +20,6 @@ class PropertyCalculator:
         n_std = n.std()
         self.data.metadata['n'] = n_mean
         self.data.metadata['n_err'] = n_std
-        self.data.save()
 
     def duty_cycle(self):
         vid_name = self.data.metadata['video_filename']
