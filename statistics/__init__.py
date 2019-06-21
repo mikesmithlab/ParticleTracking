@@ -5,7 +5,7 @@ import numpy as np
 from dask.diagnostics import ProgressBar
 
 from ParticleTracking.statistics import order, voronoi_cells, \
-    correlations, level, edge_distance, histograms
+    correlations, level, edge_distance, histograms, duty
 
 
 class PropertyCalculator:
@@ -21,6 +21,12 @@ class PropertyCalculator:
         self.data.metadata['n'] = n_mean
         self.data.metadata['n_err'] = n_std
         self.data.save()
+
+    def duty_cycle(self):
+        vid_name = self.data.metadata['video_filename']
+        num_frames = self.data.metadata['num_frames']
+        duty_cycle_vals = duty.duty(vid_name, num_frames)
+        self.data.add_frame_property('Duty', duty_cycle_vals)
 
     def order(self):
         dask_data = dd.from_pandas(self.data.df, chunksize=10000)
