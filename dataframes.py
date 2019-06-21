@@ -30,7 +30,6 @@ class DataStore:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.save()
-        del self.df, self.metadata
 
     def set_dtypes(self, data_dict):
         for key, value in data_dict.items():
@@ -98,23 +97,27 @@ class DataStore:
             Titles of each D properties for dataframe columns
         """
         if isinstance(tracked_data, pd.DataFrame):
-            tracked_data['frame'] = frame
-            self.df = self.df.append(tracked_data.set_index('frame'))
+            self._add_tracking_dataframe(frame, tracked_data)
         else:
-            if isinstance(tracked_data, np.ndarray):
-                col_names = ['x', 'y', 'r'] if col_names is None else col_names
-                data_dict = {name: tracked_data[:, i]
-                             for i, name in enumerate(col_names)}
+            self._add_tracking_array(frame, tracked_data, col_names)
 
-            elif isinstance(tracked_data, list):
-                data_dict = {name: tracked_data[i]
-                             for i, name in enumerate(col_names)}
+    def _add_tracking_dataframe(self, frame, data):
+        data['frame'] = frame
+        self.df = self.df.append(data.set_index('frame'))
 
-            else:
-                print('type wrong')
-            data_dict['frame'] = frame
-            new_df = pd.DataFrame(data_dict).set_index('frame')
-            self.df = self.df.append(new_df)
+    def _add_tracking_array(self, frame, data, col_names):
+        if isinstance(data, np.ndarray):
+            col_names = ['x', 'y', 'r'] if col_names is None else col_names
+            data_dict = {name: data[:, i] for i, name in enumerate(col_names)}
+
+        elif isinstance(data, list):
+            data_dict = {name: data[i] for i, name in enumerate(col_names)}
+
+        else:
+            print('type wrong')
+        data_dict['frame'] = frame
+        new_df = pd.DataFrame(data_dict).set_index('frame')
+        self.df = self.df.append(new_df)
 
     def append_store(self, store):
         """
@@ -129,16 +132,6 @@ class DataStore:
 
     def get_column(self, name):
         return self.df[name].values
-
-    def get_headings(self):
-        """
-        Get dataframe headings
-
-        Returns
-        -------
-        list of dataframe column titles
-        """
-        return self.df.columns.values.tolist()
 
     @property
     def headings(self):
@@ -156,38 +149,6 @@ class DataStore:
             Titles of dataframe columns to be returned
         """
         return self.df.loc[frame, headings].values
-
-    def get_info_all_frames(self, headings):
-        """
-        Get info from all frames stacked into list of lists.
-
-        Parameters
-        ----------
-        headings : list of str
-            Dataframe columns
-        """
-        all_headings = ['frame'] + headings
-        data = self.df.reset_index()[all_headings].values
-        info = self.stack_info(data)
-        return info
-
-    def get_info_all_frames_generator(self, headings):
-        for f in range(self.num_frames):
-            yield self.df.loc[f, headings].values
-
-    def get_metadata(self, name):
-        """
-        Return item from the metadata dictionary
-        Parameters
-        ----------
-        name : str
-            metadata dictionary key
-
-        Returns
-        -------
-        dictionary item for given key
-        """
-        return self.metadata[name]
 
     def load(self):
         """Load HDFStore"""
@@ -216,15 +177,6 @@ class DataStore:
                 self.df = self.df.drop('frame', 1)
             else:
                 self.df = self.df.set_index('frame')
-
-    @staticmethod
-    def stack_info(arr):
-        f = arr[:, 0]
-        _, c = np.unique(f, return_counts=True)
-        indices = np.insert(np.cumsum(c), 0, 0)
-        info = [arr[indices[i]:indices[i + 1], 1:]
-                for i in range(len(c))]
-        return info
 
 
 def load_metadata(filename):

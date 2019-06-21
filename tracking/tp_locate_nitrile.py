@@ -41,7 +41,6 @@ class TrackpyPT(ParticleTracker):
             calc.duty_cycle()
             data.set_dtypes({'x': np.float32, 'y': np.float32, 'r': np.uint8})
             data.df = filter_near_edge(data.df, data.metadata['boundary'], 12)
-            data.save()
 
     def _link_trajectories(self):
         pass
