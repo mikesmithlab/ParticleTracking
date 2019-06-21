@@ -17,14 +17,20 @@ class PropertyCalculator:
     def count(self):
         n = self.data.df.x.groupby('frame').count()
         n_mean = n.mean()
-        n_std = n.std()
-        self.data.metadata['n'] = n_mean
-        self.data.metadata['n_err'] = n_std
+        self.data.metadata['number_of_particles'] = round(n_mean)
 
     def duty_cycle(self):
         vid_name = self.data.metadata['video_filename']
-        num_frames = self.data.metadata['num_frames']
+        num_frames = self.data.metadata['number_of_frames']
         duty_cycle_vals = duty.duty(vid_name, num_frames)
+        diff = duty_cycle_vals[-1] = duty_cycle_vals[0]
+        if abs(diff) < 200:
+            direc = 'both'
+        elif diff > 200:
+            direc = 'up'
+        else:
+            direc = 'down'
+        self.data.metadata['direc'] = direc
         self.data.add_frame_property('Duty', duty_cycle_vals)
 
     def order(self):

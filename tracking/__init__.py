@@ -133,7 +133,8 @@ class ParticleTracker:
         data_name = (str(group_number) + '.hdf5'
                      if self.multiprocess else self.data_filename)
         with dataframes.DataStore(data_name, load=False) as data:
-            data.add_metadata('num_frames', self.num_frames)
+            data.add_metadata('number_of_frames', self.num_frames)
+            data.add_metadata('video_filename', self.input_filename)
             start = self.frame_div * group_number
             self.cap = video.ReadVideo(self.input_filename)
             self.cap.set_frame(start)

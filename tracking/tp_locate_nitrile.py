@@ -1,6 +1,6 @@
 from Generic import images, video, audio
 from ParticleTracking.tracking import ParticleTracker
-from ParticleTracking import configurations, preprocessing, dataframes
+from ParticleTracking import configurations, preprocessing, dataframes, statistics
 import numpy as np
 from numba import jit
 import trackpy as tp
@@ -34,25 +34,19 @@ class TrackpyPT(ParticleTracker):
             return new_frame, annotated_frame
 
     def extra_steps(self):
-        duty_cycle = read_audio_file(self.input_filename, self.num_frames)
-        duty_cycle = np.uint16(duty_cycle)
         with dataframes.DataStore(self.data_filename) as data:
+            calc = statistics.PropertyCalculator(data)
+            calc.count()
+            calc.duty_cycle()
             data.set_dtypes({'x': np.float32, 'y': np.float32, 'r': np.uint8})
             data.df = filter_near_edge(data.df, data.metadata['boundary'], 12)
-            data.add_frame_property('Duty', duty_cycle)
             data.save()
 
     def _link_trajectories(self):
         pass
 
 
-def read_audio_file(file, frames):
-    wav = audio.extract_wav(file)
-    wav_l = wav[:, 0]
-    # wav = audio.digitise(wav)
-    freqs = audio.frame_frequency(wav_l, frames, 48000)
-    d = (freqs - 1000) / 15
-    return d
+
 
 
 def filter_near_edge(feat, boundary, threshold):
@@ -80,5 +74,5 @@ def filter_near_edge(feat, boundary, threshold):
 if __name__ == '__main__':
     file = "/home/ppxjd3/Videos/short.MP4"
 
-    jpt = TrackpyPT(file, tracking=True, multiprocess=False)
+    jpt = TrackpyPT(file, tracking=True, multiprocess=True)
     jpt.track()
