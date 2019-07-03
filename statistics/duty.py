@@ -18,7 +18,7 @@ def read_audio_file(file, frames):
 
 
 def frame_frequency(wave, frames, audio_rate):
-    waves = np.split(wave, frames)
+    waves = np.array_split(wave, frames)
     freqs = np.array(
         [fourier_transform_peak(wav, 1 / audio_rate) for wav in waves])
     return freqs
