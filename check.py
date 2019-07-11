@@ -8,7 +8,7 @@ from ParticleTracking import dataframes
 
 def tracking(filename):
     core_name = os.path.splitext(filename)[0]
-    vid_name = filename
+    vid_name = core_name + '.MP4'
     data_name = core_name + '.hdf5'
     out_name = core_name + '_check.png'
     data = dataframes.DataStore(data_name)
