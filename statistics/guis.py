@@ -1,6 +1,10 @@
-from Generic import video, images, filedialogs
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.widgets import Slider
+
+from Generic import images
 from ParticleTracking import statistics, dataframes
-import os
+
 
 class OrderGui(images.ParamGui):
 
@@ -22,10 +26,40 @@ class OrderGui(images.ParamGui):
                 images.draw_circles(
                     self.im0, features[['x', 'y', 'r', 'order_mag']].values)))
 
-if __name__ == "__main__":
-    file = filedialogs.load_filename()
-    vid_name = os.path.splitext(file)[0] + '.MP4'
-    data_name = os.path.splitext(file)[0] + '.hdf5'
-    vid = video.ReadVideo(vid_name)
-    data = dataframes.DataStore(data_name)
-    OrderGui(vid, data)
+
+class OrderHistogramViewer:
+
+    def __init__(self, file):
+        self.data = dataframes.DataStore(file)
+
+        self.calc = statistics.PropertyCalculator(self.data)
+        self.duty = self.calc.duty()
+        self.duty_unique = np.sort(np.unique(self.duty))
+        self.setup_figure()
+        plt.show()
+
+    def setup_figure(self):
+        self.fig, self.ax = plt.subplots()
+        self.fig.subplots_adjust(bottom=0.25)
+        ax = self.fig.add_axes([0.1, 0.1, 0.8, 0.05])
+        self.duty_slider = Slider(ax, 'Duty', 0, 1000, valinit=0, valstep=1)
+        self.duty_slider.on_changed(self.update)
+        freq, bins = self.get_data(self.duty_unique[0])
+        self.plot, = self.ax.plot(bins, freq)
+
+    def get_data(self, val):
+        data = self.data.df.loc[
+            self.data.df.Duty == val, 'shape_factor'].values
+        # data = np.sum(data, axis=1)
+        # data = np.abs(data)
+        freq, bins = np.histogram(data, bins=100,
+                                  density=True)
+        return freq, bins[:-1]
+
+    def update(self, val):
+        val = self.duty_slider.val
+        if val in self.duty_unique:
+            freq, bins = self.get_data(val)
+            self.plot.set_ydata(freq)
+            self.ax.set_title(str(val))
+            self.fig.canvas.draw_idle()
