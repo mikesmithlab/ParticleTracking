@@ -90,7 +90,16 @@ class PropertyCalculator:
                                      dr)
         return r, g, g6
 
+    def correlations_duty(self, duty, r_min=1, r_max=20, dr=0.02):
+        frames = np.unique(
+            self.data.df.loc[self.data.df.Duty == duty].index.values)
+        r, g, g6 = correlations.corr_multiple_frames(
+            self.data.df.loc[frames], self.data.metadata['boundary'],
+            r_min, r_max, dr)
+        return r, g, g6
+
     def duty(self):
+        """Return the duty cycle of each frame"""
         return self.data.df.groupby('frame').first()['Duty']
 
     def check_level(self):
@@ -107,14 +116,10 @@ class PropertyCalculator:
 
 
 if __name__ == "__main__":
-    from Generic import filedialogs
     from ParticleTracking import dataframes, statistics
-    import time
-    file = filedialogs.load_filename()
+
+    file = "/media/data/Data/July2019/RampsN29/15790009.hdf5"
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
-    t = time.time()
-    calc.correlations(10)
-    print(data.df.head())
-    print(time.time() - t)
-
+    d = calc.duty()[0]
+    calc.correlations_duty(d)
