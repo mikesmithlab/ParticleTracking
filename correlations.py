@@ -1,26 +1,35 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.widgets import Slider, RadioButtons
+import seaborn as sns
+from matplotlib.widgets import Slider, RadioButtons, Button
 from tqdm import tqdm
 
 from Generic import filedialogs
 from ParticleTracking import statistics, dataframes
 
+sns.set()
 
-def calculate_corr_data(file=None):
+
+def calculate_corr_data(file=None, rmin=1, rmax=20, dr=0.2):
     if file is None:
         file = filedialogs.load_filename()
-    data = dataframes.DataStore(file)
+    new_file = file[:-5] + '_corr.hdf5'
+    if not os.path.exists(new_file):
+        data = dataframes.DataStore(file)
 
-    calc = statistics.PropertyCalculator(data)
-    CD = CorrData(file[:-5] + '_corr.hdf5')
-    duty = calc.duty()
-    duty = np.unique(duty)
-    for d in tqdm(duty):
-        r, g, g6 = calc.correlations_duty(d)
-        CD.add_data(d, r, g, g6)
-    CD.save()
+        calc = statistics.PropertyCalculator(data)
+        CD = CorrData(new_file)
+        duty = calc.duty()
+        duty = np.unique(duty)
+        for d in tqdm(duty):
+            r, g, g6 = calc.correlations_duty(d, rmin, rmax, dr)
+            CD.add_data(d, r, g, g6)
+        CD.save()
+    else:
+        print('file already exists')
 
 
 class CorrData:
@@ -43,40 +52,50 @@ def load_corr_data(filename):
 
 class CorrelationViewer:
 
-    def __init__(self, file=None):
-        if file is None:
-            file = filedialogs.load_filename()
-        self.data = load_corr_data(file)
-        self.duty = self.data.d.values
+    def __init__(self):
+        self.open(None)
         self.setup_figure()
         print('data loaded')
         plt.show()
 
+    def open(self, event):
+        self.file = filedialogs.load_filename()
+        self.data = load_corr_data(self.file)
+        self.duty = self.data.d.values
+
     def setup_figure(self):
-        fig = plt.figure()
-        gs = fig.add_gridspec(4, 3, height_ratios=(4, 4, 1, 1),
+        self.fig = plt.figure()
+        gs = self.fig.add_gridspec(5, 3, height_ratios=(4, 4, 1, 1, 1),
                               width_ratios=(5, 5, 1), wspace=0.3, hspace=0.3)
-        self.g_ax = fig.add_subplot(gs[:2, 0])
-        self.g6_ax = fig.add_subplot(gs[:2, 1])
-        duty_ax = fig.add_subplot(gs[2, :2])
+        self.g_ax = self.fig.add_subplot(gs[:2, 0])
+        self.g6_ax = self.fig.add_subplot(gs[:2, 1])
+        duty_ax = self.fig.add_subplot(gs[2, :2])
         self.duty_slider = Slider(duty_ax, 'Duty', 400, 1000, valinit=0,
                                   valstep=1)
-        self.duty_slider.on_changed(self.update)
+        self.duty_slider.on_changed(self.get_vals)
         #
-        g_fit_ax = fig.add_subplot(gs[3, 0])
+        g_fit_ax = self.fig.add_subplot(gs[3, 0])
         self.g_fit_slider = Slider(g_fit_ax, 'g_fit_offset', -1, 2, valinit=0,
                                    valstep=0.01)
-        self.g_fit_slider.on_changed(self.update)
+        self.g_fit_slider.on_changed(self.get_vals)
         #
-        g6_fit_ax = fig.add_subplot(gs[3, 1])
+        g6_fit_ax = self.fig.add_subplot(gs[3, 1])
         self.g6_fit_slider = Slider(g6_fit_ax, 'g6 fit offset', -1, 5,
                                     valinit=0, valstep=0.01)
-        self.g6_fit_slider.on_changed(self.update)
-        #
-        # radio_ax = self.fig.add_axes([0.8, 0.8, 0.2, 0.2])
-        radio_ax = fig.add_subplot(gs[0, 2])
+        self.g6_fit_slider.on_changed(self.get_vals)
+
+        radio_ax = self.fig.add_subplot(gs[0, 2])
         self.radio = RadioButtons(radio_ax, ('xy', 'logx', 'logy', 'loglog'))
-        self.radio.on_clicked(self.update)
+        self.radio.on_clicked(self.get_vals)
+
+        open_ax = self.fig.add_subplot(gs[1, 2])
+        self.open_button = Button(open_ax, 'Open')
+        self.open_button.on_clicked(self.open)
+
+        g6_power_ax = self.fig.add_subplot(gs[4, 1])
+        self.g6_power_slider = Slider(g6_power_ax, 'g6 power (1/)', 3, 5,
+                                      valinit=4, valstep=0.1)
+        self.g6_power_slider.on_changed(self.get_vals)
 
         r, g, g6 = self.get_data(self.duty[0])
         self.plot_g, = self.g_ax.plot(r, g - 1)
@@ -94,10 +113,11 @@ class CorrelationViewer:
         r, g, g6 = data.T
         return r[0], g[0], g6[0]
 
-    def update(self, val):
+    def get_vals(self, val):
         duty_val = self.duty_slider.val
         g_fit_val = self.g_fit_slider.val
         g6_fit_val = self.g6_fit_slider.val
+        g6_power_val = self.g6_power_slider.val
         radio_label = self.radio.value_selected
         plot_dict = {'xy': ['linear', 'linear'], 'logx': ['log', 'linear'],
                      'logy': ['linear', 'log'], 'loglog': ['log', 'log']}
@@ -111,10 +131,10 @@ class CorrelationViewer:
             self.plot_g.set_ydata(g - 1)
             self.plot_g6.set_ydata(g6 / g)
             self.plot_g_line.set_ydata(r ** (-1 / 3) + g_fit_val)
-            self.plot_g6_line.set_ydata(r ** (-1 / 4) + g6_fit_val)
-            self.ax[0].set_title(str(duty_val))
+            self.plot_g6_line.set_ydata(r ** (-1 / g6_power_val) + g6_fit_val)
             self.fig.canvas.draw_idle()
 
 
 if __name__ == "__main__":
-    CorrelationViewer("/media/data/Data/July2019/RampsN29/15800007_corr.hdf5")
+    # calculate_corr_data()
+    CorrelationViewer()
