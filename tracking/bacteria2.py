@@ -34,7 +34,7 @@ class Bacteria(ParticleTracker):
             If true performs tracking on multiple cores
         """
         self.tracking = tracking
-        self.parameters = configurations.BACTERIA_PARAMETERS
+        self.parameters = configurations.BACTERIA2_PARAMETERS
         self.colors = self.parameters['colors']
         self.ip = preprocessing.Preprocessor(self.parameters)
         self.input_filename = filename
