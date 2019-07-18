@@ -1,19 +1,11 @@
-import multiprocessing as mp
 import os
-from itertools import repeat, starmap
 
+import dask.dataframe as dd
 import numpy as np
-from tqdm import tqdm
+from dask.diagnostics import ProgressBar
 
 from ParticleTracking.statistics import order, voronoi_cells, \
-    polygon_distances, correlations, level
-
-"""
-Multiprocessing will only work on linux systems.
-
-Also need to make the following changes to multiprocessing.connection.py module:
-https://github.com/python/cpython/commit/bccacd19fa7b56dcf2fbfab15992b6b94ab6666b
-"""
+    correlations, level, edge_distance, histograms, duty
 
 
 class PropertyCalculator:
@@ -22,105 +14,93 @@ class PropertyCalculator:
         self.data = datastore
         self.core_name = os.path.splitext(self.data.filename)[0]
 
-    def order(self, multiprocessing=False, overwrite=False):
-        if ('real order' in self.data.get_headings()) and (overwrite is False):
-            return 0
-        rad = self.data.get_column('r').mean() * 4
-        # points = self.data.get_info_all_frames(['x', 'y'])
-        points = self.data.get_info_all_frames_generator(['x', 'y'])
-        print('points got')
-        if multiprocessing:
-            p = mp.Pool(4)
-            orders_r, orders_i, orders_mag, neighbors, mean, sus = zip(
-                *p.starmap(order.order_and_neighbors,
-                           tqdm(zip(points, repeat(rad)),
-                                'Order', total=self.data.num_frames)))
-            p.close()
-            p.join()
+    def count(self):
+        n = self.data.df.x.groupby('frame').count()
+        n_mean = n.mean()
+        self.data.metadata['number_of_particles'] = round(n_mean)
+
+    def duty_cycle(self):
+        vid_name = self.data.metadata['video_filename']
+        num_frames = self.data.metadata['number_of_frames']
+        duty_cycle_vals = duty.duty(vid_name, num_frames)
+        diff = duty_cycle_vals[-1] = duty_cycle_vals[0]
+        if abs(diff) < 200:
+            direc = 'both'
+        elif diff > 200:
+            direc = 'up'
         else:
-            orders_r, orders_i, orders_mag, neighbors, mean, sus = zip(
-                *starmap(order.order_and_neighbors,
-                         tqdm(zip(points, repeat(rad)),
-                              'Order', total=self.data.num_frames)))
-        orders_r = np.float32(flatten(orders_r))
-        orders_i = np.float32(flatten(orders_i))
-        orders_mag = np.float32(flatten(orders_mag))
-        neighbors = np.uint8(flatten(neighbors))
-        mean = np.float32(mean)
-        sus = np.float32(sus)
+            direc = 'down'
+        self.data.metadata['direc'] = direc
+        self.data.add_frame_property('Duty', duty_cycle_vals)
 
-        self.data.add_particle_property('order_r', orders_r)
-        self.data.add_particle_property('order_i', orders_i)
-        self.data.add_particle_property('order_mag', orders_mag)
-        self.data.add_particle_property('neighbors', neighbors)
-        self.data.add_frame_property('order_mean', mean)
-        self.data.add_frame_property('order_sus', sus)
-
+    def order(self):
+        dask_data = dd.from_pandas(self.data.df, chunksize=10000)
+        meta = dask_data._meta.copy()
+        meta['order_r'] = np.array([], dtype='float32')
+        meta['order_i'] = np.array([], dtype='float32')
+        meta['neighbors'] = np.array([], dtype='uint8')
+        with ProgressBar():
+            self.data.df = (dask_data.groupby('frame')
+                            .apply(order.order_process, meta=meta)
+                            .compute(scheduler='processes'))
         self.data.save()
 
-    def density(self, multiprocess=False):
-        points = self.data.get_info_all_frames(['x', 'y', 'r'])
-        boundary = self.data.get_metadata('boundary')
-        if multiprocess:
-            p = mp.Pool(4)
-            densities, shape_factor, edges, density_mean = zip(
-                *p.starmap(voronoi_cells.density,
-                           tqdm(zip(points, repeat(boundary)),
-                                'Density',
-                                total=len(points))))
-            p.close()
-            p.join()
-        else:
-            densities, shape_factor, edges, density_mean = zip(
-                *starmap(voronoi_cells.density,
-                     tqdm(zip(points, repeat(boundary)),
-                          'Density',
-                          total=len(points))))
-        densities = np.float32(flatten(densities))
-        shape_factor = np.float32(flatten(shape_factor))
-        edges = flatten(edges)
-
-        self.data.add_particle_property('density', densities)
-        self.data.add_particle_property('shape_factor', shape_factor)
-        self.data.add_particle_property('on_edge', edges)
-        self.data.add_metadata('density', np.mean(density_mean))
-
+    def density(self):
+        dask_data = dd.from_pandas(self.data.df, chunksize=10000)
+        meta = dask_data._meta.copy()
+        meta['density'] = np.array([], dtype='float32')
+        meta['shape_factor'] = np.array([], dtype='float32')
+        meta['on_edge'] = np.array([], dtype='bool')
+        with ProgressBar():
+            self.data.df = (dask_data.groupby('frame')
+                            .apply(voronoi_cells.density,
+                                   meta=meta,
+                                   boundary=self.data.metadata['boundary'])
+                            .compute(scheduler='processes'))
         self.data.save()
 
-    def distance(self, multiprocess=False):
-        points = self.data.get_column(['x', 'y'])
+    def distance(self):
+        self.data.df['edge_distance'] = edge_distance.distance(
+            self.data.df[['x', 'y']].values, self.data.metadata['boundary'])
 
-        if multiprocess:
-            n = len(points)
-            points_list = [points[:n//4, :], points[n//4:2*n//4, :],
-                           points[2*n//4:3*n//4, :], points[3*n//4:, :]]
-            with mp.Pool(4) as p:
-                distance = p.map(self.distance_process, points_list)
-            distance = flatten(distance)
-        else:
-            distance = self.distance_process(points)
-        distance = np.float32(distance)
-        self.data.add_particle_property('edge_distance', distance)
+    def correlations(self, frame_no, r_min=1, r_max=20, dr=0.02):
+        """
+        Calculates the positional and orientational correlations for a given
+        frame.
 
-        self.data.save()
+        Parameters
+        ----------
+        frame_no: int
+        r_min: minimum radius
+        r_max: maximum radius
+        dr: bin width
 
-    def distance_process(self, points):
-        return polygon_distances.to_points(self.data.get_metadata('boundary'), points)
+        Returns
+        -------
+        r: radius values in pixels
+        g: positional correlations
+        g6: orientational correlations
+        """
+        boundary = self.data.metadata['boundary']
 
-    # def correlations(self, frame_no, r_min=1, r_max=10, dr=0.02):
-    #     data = self.data.get_info(
-    #         frame_no, ['x', 'y', 'r', 'complex order', 'Edge Distance'])
-    #     boundary = self.data.get_boundary(frame_no)
-    #
-    #     r, g, g6 = correlations.corr(data, boundary, r_min, r_max, dr)
-    #     plt.figure()
-    #     plt.plot(r, g)
-    #     plt.show()
-    #
-    #     corr_data = dataframes.CorrData(self.core_name)
-    #     corr_data.add_row(r, frame_no, 'r')
-    #     corr_data.add_row(g, frame_no, 'g')
-    #     corr_data.add_row(g6, frame_no, 'g6')
+        r, g, g6 = correlations.corr(self.data.df.loc[frame_no],
+                                     boundary,
+                                     r_min,
+                                     r_max,
+                                     dr)
+        return r, g, g6
+
+    def correlations_duty(self, duty, r_min=1, r_max=20, dr=0.02):
+        frames = np.unique(
+            self.data.df.loc[self.data.df.Duty == duty].index.values)
+        r, g, g6 = correlations.corr_multiple_frames(
+            self.data.df.loc[frames], self.data.metadata['boundary'],
+            r_min, r_max, dr)
+        return r, g, g6
+
+    def duty(self):
+        """Return the duty cycle of each frame"""
+        return self.data.df.groupby('frame').first()['Duty']
 
     def check_level(self):
         x = self.data.get_column('x')
@@ -129,22 +109,17 @@ class PropertyCalculator:
         boundary = self.data.get_boundary(0)
         level.check_level(points, boundary)
 
-
-def flatten(arr):
-    arr = list(arr)
-    arr = [a for sublist in arr for a in sublist]
-    return arr
+    def histogram(self, frames, column, bins):
+        counts, bins = histograms.histogram(self.data.df, frames, column,
+                                            bins=bins)
+        return counts, bins
 
 
 if __name__ == "__main__":
-    from Generic import filedialogs
     from ParticleTracking import dataframes, statistics
-    file = filedialogs.load_filename()
+
+    file = "/media/data/Data/July2019/RampsN29/15790009.hdf5"
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
-    calc.order(multiprocessing=True, overwrite=True)
-    # calc.density()
-    # calc.distance()
-    print(data.df.head())
-    # print(data.df.dtypes)
-
+    d = calc.duty()[0]
+    calc.correlations_duty(d)

@@ -8,12 +8,14 @@ import pyclipper
 import scipy.spatial as sp
 
 
-def density(particles, boundary):
-    voronoi_cell_area, shape_factor, on_edge = calculate(particles, boundary)
-    particle_area = (particles[:, 2].mean() ** 2 * pi)
-    density = particle_area / voronoi_cell_area
-    mean = np.mean(density)
-    return density, shape_factor, on_edge, mean
+def density(features, boundary):
+    voronoi_cell_area, shape_factor, on_edge = calculate(features[['x', 'y']].values, boundary)
+    particle_area = (features.r.mean() ** 2 * pi)
+    features['density'] = (particle_area / voronoi_cell_area).astype('float32')
+    features['shape_factor'] = shape_factor.astype('float32')
+    features['on_edge'] = np.array(on_edge, dtype='bool')
+    return features
+
 
 def calculate(particles, boundary):
     # boundary = Polygon(boundary)

@@ -32,12 +32,16 @@ class TrackingGui(ParamGui):
         self._display_img(new_frame, annotated_frame)
 
 
-
-
 if __name__ == "__main__":
     from ParticleTracking.tracking.example_child import ExampleChild
+    from ParticleTracking.tracking.james_nitrile import JamesPT
     from Generic import filedialogs
 
     file = filedialogs.load_filename('Load a video')
-    tracker = ExampleChild(file)
+    choice = input('Enter 1 for example, 2 for James')
+    if int(choice) == 1:
+        tracker = ExampleChild(file)
+    else:
+        tracker = JamesPT(file)
     gui = TrackingGui(tracker)
+

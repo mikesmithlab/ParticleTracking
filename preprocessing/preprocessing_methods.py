@@ -1,8 +1,11 @@
 from Generic import images
 import cv2
+import cv2
 import numpy as np
 
-
+def distance(frame, parameters):
+    dist = cv2.distanceTransform(frame, cv2.DIST_L2, 5)
+    return dist
 
 def grayscale(frame, parameters):
     return images.bgr_2_grayscale(frame)

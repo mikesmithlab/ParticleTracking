@@ -1,43 +1,63 @@
-import scipy.spatial as sp
 import numpy as np
-from numba import jit
+import scipy.spatial as sp
 
 
-def corr(data, boundary, r_min, r_max, dr):
-    diameter = np.mean(np.real(data[:, 2])) * 2
+def corr(features, boundary, r_min, r_max, dr):
+    radius = features.r.mean()  # pixels
+    area = calculate_area_from_boundary(boundary)  # pixels squared
+    N = features.x.count()
+    density = N / area  # pixels^-2
 
-    area = calculate_area_from_boundary(boundary) / diameter
-    density = len(data) / area
+    dists = sp.distance.pdist(features[['x', 'y']].values)  # pixels
+    dists = sp.distance.squareform(dists)  # pixels
 
-    dists = sp.distance.pdist(np.real(data[:, :2])/diameter)
-    dists = sp.distance.squareform(dists)
+    orders = features[['order_r']].values + 1j * features[['order_i']].values
+    order_grid = orders @ np.conj(orders).transpose()
 
-    r_values = np.arange(r_min, r_max, dr)
-    g = np.zeros(len(r_values))
-    g6 = np.zeros(len(r_values))
-    for i, r in enumerate(r_values):
-        # Find indices for points which are greater than (r+dr) from the
-        # boundary.
-        j_indices = np.squeeze(np.argwhere(data[:, 4] > r + dr))
+    r_values = np.arange(r_min, r_max, dr) * radius  # pixels
 
-        # Calculate divisor for each value of r, describing the expected
-        # number of pairs at this separation
-        n = len(j_indices)
-        divisor = 2 * np.pi * r * dr * density * (n - 1)
+    g, bins = np.histogram(dists, bins=r_values)
+    g6, bins = np.histogram(dists, bins=r_values, weights=order_grid)
 
-        # Remove points nearer than (r+dr) from one axis of dists
-        dists_include = dists[j_indices, :]
+    bin_centres = bins[1:] - (bins[1] - bins[0]) / 2
+    divisor = 2 * np.pi * r_values[:-1] * dr * density * (N - 1)  # unitless
 
-        # Count the number of pairs with distances in the bin
-        counted = np.argwhere(abs(dists_include - r - dr / 2) <= dr / 2)
-        g[i] = len(counted) / divisor
+    g = g / divisor
+    g6 = g6 / divisor
+    return bin_centres, g, g6
 
-        # Multiply and sum pairs of order parameters using vector
-        # dot product
-        order1s = data[counted[:, 0], 3]
-        order2s = data[counted[:, 1], 3]
-        g6[i] = np.abs(np.vdot(order1s, order2s)) / divisor
-    return r_values, g, g6
+
+def corr_multiple_frames(features, boundary, r_min, r_max, dr):
+    area = calculate_area_from_boundary(boundary)
+    radius = features.r.mean()
+    N = round(features.groupby('frame').x.count().mean())
+    density = N / area
+
+    frames_in_features = np.unique(features.index.values)
+
+    dists_all = []
+    order_all = []
+    for frame in frames_in_features:
+        features_frame = features.loc[frame]
+        dists = sp.distance.pdist(features_frame[['x', 'y']].values)
+        dists = sp.distance.squareform(dists)
+        orders = features_frame[['order_r']].values + 1j * features_frame[
+            ['order_i']].values
+        order_grid = orders @ np.conj(orders).transpose()
+        dists_all.append(dists)
+        order_all.append(order_grid)
+
+    r_values = np.arange(r_min, r_max, dr) * radius
+    divisor = 2 * np.pi * r_values[:-1] * dr * density * (N - 1) * len(
+        frames_in_features)
+    g, bins = np.histogram(dists, bins=r_values)
+    g6, bins = np.histogram(dists, bins=r_values, weights=order_grid)
+    bin_centers = bins[1:] - (bins[1] - bins[0]) / 2
+
+    g = g / divisor
+    g6 = g6 / divisor
+
+    return bin_centers, g, g6
 
 
 def calculate_area_from_boundary(boundary):
@@ -49,7 +69,6 @@ def calculate_area_from_boundary(boundary):
     return area
 
 
-@jit
 def calculate_polygon_area(x, y):
     p1 = 0
     p2 = 0
@@ -59,7 +78,7 @@ def calculate_polygon_area(x, y):
     area = 0.5 * abs(p1-p2)
     return area
 
-@jit
+
 def sort_polygon_vertices(points):
     cx = np.mean(points[:, 0])
     cy = np.mean(points[:, 1])
@@ -68,3 +87,17 @@ def sort_polygon_vertices(points):
     x = points[sort_indices, 0]
     y = points[sort_indices, 1]
     return x, y
+
+
+if __name__ == "__main__":
+    from ParticleTracking import dataframes
+    import matplotlib.pyplot as plt
+
+    file = "/media/data/Data/July2019/RampsN29/15790009.hdf5"
+    data = dataframes.DataStore(file)
+    df = data.df.loc[:50]
+    boundary = data.metadata['boundary']
+    r, g, g6 = corr_multiple_frames(df, boundary, 1, 10, 0.01)
+    plt.figure()
+    plt.plot(r, g)
+    plt.show()

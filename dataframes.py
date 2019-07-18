@@ -17,6 +17,7 @@ class DataStore:
     metadata : dict
         Dictionary containing any metadata values.
     """
+
     def __init__(self, filename, load=True):
         self.df = pd.DataFrame()
         self.metadata = {}
@@ -29,7 +30,11 @@ class DataStore:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.save()
-        del self.df, self.metadata
+
+    def set_dtypes(self, data_dict):
+        for key, value in data_dict.items():
+            if self.df[key].dtype != value:
+                self.df[key] = self.df[key].astype(value)
 
     def add_frame_property(self, heading, values):
         """
@@ -91,13 +96,23 @@ class DataStore:
         col_names: list of str
             Titles of each D properties for dataframe columns
         """
-        col_names = ['x', 'y', 'r'] if col_names is None else col_names
-        if type(tracked_data) == list:
-            data_dict = {name: tracked_data[i]
-                         for i, name in enumerate(col_names)}
-        elif type(tracked_data) == np.ndarray:
-            data_dict = {name: tracked_data[:, i]
-                         for i, name in enumerate(col_names)}
+        if isinstance(tracked_data, pd.DataFrame):
+            self._add_tracking_dataframe(frame, tracked_data)
+        else:
+            self._add_tracking_array(frame, tracked_data, col_names)
+
+    def _add_tracking_dataframe(self, frame, data):
+        data['frame'] = frame
+        self.df = self.df.append(data.set_index('frame'))
+
+    def _add_tracking_array(self, frame, data, col_names):
+        if isinstance(data, np.ndarray):
+            col_names = ['x', 'y', 'r'] if col_names is None else col_names
+            data_dict = {name: data[:, i] for i, name in enumerate(col_names)}
+
+        elif isinstance(data, list):
+            data_dict = {name: data[i] for i, name in enumerate(col_names)}
+
         else:
             print('type wrong')
         data_dict['frame'] = frame
@@ -118,14 +133,8 @@ class DataStore:
     def get_column(self, name):
         return self.df[name].values
 
-    def get_headings(self):
-        """
-        Get dataframe headings
-
-        Returns
-        -------
-        list of dataframe column titles
-        """
+    @property
+    def headings(self):
         return self.df.columns.values.tolist()
 
     def get_info(self, frame, headings):
@@ -141,45 +150,11 @@ class DataStore:
         """
         return self.df.loc[frame, headings].values
 
-    def get_info_all_frames(self, headings):
-        """
-        Get info from all frames stacked into list of lists.
-
-        Parameters
-        ----------
-        headings : list of str
-            Dataframe columns
-        """
-        all_headings = ['frame'] + headings
-        data = self.df.reset_index()[all_headings].values
-        info = self.stack_info(data)
-        return info
-
-    def get_info_all_frames_generator(self, headings):
-        print(self.df.head(3))
-        for f in range(self.num_frames):
-            yield self.df.loc[f, headings].values
-
-    def get_metadata(self, name):
-        """
-        Return item from the metadata dictionary
-        Parameters
-        ----------
-        name : str
-            metadata dictionary key
-
-        Returns
-        -------
-        dictionary item for given key
-        """
-        return self.metadata[name]
-
     def load(self):
         """Load HDFStore"""
         with pd.HDFStore(self.filename) as store:
             self.df = store.get('df')
             self.metadata = store.get_storer('df').attrs.metadata
-        self.num_frames = max(self.df.index.values)+1
 
     def reset_index(self):
         """Move frame index to column"""
@@ -187,26 +162,27 @@ class DataStore:
 
     def save(self):
         """Save HDFStore"""
+        self.add_headings_to_metadata()
         with pd.HDFStore(self.filename) as store:
             store.put('df', self.df)
             store.get_storer('df').attrs.metadata = self.metadata
+
+    def add_headings_to_metadata(self):
+        self.metadata['headings'] = self.headings
 
     def set_frame_index(self):
         """Move frame column to index"""
         if 'frame' in self.df.columns.values.tolist():
             if self.df.index.name == 'frame':
-               self.df = self.df.drop('frame', 1)
+                self.df = self.df.drop('frame', 1)
             else:
                 self.df = self.df.set_index('frame')
 
-    @staticmethod
-    def stack_info(arr):
-        f = arr[:, 0]
-        _, c = np.unique(f, return_counts=True)
-        indices = np.insert(np.cumsum(c), 0, 0)
-        info = [arr[indices[i]:indices[i + 1], 1:]
-             for i in range(len(c))]
-        return info
+
+def load_metadata(filename):
+    with pd.HDFStore(filename) as store:
+        metadata = store.get_storer('df').attrs.metadata
+    return metadata
 
 
 def concatenate_datastore(datastore_list, new_filename):
@@ -217,12 +193,9 @@ def concatenate_datastore(datastore_list, new_filename):
     DS_out.save()
 
 
-
-
-
-
 if __name__ == "__main__":
     from Generic import filedialogs
+
     file = filedialogs.load_filename()
     DS = DataStore(file)
     print(DS.df.head())

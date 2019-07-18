@@ -22,10 +22,40 @@ Run this file to print out the possible methods in preprocessing.
 
 NITRILE_BEADS_PARAMETERS = {
     'crop method': 'find_blue_hex_crop_and_mask',
-    'method': ('flip', 'crop_and_mask', 'grayscale'),
+    'method': ('flip', 'crop_and_mask', 'grayscale', 'flip', 'threshold'),
     'number of tray sides': 6,
     'min_dist': [23, 3, 51, 1],
-    'p_1': [105, 0, 255, 1],
+    'p_1': [105, 1, 255, 1],
+    'p_2': [4, 1, 20, 1],
+    'dp': [1, 1, 5, 1],
+    'min_rad': [13, 1, 101, 1],
+    'threshold': [170, 1, 255, 1],
+    'threshold mode': cv2.THRESH_TOZERO_INV,
+    'max_rad': [14, 1, 101, 1],
+    'max frame displacement': 10,
+    'min frame life': 5,
+    'memory': 3
+    }
+
+TRACKPY_NITRILE_PARAMETERS = {
+    'crop method': 'find_blue_hex_crop_and_mask',
+    'method': ('flip', 'crop_and_mask', 'grayscale', 'flip', 'threshold', 'distance'),
+    'number of tray sides': 6,
+    'threshold': [170, 1, 255, 1],
+    'threshold mode': cv2.THRESH_TOZERO_INV,
+    'search_range': 15,
+    'memory': 3,
+    'min frame life': 3
+}
+
+EXAMPLE_CHILD_PARAMETERS = {
+    'crop method': 'find_blue_hex_crop_and_mask',
+    'method': ('flip', 'crop_and_mask', 'grayscale', 'threshold'),
+    'threshold': [50, 1, 255, 1],
+    'threshold mode': cv2.THRESH_BINARY_INV,
+    'number of tray sides': 6,
+    'min_dist': [23, 3, 51, 1],
+    'p_1': [105, 1, 255, 1],
     'p_2': [2, 1, 20, 1],
     'min_rad': [13, 1, 101, 1],
     'max_rad': [14, 1, 101, 1],
@@ -33,22 +63,6 @@ NITRILE_BEADS_PARAMETERS = {
     'min frame life': 5,
     'memory': 3
     }
-
-EXAMPLE_CHILD_PARAMETERS = {
-    'crop method': 'no_crop',
-    'method': ('grayscale', 'flip', 'threshold'),
-    'threshold': [200, 0, 255, 1],
-    'threshold mode': cv2.THRESH_BINARY,
-    'number of tray sides': 6,
-    'min_dist': [23, 3, 51, 1],
-    'p_1': [105, 0, 255, 1],
-    'p_2': [2, 1, 20, 1],
-    'min_rad': [13, 1, 101, 1],
-    'max_rad': [14, 1, 101, 1],
-    'max frame displacement': 10,
-    'min frame life': 5,
-    'memory': 3
-}
 
 
 '''
