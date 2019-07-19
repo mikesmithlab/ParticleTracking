@@ -50,7 +50,12 @@ def variance(frame, normalise=True):
     mean_frame = mean_val*np.ones(np.shape(frame), dtype=np.uint8)
     frame = cv2.add(cv2.subtract(frame, mean_frame), cv2.subtract(mean_frame, frame))
     if normalise == True:
-        frame = cv2.normalize(frame, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+        min_val = np.min(frame)
+        max_val = np.max(frame)
+        print(max_val)
+        print(min_val)
+        frame = 255*(frame - min_val)/(max_val - min_val)
+        print(np.max(frame))
     return frame
 
 def flip(frame, parameters):

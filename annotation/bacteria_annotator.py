@@ -28,8 +28,7 @@ class BacteriaAnnotator(video.Annotator):
         info = self.data.get_info(f, ['box', 'classifier'])
         colors = params['colors']
         for bacterium in info:
-            if bacterium[1] != 0:
-                annotated_frame = images.draw_contours(frame, [
+            annotated_frame = images.draw_contours(frame, [
                     bacterium[0]], col=colors[bacterium[1]])
         return annotated_frame
 
@@ -41,7 +40,7 @@ class BacteriaAnnotator(video.Annotator):
         classifier = self.data.get_info(f, 'classifier')
         for index, particle in enumerate(particles):
             if classifier[index] != 0:
-                frame = cv2.putText(frame, str(int(particles[index])), (int(x[index]), int(y[index])), font, 1, colors[int(classifier[index])], 1, cv2.LINE_AA)
+                frame = cv2.putText(frame, str(int(particles[index])), (int(x[index]), int(y[index])), font, 2, colors[int(classifier[index])], 1, cv2.LINE_AA)
         return frame
 
     def check_crop(self, filename):
@@ -50,7 +49,7 @@ class BacteriaAnnotator(video.Annotator):
 
 if __name__ == "__main__":
     from ParticleTracking import dataframes
-    dataframe = dataframes.DataStore('/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.hdf5', load=True)
-    input_video = '/media/ppzmis/data/ActiveMatter/bacteria_plastic/bacteria.mp4'
+    dataframe = dataframes.DataStore('/media/ppzmis/data/ActiveMatter/Microscopy/videosexample/videoDIC.hdf5', load=True)
+    input_video = '/media/ppzmis/data/ActiveMatter/Microscopy/videosexample/videoDIC.avi'
     annotator = BacteriaAnnotator(input_video, dataframe, parameter='box')
     annotator.annotate()
