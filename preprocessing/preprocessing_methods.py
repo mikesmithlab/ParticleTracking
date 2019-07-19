@@ -1,5 +1,7 @@
 from Generic import images
 import cv2
+import cv2
+import numpy as np
 
 def distance(frame, parameters):
     dist = cv2.distanceTransform(frame, cv2.DIST_L2, 5)
@@ -33,6 +35,28 @@ def crop_and_mask(frame, parameters):
     cropped_frame = images.crop_img(masked_frame, crop)
     return cropped_frame
 
+def variance(frame, normalise=True):
+    '''
+    Send grayscale frame. Finds mean value of background and then returns
+    frame which is the absolute difference of each pixel from that value
+    normalise=True will set the largest difference to 255
+
+    :param frame:
+    :return:
+    '''
+
+    mean_val = int(np.mean(frame))
+    print(mean_val)
+    mean_frame = mean_val*np.ones(np.shape(frame), dtype=np.uint8)
+    frame = cv2.add(cv2.subtract(frame, mean_frame), cv2.subtract(mean_frame, frame))
+    if normalise == True:
+        min_val = np.min(frame)
+        max_val = np.max(frame)
+        print(max_val)
+        print(min_val)
+        frame = 255*(frame - min_val)/(max_val - min_val)
+        print(np.max(frame))
+    return frame
 
 def flip(frame, parameters):
     return ~frame
