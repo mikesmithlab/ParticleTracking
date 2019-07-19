@@ -1,8 +1,10 @@
 import sys
 
+import numpy as np
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QHBoxLayout, QWidget,
                              QVBoxLayout, QFileDialog)
+from scipy import signal, optimize
 
 from Generic import pyqt5_widgets
 from ParticleTracking import correlations
@@ -25,78 +27,23 @@ class MainWindow(QMainWindow):
     def setup_main_widget(self):
         self.main_widget = QWidget(self)
         vbox = QVBoxLayout(self.main_widget)
-        duty_slider = pyqt5_widgets.Slider(
-            self.main_widget, 'Duty', self.duty_changed, 0,
-            len(self.data.duty) - 1, 1, 0)
-        # vbox.addLayout(self.setup_slider_box())
+        duty_slider = pyqt5_widgets.ArraySlider(
+            self.main_widget, 'Duty', self.duty_changed, self.data.duty)
         vbox.addWidget(duty_slider)
         hbox = QHBoxLayout()
-        g_box = self.create_g_box()
-        g6_box = self.create_g6_box()
-        hbox.addLayout(g_box)
-        hbox.addLayout(g6_box)
+        self.g_graph = GGraph(self.main_widget)
+        self.g6_graph = G6Graph(self.main_widget)
+        g_box = GraphBox(self.main_widget, self.g_graph)
+        g6_box = GraphBox(self.main_widget, self.g6_graph)
+        hbox.addWidget(g_box)
+        hbox.addWidget(g6_box)
         vbox.addLayout(hbox)
         self.setCentralWidget(self.main_widget)
 
-    def duty_changed(self, value):
-        duty = self.data.duty[int(value)]
-        # self.change_duty(duty)
+    def duty_changed(self, duty):
         r, g, g6 = self.data.get(duty)
         self.g_graph.set_data(r, g, g6)
         self.g6_graph.set_data(r, g, g6)
-
-    def create_g_box(self):
-        self.g_graph = GGraph(self.main_widget)
-
-        height_slider = pyqt5_widgets.Slider(
-            self.main_widget, 'line height', self.g_graph.set_offset,
-            -1, 1, 100, 0)
-
-        projection_combo = pyqt5_widgets.ComboBox(
-            self.main_widget, 'projection',
-            ['linear', 'logx', 'logy', 'loglog'],
-            self.g_graph.change_projection)
-
-        autoscale_checkbox = pyqt5_widgets.CheckBox(
-            self.main_widget,
-            'autoscale',
-            self.g_graph.set_autoscale,
-            'on')
-
-        peak_finder = PeakFinder(self.main_widget, self.g_graph)
-
-        vbox = QVBoxLayout()
-        vbox.addWidget(self.g_graph)
-        vbox.addWidget(height_slider)
-        vbox.addWidget(projection_combo)
-        vbox.addWidget(autoscale_checkbox)
-        vbox.addWidget(peak_finder)
-        return vbox
-
-    def create_g6_box(self):
-        self.g6_graph = G6Graph(self.main_widget)
-
-        height_slider = pyqt5_widgets.Slider(
-            self.main_widget, 'line height', self.g6_graph.set_offset,
-            -1, 1, 100, 0)
-
-        projection_combo = pyqt5_widgets.ComboBox(
-            self.main_widget, 'projection',
-            ['linear', 'logx', 'logy', 'loglog'],
-            self.g6_graph.change_projection)
-
-        autoscale_checkbox = pyqt5_widgets.CheckBox(
-            self.main_widget,
-            'autoscale',
-            self.g6_graph.set_autoscale,
-            'on')
-
-        vbox = QVBoxLayout()
-        vbox.addWidget(self.g6_graph)
-        vbox.addWidget(height_slider)
-        vbox.addWidget(projection_combo)
-        vbox.addWidget(autoscale_checkbox)
-        return vbox
 
     def initial_plot(self):
         r, g, g6 = self.data.get(self.data.duty[0])
@@ -104,10 +51,43 @@ class MainWindow(QMainWindow):
         self.g6_graph.set_data(r, g, g6)
 
 
+class GraphBox(QWidget):
+    def __init__(self, parent, graph):
+        QWidget.__init__(self, parent=parent)
+        self.setLayout(QVBoxLayout())
+
+        height_slider = pyqt5_widgets.Slider(
+            parent, 'line height', graph.set_offset,
+            -1, 1, 100, 0)
+
+        projection_combo = pyqt5_widgets.ComboBox(
+            parent, 'projection',
+            ['linear', 'logx', 'logy', 'loglog'],
+            graph.change_projection)
+
+        autoscale_checkbox = pyqt5_widgets.CheckBox(
+            parent,
+            'autoscale',
+            graph.set_autoscale,
+            'on')
+
+        peak_finder = PeakFinder(parent, graph)
+
+        self.layout().addWidget(graph)
+        self.layout().addWidget(height_slider)
+        self.layout().addWidget(projection_combo)
+        self.layout().addWidget(autoscale_checkbox)
+        self.layout().addWidget(peak_finder)
+
+
 class PeakFinder(QWidget):
     def __init__(self, parent, graph):
+        self.graph = graph
         self.show_fit = False
         self.show_peaks = False
+        self.height = None
+        self.threshold = None
+        self.distance = None
         QWidget.__init__(self, parent)
         self.setLayout(QVBoxLayout())
         self.create_widgets()
@@ -118,35 +98,67 @@ class PeakFinder(QWidget):
             self,
             'show peaks',
             self.show_peaks_changed)
-        show_fit = pyqt5_widgets.CheckBox(
+        show_exp_fit = pyqt5_widgets.CheckBox(
             self,
-            'show fit',
-            self.show_fit_changed)
+            'show exp fit',
+            self.show_exp_fit_changed)
+        show_power_fit = pyqt5_widgets.CheckBox(
+            self,
+            'show power fit',
+            self.show_power_fit_changed)
+
         hbox = QHBoxLayout()
         hbox.addWidget(show_peaks)
-        hbox.addWidget(show_fit)
+        hbox.addWidget(show_exp_fit)
+        hbox.addWidget(show_power_fit)
         self.layout().addLayout(hbox)
 
         # sliders
         height_slider = pyqt5_widgets.CheckedSlider(
-            self, 'height', self.height_changed, 0, 50, 1, 0)
+            self, 'height', self.height_changed,
+            start=-2, end=2, dpi=100)
+
         threshold_slider = pyqt5_widgets.CheckedSlider(
-            self, 'threshold', self.threshold_changed, 0, 1, 10, 0)
+            self, 'threshold', self.threshold_changed,
+            start=0, end=1, dpi=100)
+
+        distance_slider = pyqt5_widgets.CheckedSlider(
+            self, 'distance', self.distance_changed,
+            start=1, end=50, dpi=1, initial=1)
 
         self.layout().addWidget(height_slider)
         self.layout().addWidget(threshold_slider)
+        self.layout().addWidget(distance_slider)
 
     def show_peaks_changed(self, state):
-        self.show_peaks = True if state == Qt.Checked else False
+        show = True if state == Qt.Checked else False
+        self.graph.show_peaks = show
+        self.update_peaks()
 
-    def show_fit_changed(self, state):
-        self.show_fit = True if state == Qt.Checked else False
+    def show_exp_fit_changed(self, state):
+        show = True if state == Qt.Checked else False
+        self.graph.show_exp_fit = show
+        self.update_peaks()
+
+    def show_power_fit_changed(self, state):
+        show = True if state == Qt.Checked else False
+        self.graph.show_power_fit = show
+        self.update_peaks()
 
     def height_changed(self, value):
-        self.height = value
+        self.graph.peak_height = value
+        self.update_peaks()
 
     def threshold_changed(self, value):
-        self.threshold = value
+        self.graph.peak_threshold = value
+        self.update_peaks()
+
+    def distance_changed(self, value):
+        self.graph.peak_distance = value
+        self.update_peaks()
+
+    def update_peaks(self):
+        self.graph.update_peaks()
 
 
 class Graph(pyqt5_widgets.MatplotlibFigure):
@@ -161,14 +173,25 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
         self.ax = self.fig.add_subplot(111)
 
     def initial_plot(self):
-        self.line, = self.ax.plot([], [])
-        self.power_line, = self.ax.plot([], [])
+        self.line, = self.ax.plot([], [], label='data')
+        self.power_line, = self.ax.plot([], [], label='power')
+        self.peak_handle, = self.ax.plot([], [], 'r.', label='peaks')
+        self.exp_fit_handle, = self.ax.plot([], [], 'r-', label='exp fit')
+        self.power_fit_handle, = self.ax.plot([], [], 'g-', label='power fit')
         self.draw()
 
     def setup_variables(self):
         self.offset = 0
         self.autoscale = True
-        self.peaks_on = False
+
+        self.show_peaks = False
+        self.show_power = False
+        self.show_exp_fit = False
+        self.show_power_fit = False
+
+        self.peak_distance = None
+        self.peak_threshold = None
+        self.peak_height = None
 
     def set_labels(self, xlabel, ylabel):
         self.ax.set_xlabel(xlabel)
@@ -176,17 +199,18 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
         self.fig.tight_layout()
 
     def update(self):
-        self.line.set_xdata(self.x)
-        self.line.set_ydata(self.y)
+        self.line.set_xdata(self.xdata)
+        self.line.set_ydata(self.ydata)
         if self.autoscale:
             self.ax.relim()
             self.ax.autoscale_view()
         self.draw()
         self.update_power_line()
+        self.update_peaks()
 
     def update_power_line(self):
-        self.power_line.set_xdata(self.x)
-        self.power_line.set_ydata(self.x ** self.power + self.offset)
+        self.power_line.set_xdata(self.xdata)
+        self.power_line.set_ydata(self.xdata ** self.power + self.offset)
         self.draw()
 
     def set_offset(self, offset):
@@ -214,6 +238,64 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
         else:
             self.autoscale = False
 
+    def update_peaks(self):
+        peaks, props = signal.find_peaks(
+            self.ydata,
+            height=self.peak_height,
+            threshold=self.peak_threshold,
+            distance=self.peak_distance)
+        if self.show_peaks:
+            self.peak_handle.set_ydata(self.ydata[peaks])
+            self.peak_handle.set_xdata(self.xdata[peaks])
+        self.draw()
+
+        if self.show_exp_fit:
+            self.update_fit(self.xdata[peaks], self.ydata[peaks])
+        else:
+            self.exp_fit_handle.set_xdata([])
+            self.exp_fit_handle.set_ydata([])
+            self.draw()
+
+        if self.show_power_fit:
+            self.update_power_fit(self.xdata[peaks], self.ydata[peaks])
+        else:
+            self.power_fit_handle.set_xdata([])
+            self.power_fit_handle.set_ydata([])
+            self.draw()
+
+    def update_fit(self, x, y):
+        try:
+            popt, pcov = optimize.curve_fit(self.exp, x, y, p0=(1, 25, -1))
+            print(popt)
+            yfit = self.exp(self.xdata, *popt)
+            self.exp_fit_handle.set_xdata(self.xdata)
+            self.exp_fit_handle.set_ydata(yfit)
+        except:
+            print("did not find fitting parameters")
+            self.exp_fit_handle.set_xdata([])
+            self.exp_fit_handle.set_ydata([])
+        self.draw()
+
+    @staticmethod
+    def exp(x, a, b, c):
+        return a * np.exp(-x / b) + c
+
+    def update_power_fit(self, x, y):
+        try:
+            popt, pcov = optimize.curve_fit(self.power_eq, x, y,
+                                            p0=(1, -(1 / 3), -1))
+            yfit = self.power_eq(self.xdata, *popt)
+            self.power_fit_handle.set_xdata(self.xdata)
+            self.power_fit_handle.set_ydata(yfit)
+        except:
+            print("did not find fitting parameters")
+            self.exp_fit_handle.set_xdata([])
+            self.exp_fit_handle.set_ydata([])
+        self.draw()
+
+    def power_eq(self, x, a, b, c):
+        return a * x ** (b) + c
+
 
 class GGraph(Graph):
     def __init__(self, parent=None):
@@ -221,8 +303,8 @@ class GGraph(Graph):
         self.set_labels('r', '$G(r)$')
 
     def set_data(self, r, g, g6):
-        self.x = r
-        self.y = g - 1
+        self.xdata = r
+        self.ydata = g - 1
         self.update()
 
 
@@ -232,8 +314,8 @@ class G6Graph(Graph):
         self.set_labels('r', '$G_6(r)$')
 
     def set_data(self, r, g, g6):
-        self.x = r
-        self.y = g6 / g
+        self.xdata = r
+        self.ydata = g6 / g
         self.update()
 
 
@@ -250,7 +332,11 @@ class Data:
     def get(self, d):
         data = self.df.loc[self.df.d == d, ['r', 'g', 'g6']].values
         r, g, g6 = data.T
-        return r[0], g[0], g6[0]
+        r = r[0]
+        g = g[0]
+        g6 = g6[0]
+        g6 = np.real(g6)
+        return r, g, g6
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
