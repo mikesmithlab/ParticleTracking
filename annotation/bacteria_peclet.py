@@ -33,13 +33,14 @@ def angle_calc(dx,dy,step=2):
         #dr.append(magvect(v2-v1))
 
     dtheta = np.array(dtheta)
-    dtheta = thetaShift(dtheta)
+    #dtheta = thetaShift(dtheta)
     time =np.array(time)
     plt.figure(4)
     plt.plot(time, dtheta)
 
 
     return dtheta
+
 
 def thetaShift(angle):
     '''

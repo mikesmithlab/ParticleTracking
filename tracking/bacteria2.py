@@ -194,12 +194,12 @@ if __name__ == "__main__":
 
     from ParticleTracking.tracking.tracking_gui import TrackingGui
 
-    file = '/media/ppzmis/data/ActiveMatter/Microscopy/190709MRaggregates/videos/test2.mp4'
+    file = '/media/ppzmis/data/ActiveMatter/Microscopy/190709MRaggregates/videos/test2_annotated.mp4'
     #file = '/media/ppzmis/data/ActiveMatter/Microscopy/videosexample/videoDIC.avi'
-    tracker = Bacteria(file, tracking=True)
-    tracker.track()
+    tracker = Bacteria(file, tracking=False)
+    #tracker.track()
 
-    #gui = TrackingGui(tracker)
+    gui = TrackingGui(tracker)
 
 
 

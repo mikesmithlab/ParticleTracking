@@ -1,8 +1,11 @@
 import multiprocessing as mp
+from multiprocessing.pool import ThreadPool, Pool
 import os
-
+import pandas as pd
+import numpy as np
 import trackpy
 from tqdm import tqdm
+import time
 
 from Generic import images, video
 from ParticleTracking import dataframes
@@ -177,3 +180,110 @@ class ParticleTracker:
     def update_parameters(self, parameters):
         self.parameters = parameters
         self.ip.update_parameters(self.parameters)
+
+
+class ParticleTracker2:
+
+    def __init__(self, multiprocess=False):
+        self.filename = os.path.splitext(self.input_filename)[0]
+        self.multiprocess = multiprocess
+        self.data_filename = self.filename + '.hdf5'
+
+    # def track(self):
+    #     self._get_video_info()
+    #     cap = video.ReadVideo(self.input_filename)
+    #     self.data = dataframes.DataStore(self.data_filename, load=False)
+    #     frames = cap.frames()
+    #     if self.multiprocess:
+    #         p = ThreadPool(4)
+    #         p.map(self.analyse_frame,
+    #               tqdm(frames, total=cap.num_frames))
+    #         p.close()
+    #         p.join()
+    #     else:
+    #         map(self.analyse_frame, tqdm(frames, total=cap.num_frames))
+    #     print(len(np.unique(self.data.particle_data.frame)))
+    #     # self._link_trajectories()
+    #     # self.extra_steps()
+    #     # print(self.data.inspect_dataframes())
+
+    def track(self):
+        self._get_video_info()
+        cap = video.ReadVideo(self.input_filename)
+        # self.data = dataframes.DataStore(self.data_filename, load=False)
+        frames = cap.frames()
+        self.data = pd.DataFrame()
+        if self.multiprocess:
+            p = ThreadPool(4)
+            res = []
+            for frame in tqdm(frames, 'track', total=cap.num_frames):
+                r = p.apply_async(self.analyse_frame, (frame, ), callback=self.append_data)
+                res.append(r)
+                if len(res) > 50:
+                    for r in res:
+                        r.wait()
+                    res = []
+            for r in tqdm(res, 'wait'):
+                r.wait()
+            p.close()
+            p.join()
+        else:
+            map(self.analyse_frame, tqdm(frames, total=cap.num_frames))
+        self.data = self.data.set_index('frame')
+        self.data = self.data.sort_index()
+        print(self.data.head())
+        # print(len(np.unique(self.data.particle_data.frame)))
+        # self._link_trajectories()
+        # self.extra_steps()
+        # print(self.data.inspect_dataframes())
+
+    def append_data(self, data):
+        self.data = pd.concat([self.data, pd.DataFrame(data)])
+
+    def add_data(self, data):
+        print(data[1])
+        circles = data[0]
+        f = data[1]
+        self.data.add_tracking_data(f, circles, self.headings)
+
+
+    def _link_trajectories(self):
+        """Implements the trackpy functions link_df and filter_stubs"""
+        # Trackpy methods
+        self.data.particle_data = trackpy.link_df(
+            self.data.particle_data,
+            self.parameters['max frame displacement'],
+            memory=self.parameters['memory'])
+        self.data.particle_data = trackpy.filter_stubs(
+            self.data.particle_data, self.parameters['min frame life'])
+
+        # Save DataStore
+        self.data.save()
+
+    def extra_steps(self):
+        pass
+
+
+    def _get_video_info(self):
+        """
+        Reads properties from the video for other methods:
+
+        self.frame_jump_unit: int
+            Number of frames for each process
+
+        self.fps: int
+            frames per second from the video
+
+        self.width, self.height: ints
+            width and height of processed frame
+
+        self.duty_cycle: ndarray
+            duty cycles for each frame in the video
+        """
+        cap = video.ReadVideo(self.input_filename)
+        self.num_frames = cap.num_frames
+        # self.frame_div = self.num_frames // self.num_processes
+        self.fps = cap.fps
+        frame = cap.read_next_frame()
+        new_frame, _, _ = self.ip.process(frame)
+        self.width, self.height = images.get_width_and_height(new_frame)

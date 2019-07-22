@@ -6,17 +6,18 @@ from ParticleTracking.configurations import BACTERIA2_PARAMETERS as params
 from ParticleTracking.preprocessing.preprocessing_methods import adjust_gamma
 import pygame
 import numpy as np
+import trackpy as tp
+import matplotlib.pyplot as plt
 
 
 class BacteriaAnnotator(video.Annotator):
 
-    def __init__(self, filename, data,parameter, crop=False):
+    def __init__(self, filename, data, parameter, crop=False):
         self.data = data
         self.crop = crop
         self.parameter = parameter
         in_name = filename
         out_name = os.path.splitext(filename)[0]+'_annotated.mp4'
-        print(out_name)
         # frames_as_surface - if True returns pygames_surface else returns numpy array.
         video.Annotator.__init__(self, in_name, out_name, frames_as_surface=False)
 
@@ -46,11 +47,14 @@ class BacteriaAnnotator(video.Annotator):
                 frame = cv2.putText(frame, str(int(particles[index])), (int(x[index]), int(y[index])), font, 2, colors[int(classifier[index])], 1, cv2.LINE_AA)
         return frame
 
-    def _draw_trajs(self,frame, f, steps=-1):
-        particles = self.data.get_info(f,'particle')
-        for index, particle in enumerate(particles):
-            x = self.data.get_info(f, 'x')
-            y = self.data.get_info(f, 'y')
+    def _draw_trajs(self, frame, f):
+        particle_ids = self.data.df[self.data.df.index == f]['particle'].unique()
+        for index, particle in enumerate(particle_ids):
+            single_traj = self.data.df[self.data.df['particle'] == particle]
+            traj_pts = single_traj[single_traj.index <= f][['x','y']].values
+            if np.shape(traj_pts)[0] > 3:
+                frame = cv2.polylines(frame, np.int32([traj_pts]), False, (0, 255, 0), thickness=params.thickness)
+        return frame
 
 
 

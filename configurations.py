@@ -110,6 +110,9 @@ BACTERIA2_PARAMETERS = {
     'noise cutoff': [5, 0, 100, 1],
     'single bacterium cutoff': [237, 100, 300, 1],
     'colors': {0: (0,0,0), 1: (255, 0, 0), 2: (0, 255, 0), 3: (0, 0, 255)},
+    'thickness': 2,
+    'fps': 5,
+    'scale':1
     }
 
 
