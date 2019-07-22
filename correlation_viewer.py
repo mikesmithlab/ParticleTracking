@@ -56,9 +56,9 @@ class GraphBox(QWidget):
         QWidget.__init__(self, parent=parent)
         self.setLayout(QVBoxLayout())
 
-        height_slider = pyqt5_widgets.Slider(
+        height_slider = pyqt5_widgets.CheckedSlider(
             parent, 'line height', graph.set_offset,
-            -1, 1, 100, 0)
+            start=-1, end=1, dpi=100, initial=0)
 
         projection_combo = pyqt5_widgets.ComboBox(
             parent, 'projection',
@@ -182,7 +182,7 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
         self.draw()
 
     def setup_variables(self):
-        self.offset = 0
+        self.offset = None
         self.autoscale = True
 
         self.show_peaks = False
@@ -210,8 +210,12 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
         self.update_peaks()
 
     def update_power_line(self):
-        self.power_line.set_xdata(self.xdata)
-        self.power_line.set_ydata(self.xdata ** self.power + self.offset)
+        if self.offset is None:
+            self.power_line.set_xdata([])
+            self.power_line.set_ydata([])
+        else:
+            self.power_line.set_xdata(self.xdata)
+            self.power_line.set_ydata(self.xdata ** self.power + self.offset)
         self.draw()
 
     def set_offset(self, offset):
