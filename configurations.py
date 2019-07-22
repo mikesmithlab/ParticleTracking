@@ -96,19 +96,20 @@ BACTERIA_PARAMETERS = {
 
 BACTERIA2_PARAMETERS = {
     'crop method': 'no_crop',
-    'method': ('grayscale', 'variance'),#, 'adaptive_threshold'),
-    'adaptive threshold block size': [73, 3, 101, 2],
-    'adaptive threshold C': [-20, -30, 30, 1],
+    'method': ('grayscale', 'adjust_gamma','adaptive_threshold'),
+    'gamma': [30, 0, 1000, 1],
+    'adaptive threshold block size': [61, 3, 101, 2],
+    'adaptive threshold C': [-17, -30, 30, 1],
     'adaptive threshold mode': [0, 0, 1, 1],
-    'area bacterium': [136, 0, 500, 1],
-    'aspect bacterium': [201, 2, 1000, 1],
-    'max frame displacement': 20,
-    'min frame life': 5,
+    'area bacterium': [183, 0, 500, 1],
+    'aspect bacterium': [147, 2, 1000, 1],
+    'max frame displacement': 50,
+    'min frame life': 1,
     'memory': 3,
-    'trajectory smoothing': 1,
-    'noise cutoff': [31, 0, 100, 1],
-    'single bacterium cutoff': [170, 100, 300, 1],
-    'colors': {1: (255, 0, 0), 2: (0, 255, 0), 3: (0, 0, 255)}
+    'trajectory smoothing': 3,
+    'noise cutoff': [5, 0, 100, 1],
+    'single bacterium cutoff': [237, 100, 300, 1],
+    'colors': {0: (0,0,0), 1: (255, 0, 0), 2: (0, 255, 0), 3: (0, 0, 255)},
     }
 
 

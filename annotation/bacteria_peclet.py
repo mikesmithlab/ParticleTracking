@@ -31,50 +31,69 @@ def angle_calc(dx,dy,step=2):
         dtheta.append(angle(v1, v2))
         time.append(i)
         #dr.append(magvect(v2-v1))
+
     dtheta = np.array(dtheta)
+    dtheta = thetaShift(dtheta)
+    time =np.array(time)
     plt.figure(4)
     plt.plot(time, dtheta)
-    plt.show()
 
-    #return dtheta
 
-if __name__=='__main__':
+    return dtheta
 
-    dataframe = dataframes.DataStore('/media/ppzmis/data/ActiveMatter/Microscopy/videosexample/videoDIC.hdf5', load=True)
+def thetaShift(angle):
+    '''
+    Shifts theta values to make theta continuous. ie no jump from pi to -piif __name__=='__main__':
+    inputs:
+        angle - angle is a Pandas Series of all the angles of a single spot    dataframe = dataframes.DataStore('/media/ppzmis/data/ActiveMatter/Microscopy/190709MRaggregates/videos/test2.hdf5', load=True)
+            df = dataframe.df
+
+    outputs:    #Find all trajectories where end is > 45 pixels ~ 3 bacterium lengths. Excludes those that are stuck to surface
+        returns the adjusted angles as a Pandas Series    distance_threshold = 100
+    '''
+
+    angle2 = angle.copy()
+    theta_diff = angle2[:-1] - angle2[1:]
+    shift_down = theta_diff[np.where(theta_diff >= 1.5*180)]
+    shift_up = theta_diff[np.where(theta_diff < -1.5*180)]
+    print(shift_down)
+
+    for i in range(np.shape(shift_down)[0]):
+        angle2[shift_down[i]:] = angle2[shift_down[i]:] - 360
+
+    for i in range(np.shape(shift_up)[0]):
+        angle2[shift_up[i]:] = angle2[shift_up[i]:] + 360
+
+    return angle2
+
+if __name__ == '__main__':
+    dataframe = dataframes.DataStore('/media/ppzmis/data/ActiveMatter/Microscopy/190709MRaggregates/videos/test2.hdf5', load=True)
+
     df = dataframe.df
-
-    #Find all trajectories where end is > 45 pixels ~ 3 bacterium lengths. Excludes those that are stuck to surface
-    distance_threshold = 45
-
-    particle_ids = df['particle'].unique()
-    print(particle_ids)
-    moving = []
-    dtheta = []
-    dr = []
-    #plt.figure(1)
-    #plt.xlabel('x')
-    #plt.ylabel('y')
-    #plt.title('Trajectories')
+    distance_threshold = 100
+    particle_ids=df['particle'].unique()
+    moving=[]
+    dtheta=[]
+    dr=[]
 
     for id in particle_ids:
-        try:
-            xvals = df[df['particle'] == id].x.to_numpy()
-            yvals = df[df['particle'] == id].y.to_numpy()
+        xvals = df[df['particle'] == id].x.to_numpy()
+        yvals = df[df['particle'] == id].y.to_numpy()
 
-            dx = np.diff(xvals)
-            dy = np.diff(yvals)
+        dx = np.diff(xvals)
+        dy = np.diff(yvals)
 
-            if np.size(xvals) > 20:
-                dist_moved = ((xvals[0] - xvals[-1])**2 + (yvals[0] - yvals[-1])**2)**0.5
 
-                if dist_moved > distance_threshold:
-                    moving.append(id)
-                    #dtheta, dr=angle_calc(dx, dy, dr)
-                    angle_calc(dx,dy)
-                    #plt.figure(1)
-                    #plt.plot(xvals, yvals, '.')
-        except:
-            print('key error')
+        if np.size(xvals) > 20:
+            dist_moved = ((xvals[0] - xvals[-1])**2 + (yvals[0] - yvals[-1])**2)**0.5
+            if dist_moved > distance_threshold:
+                moving.append(id)
+                #dtheta, dr=angle_calc(dx, dy, dr)
+                #angle_calc(dx,dy)
+                plt.figure(1)
+                plt.plot(xvals, yvals, '.')
+
+
     print(len(moving))
     plt.show()
     '''

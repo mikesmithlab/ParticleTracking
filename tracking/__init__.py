@@ -13,7 +13,7 @@ class ParticleTracker:
     Class to track the locations of the particles in a video.
 
     1) Uses preprocessing.Preprocessor to manipulate images.
-    2) Uses houghcircles to locate the particles
+    2) Uses method to locate the particles
     3) Confirms that each detected particle is real
     4) Saves particle positions and boundary information in a dataframe
     5) Saves a cropped copy of the video
@@ -166,9 +166,10 @@ class ParticleTracker:
             # Trackpy methods
             data.reset_index()
             data.df = trackpy.link_df(
-                data.df,
-                self.parameters['max frame displacement'],
-                memory=self.parameters['memory'])
+                    data.df,
+                    self.parameters['max frame displacement'],
+                    memory=self.parameters['memory'])
+
             data.df = trackpy.filter_stubs(
                 data.df, self.parameters['min frame life'])
             data.set_frame_index()

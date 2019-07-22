@@ -35,7 +35,7 @@ def crop_and_mask(frame, parameters):
     cropped_frame = images.crop_img(masked_frame, crop)
     return cropped_frame
 
-def variance(frame, normalise=True):
+def variance(frame, norm=True):
     '''
     Send grayscale frame. Finds mean value of background and then returns
     frame which is the absolute difference of each pixel from that value
@@ -44,18 +44,14 @@ def variance(frame, normalise=True):
     :param frame:
     :return:
     '''
-
+    norm=True
     mean_val = int(np.mean(frame))
-    print(mean_val)
+
     mean_frame = mean_val*np.ones(np.shape(frame), dtype=np.uint8)
     frame = cv2.add(cv2.subtract(frame, mean_frame), cv2.subtract(mean_frame, frame))
-    if normalise == True:
-        min_val = np.min(frame)
-        max_val = np.max(frame)
-        print(max_val)
-        print(min_val)
-        frame = 255*(frame - min_val)/(max_val - min_val)
-        print(np.max(frame))
+    if norm == True:
+        frame = cv2.normalize(frame, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+
     return frame
 
 def flip(frame, parameters):
@@ -102,6 +98,17 @@ def erode(frame, parameters):
     kernel = parameters['erode kernel'][0]
     return images.erode(frame, (kernel, kernel))
 
+
+def adjust_gamma(image, parameters):
+    gamma = parameters['gamma'][0]/100.0
+    # build a lookup table mapping the pixel values [0, 255] to
+    # their adjusted gamma values
+    invGamma = 1.0 / gamma
+    table = np.array([((i / 255.0) ** invGamma) * 255
+                      for i in np.arange(0, 256)]).astype("uint8")
+
+    # apply gamma correction using the lookup table
+    return cv2.LUT(image, table)
 
 def resize(frame, parameters):
     scale = parameters['resize scale']
