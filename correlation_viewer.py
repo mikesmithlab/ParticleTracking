@@ -3,7 +3,7 @@ import sys
 import numpy as np
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QHBoxLayout, QWidget,
-                             QVBoxLayout, QFileDialog)
+                             QVBoxLayout, QFileDialog, QLabel)
 from scipy import signal, optimize
 
 from Generic import pyqt5_widgets
@@ -168,6 +168,7 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
         self.setup_axes()
         self.initial_plot()
         self.setup_variables()
+        self.add_fit_labels()
 
     def setup_axes(self):
         self.ax = self.fig.add_subplot(111)
@@ -250,7 +251,7 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
         self.draw()
 
         if self.show_exp_fit:
-            self.update_fit(self.xdata[peaks], self.ydata[peaks])
+            self.update_exp_fit(self.xdata[peaks], self.ydata[peaks])
         else:
             self.exp_fit_handle.set_xdata([])
             self.exp_fit_handle.set_ydata([])
@@ -263,17 +264,17 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
             self.power_fit_handle.set_ydata([])
             self.draw()
 
-    def update_fit(self, x, y):
+    def update_exp_fit(self, x, y):
         try:
             popt, pcov = optimize.curve_fit(self.exp, x, y, p0=(1, 25, -1))
-            print(popt)
+            self.update_exp_label(*popt)
             yfit = self.exp(self.xdata, *popt)
             self.exp_fit_handle.set_xdata(self.xdata)
             self.exp_fit_handle.set_ydata(yfit)
         except:
-            print("did not find fitting parameters")
             self.exp_fit_handle.set_xdata([])
             self.exp_fit_handle.set_ydata([])
+            self.update_exp_label(None, None, None)
         self.draw()
 
     @staticmethod
@@ -284,17 +285,42 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
         try:
             popt, pcov = optimize.curve_fit(self.power_eq, x, y,
                                             p0=(1, -(1 / 3), -1))
+            self.update_power_label(*popt)
             yfit = self.power_eq(self.xdata, *popt)
             self.power_fit_handle.set_xdata(self.xdata)
             self.power_fit_handle.set_ydata(yfit)
         except:
-            print("did not find fitting parameters")
             self.exp_fit_handle.set_xdata([])
             self.exp_fit_handle.set_ydata([])
+            self.update_power_label(None, None, None)
         self.draw()
 
     def power_eq(self, x, a, b, c):
-        return a * x ** (b) + c
+        return a * x ** b + c
+
+    def add_fit_labels(self):
+        self.exp_label = QLabel(self)
+        self.power_label = QLabel(self)
+        self.layout().addWidget(self.exp_label)
+        self.layout().addWidget(self.power_label)
+
+    def update_exp_label(self, a, b, c):
+        if a is not None:
+            string = "exp fit: a * exp(-x/b) + c, a = {:.2f}, b = {:.2f}, c = {:.2f}".format(
+                a, b, c)
+            self.exp_label.setText(string)
+        else:
+            self.exp_label.setText('')
+
+    def update_power_label(self, a, b, c):
+        if a is not None:
+            string = "power fit: a * x **b + c, a = {:.2f}, b = {:.2f}, c = {:.2f}".format(
+                a, b, c)
+            self.power_label.setText(string)
+        else:
+            self.power_label.setText('')
+
+
 
 
 class GGraph(Graph):
