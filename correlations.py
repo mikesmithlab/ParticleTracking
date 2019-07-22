@@ -49,4 +49,4 @@ def load_corr_data(filename):
 
 
 if __name__ == "__main__":
-    # calculate_corr_data()
+    calculate_corr_data()

@@ -47,17 +47,23 @@ def corr_multiple_frames(features, boundary, r_min, r_max, dr):
         dists_all.append(dists)
         order_all.append(order_grid)
 
+    dists_all = flat_array(dists_all)
+    order_all = flat_array(order_all)
     r_values = np.arange(r_min, r_max, dr) * radius
     divisor = 2 * np.pi * r_values[:-1] * dr * density * (N - 1) * len(
         frames_in_features)
-    g, bins = np.histogram(dists, bins=r_values)
-    g6, bins = np.histogram(dists, bins=r_values, weights=order_grid)
+    g, bins = np.histogram(dists_all, bins=r_values)
+    g6, bins = np.histogram(dists_all, bins=r_values, weights=order_all)
     bin_centers = bins[1:] - (bins[1] - bins[0]) / 2
 
     g = g / divisor
     g6 = g6 / divisor
 
     return bin_centers, g, g6
+
+
+def flat_array(x):
+    return np.concatenate([item.ravel() for item in x])
 
 
 def calculate_area_from_boundary(boundary):
@@ -99,5 +105,8 @@ if __name__ == "__main__":
     boundary = data.metadata['boundary']
     r, g, g6 = corr_multiple_frames(df, boundary, 1, 10, 0.01)
     plt.figure()
-    plt.plot(r, g)
+    plt.subplot(1, 2, 1)
+    plt.plot(r, g - 1)
+    plt.subplot(1, 2, 2)
+    plt.plot(r, g6 / g)
     plt.show()
