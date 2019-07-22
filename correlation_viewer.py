@@ -321,8 +321,6 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
             self.power_label.setText('')
 
 
-
-
 class GGraph(Graph):
     def __init__(self, parent=None):
         super().__init__(parent, -1 / 3)
