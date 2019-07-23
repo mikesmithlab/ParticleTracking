@@ -47,8 +47,10 @@ def corr_multiple_frames(features, boundary, r_min, r_max, dr):
     order_all = flat_array(order_all)
 
     divisor = 2 * np.pi * r_values[:-1] * (dr * radius) * density * N_queried
-    g, bins = np.histogram(dists_all, bins=r_values)
-    g6, bins = np.histogram(dists_all, bins=r_values, weights=order_all)
+
+    res, bins = np.histogram(dists_all, bins=r_values, weights=order_all)
+    g = res.imag
+    g6 = res.real
     bin_centers = bins[1:] - (bins[1] - bins[0]) / 2
 
     g = g / divisor
@@ -58,19 +60,15 @@ def corr_multiple_frames(features, boundary, r_min, r_max, dr):
 
 
 def dists_and_orders(f, t):
-    tree = spatial.cKDTree(f[['x', 'y']].values)
-    f_to_query = f.loc[f.edge_distance > t]
-    dists, idx = tree.query(f_to_query[['x', 'y']].values,
-                            k=len(f))
+    dists = spatial.distance.pdist(f[['x', 'y']].values)
+    dists = spatial.distance.squareform(dists)
+
+    idx = f.edge_distance.values > t
 
     orders = f[['order_r']].values + 1j * f[['order_i']].values
-    orders2 = f_to_query[['order_r']].values + 1j * f_to_query[
-        ['order_i']].values
-    order_grid = orders2 @ np.conj(orders).transpose()
-
-    # re-sort each row of order_grid to match dists
-    order_grid = order_grid[np.arange(len(idx))[:, np.newaxis], idx]
-    return dists, order_grid
+    order_grid = orders[idx] @ np.conj(orders).transpose()
+    order_grid = np.abs(order_grid) + 1j
+    return dists[idx, :], order_grid
 
 
 def flat_array(x):

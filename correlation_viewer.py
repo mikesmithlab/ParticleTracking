@@ -288,7 +288,7 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
     def update_power_fit(self, x, y):
         try:
             popt, pcov = optimize.curve_fit(self.power_eq, x, y,
-                                            p0=(1, -(1 / 3), -1))
+                                            p0=(1, 3, -1))
             self.update_power_label(*popt)
             yfit = self.power_eq(self.xdata, *popt)
             self.power_fit_handle.set_xdata(self.xdata)
@@ -300,7 +300,7 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
         self.draw()
 
     def power_eq(self, x, a, b, c):
-        return a * x ** b + c
+        return a * x ** (-1 / b) + c
 
     def add_fit_labels(self):
         self.exp_label = QLabel(self)
@@ -318,7 +318,7 @@ class Graph(pyqt5_widgets.MatplotlibFigure):
 
     def update_power_label(self, a, b, c):
         if a is not None:
-            string = "power fit: a * x **b + c, a = {:.2f}, b = {:.2f}, c = {:.2f}".format(
+            string = "power fit: a * x ** -1/b + c, a = {:.2f}, b = {:.2f}, c = {:.2f}".format(
                 a, b, c)
             self.power_label.setText(string)
         else:
