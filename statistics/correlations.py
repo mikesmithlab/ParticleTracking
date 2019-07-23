@@ -1,26 +1,22 @@
 import numpy as np
-import scipy.spatial as sp
+from scipy import spatial
 
 
 def corr(features, boundary, r_min, r_max, dr):
-    radius = features.r.mean()  # pixels
-    area = calculate_area_from_boundary(boundary)  # pixels squared
+    radius = features.r.mean()
+    area = calculate_area_from_boundary(boundary)
     N = features.x.count()
-    density = N / area  # pixels^-2
+    density = N / area
 
-    dists = sp.distance.pdist(features[['x', 'y']].values)  # pixels
-    dists = sp.distance.squareform(dists)  # pixels
+    r_values = np.arange(r_min, r_max, dr) * radius
 
-    orders = features[['order_r']].values + 1j * features[['order_i']].values
-    order_grid = orders @ np.conj(orders).transpose()
-
-    r_values = np.arange(r_min, r_max, dr) * radius  # pixels
-
+    dists, orders = dists_and_orders(features, r_max * radius)
     g, bins = np.histogram(dists, bins=r_values)
-    g6, bins = np.histogram(dists, bins=r_values, weights=order_grid)
+    g6, bins = np.histogram(dists, bins=r_values, weights=orders)
 
     bin_centres = bins[1:] - (bins[1] - bins[0]) / 2
-    divisor = 2 * np.pi * r_values[:-1] * dr * density * (N - 1)  # unitless
+    divisor = 2 * np.pi * r_values[:-1] * (bins[1] - bins[0]) * density * len(
+        dists)
 
     g = g / divisor
     g6 = g6 / divisor
@@ -35,23 +31,22 @@ def corr_multiple_frames(features, boundary, r_min, r_max, dr):
 
     frames_in_features = np.unique(features.index.values)
 
+    r_values = np.arange(r_min, r_max, dr) * radius
+
     dists_all = []
     order_all = []
+    N_queried = 0
     for frame in frames_in_features:
         features_frame = features.loc[frame]
-        dists = sp.distance.pdist(features_frame[['x', 'y']].values)
-        dists = sp.distance.squareform(dists)
-        orders = features_frame[['order_r']].values + 1j * features_frame[
-            ['order_i']].values
-        order_grid = orders @ np.conj(orders).transpose()
+        dists, orders = dists_and_orders(features_frame, r_max * radius)
+        N_queried += len(dists)
         dists_all.append(dists)
-        order_all.append(order_grid)
+        order_all.append(orders)
 
     dists_all = flat_array(dists_all)
     order_all = flat_array(order_all)
-    r_values = np.arange(r_min, r_max, dr) * radius
-    divisor = 2 * np.pi * r_values[:-1] * dr * density * (N - 1) * len(
-        frames_in_features)
+
+    divisor = 2 * np.pi * r_values[:-1] * (dr * radius) * density * N_queried
     g, bins = np.histogram(dists_all, bins=r_values)
     g6, bins = np.histogram(dists_all, bins=r_values, weights=order_all)
     bin_centers = bins[1:] - (bins[1] - bins[0]) / 2
@@ -60,6 +55,22 @@ def corr_multiple_frames(features, boundary, r_min, r_max, dr):
     g6 = g6 / divisor
 
     return bin_centers, g, g6
+
+
+def dists_and_orders(f, t):
+    tree = spatial.cKDTree(f[['x', 'y']].values)
+    f_to_query = f.loc[f.edge_distance > t]
+    dists, idx = tree.query(f_to_query[['x', 'y']].values,
+                            k=len(f))
+
+    orders = f[['order_r']].values + 1j * f[['order_i']].values
+    orders2 = f_to_query[['order_r']].values + 1j * f_to_query[
+        ['order_i']].values
+    order_grid = orders2 @ np.conj(orders).transpose()
+
+    # re-sort each row of order_grid to match dists
+    order_grid = order_grid[np.arange(len(idx))[:, np.newaxis], idx]
+    return dists, order_grid
 
 
 def flat_array(x):
@@ -103,10 +114,21 @@ if __name__ == "__main__":
     data = dataframes.DataStore(file)
     df = data.df.loc[:50]
     boundary = data.metadata['boundary']
-    r, g, g6 = corr_multiple_frames(df, boundary, 1, 10, 0.01)
+    r, g, g6 = corr_multiple_frames(df, boundary, 1, 20, 0.01)
+
     plt.figure()
     plt.subplot(1, 2, 1)
-    plt.plot(r, g - 1)
+    plt.plot(r, g)
     plt.subplot(1, 2, 2)
     plt.plot(r, g6 / g)
     plt.show()
+
+# %%
+# boundary = data.metadata['boundary']
+# r, g, g6 = corr_multiple_frames(df, boundary, 1, 10, 0.01)
+# plt.figure()
+# plt.subplot(1, 2, 1)
+# plt.plot(r, g - 1)
+# plt.subplot(1, 2, 2)
+# plt.plot(r, g6 / g)
+# plt.show()
