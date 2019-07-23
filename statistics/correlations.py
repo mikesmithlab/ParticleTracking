@@ -38,13 +38,13 @@ def corr_multiple_frames(features, boundary, r_min, r_max, dr):
     N_queried = 0
     for frame in frames_in_features:
         features_frame = features.loc[frame]
-        dists, orders = dists_and_orders(features_frame, r_max * radius)
-        N_queried += len(dists)
+        dists, orders, N = dists_and_orders(features_frame, r_max * radius)
+        N_queried += N
         dists_all.append(dists)
         order_all.append(orders)
 
-    dists_all = flat_array(dists_all)
-    order_all = flat_array(order_all)
+    dists_all = np.concatenate(dists_all)
+    order_all = np.concatenate(order_all)
 
     divisor = 2 * np.pi * r_values[:-1] * (dr * radius) * density * N_queried
 
@@ -68,7 +68,7 @@ def dists_and_orders(f, t):
     orders = f[['order_r']].values + 1j * f[['order_i']].values
     order_grid = orders[idx] @ np.conj(orders).transpose()
     order_grid = np.abs(order_grid) + 1j
-    return dists[idx, :], order_grid
+    return dists[idx, :].ravel(), order_grid.ravel(), len(dists)
 
 
 def flat_array(x):
