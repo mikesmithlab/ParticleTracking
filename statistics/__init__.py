@@ -124,5 +124,3 @@ if __name__ == "__main__":
     file = "/media/data/Data/July2019/RampsN29/15790009.hdf5"
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
-    d = calc.duty()[0]
-    calc.correlations_duty(d)
