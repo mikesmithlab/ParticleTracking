@@ -27,46 +27,32 @@ def corr(features, boundary, r_min, r_max, dr):
 def corr_multiple_frames(features, boundary, r_min, r_max, dr):
     area = calculate_area_from_boundary(boundary)
     radius = features.r.mean()
-    N = round(features.groupby('frame').x.count().mean())
+    group = features.groupby('frame')
+    N = group.x.count().mean()
     density = N / area
 
-    frames_in_features = np.unique(features.index.values)
+    res = group.apply(dists_and_orders, t=r_max * radius).values
+    dists, orders, N_queried = list(zip(*res))
+    dists = np.concatenate(dists)
+    orders = np.concatenate(orders)
+    N_queried = np.sum(N_queried)
 
     r_values = np.arange(r_min, r_max, dr) * radius
 
-    dists_all = []
-    order_all = []
-    N_queried = 0
-    for frame in frames_in_features:
-        features_frame = features.loc[frame]
-        dists, orders, N = dists_and_orders(features_frame, r_max * radius)
-        N_queried += N
-        dists_all.append(dists)
-        order_all.append(orders)
-
-    dists_all = np.concatenate(dists_all)
-    order_all = np.concatenate(order_all)
-
     divisor = 2 * np.pi * r_values * (dr * radius) * density * N_queried
 
-    # res, bins = np.histogram(dists_all, bins=r_values, weights=order_all)
-    # g = res.imag
-    # g6 = res.real
-
-    g = histogram1d(dists_all, len(r_values),
+    g = histogram1d(dists, len(r_values),
                     (np.min(r_values), np.max(r_values)))
-    g6 = histogram1d(dists_all, len(r_values),
+    g6 = histogram1d(dists, len(r_values),
                      (np.min(r_values), np.max(r_values)),
-                     weights=order_all)
-    # bin_centers = bins[1:] - (bins[1] - bins[0]) / 2
-
+                     weights=orders)
     g = g / divisor
     g6 = g6 / divisor
 
     return r_values, g, g6
 
 
-def dists_and_orders(f, t):
+def dists_and_orders(f, t=1000):
     idx = get_idx(f, t)
     dists = get_dists(f, idx)
     orders = get_orders(f, idx)
