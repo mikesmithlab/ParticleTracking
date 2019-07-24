@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from fast_histogram import histogram1d
 from scipy import spatial
 
@@ -24,7 +25,9 @@ def corr(features, boundary, r_min, r_max, dr):
     return bin_centres, g, g6
 
 
-def corr_multiple_frames(features, boundary, r_min, r_max, dr):
+def corr_multiple_frames(features, boundary=None, r_min=None, r_max=None,
+                         dr=None):
+    d = features.Duty.values[0]
     area = calculate_area_from_boundary(boundary)
     radius = features.r.mean()
     group = features.groupby('frame')
@@ -48,8 +51,8 @@ def corr_multiple_frames(features, boundary, r_min, r_max, dr):
                      weights=orders)
     g = g / divisor
     g6 = g6 / divisor
-
-    return r_values, g, g6
+    res = pd.DataFrame({'r': r_values, 'g': g, 'g6': g6})
+    return res
 
 
 def dists_and_orders(f, t=1000):

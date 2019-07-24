@@ -3,9 +3,12 @@ import os
 import dask.dataframe as dd
 import numpy as np
 from dask.diagnostics import ProgressBar
+from tqdm import tqdm
 
 from ParticleTracking.statistics import order, voronoi_cells, \
     correlations, level, edge_distance, histograms, duty
+
+tqdm.pandas()
 
 
 class PropertyCalculator:
@@ -97,6 +100,16 @@ class PropertyCalculator:
             self.data.df.loc[frames], self.data.metadata['boundary'],
             r_min, r_max, dr)
         return r, g, g6
+
+    def correlations_all_duties(self, r_min=1, r_max=20, dr=0.02):
+        df = self.data.df.loc[self.data.df.Duty < 405]
+        boundary = self.data.metadata['boundary']
+        res = df.groupby('Duty').progress_apply(
+            correlations.corr_multiple_frames, boundary=boundary, r_min=r_min,
+            r_max=r_max, dr=dr)
+        # r, g, g6, d = list(zip(*res))
+        # return r, g, g6, d
+        return res
 
     def duty(self):
         """Return the duty cycle of each frame"""

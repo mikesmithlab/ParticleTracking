@@ -355,15 +355,11 @@ class Data:
     def open(self, event):
         self.file = QFileDialog.getOpenFileName()[0]
         self.df = correlations.load_corr_data(self.file)
-        self.duty = self.df.d.values
+        self.duty = np.unique(self.df.Duty.values)
 
     def get(self, d):
-        data = self.df.loc[self.df.d == d, ['r', 'g', 'g6']].values
+        data = self.df.loc[self.df.Duty == d, ['r', 'g', 'g6']].values
         r, g, g6 = data.T
-        r = r[0]
-        g = g[0]
-        g6 = g6[0]
-        g6 = np.real(g6)
         return r, g, g6
 
 if __name__ == "__main__":
