@@ -1,4 +1,5 @@
 import numpy as np
+from fast_histogram import histogram1d
 from scipy import spatial
 
 
@@ -46,29 +47,53 @@ def corr_multiple_frames(features, boundary, r_min, r_max, dr):
     dists_all = np.concatenate(dists_all)
     order_all = np.concatenate(order_all)
 
-    divisor = 2 * np.pi * r_values[:-1] * (dr * radius) * density * N_queried
+    divisor = 2 * np.pi * r_values * (dr * radius) * density * N_queried
 
-    res, bins = np.histogram(dists_all, bins=r_values, weights=order_all)
-    g = res.imag
-    g6 = res.real
-    bin_centers = bins[1:] - (bins[1] - bins[0]) / 2
+    # res, bins = np.histogram(dists_all, bins=r_values, weights=order_all)
+    # g = res.imag
+    # g6 = res.real
+
+    g = histogram1d(dists_all, len(r_values),
+                    (np.min(r_values), np.max(r_values)))
+    g6 = histogram1d(dists_all, len(r_values),
+                     (np.min(r_values), np.max(r_values)),
+                     weights=order_all)
+    # bin_centers = bins[1:] - (bins[1] - bins[0]) / 2
 
     g = g / divisor
     g6 = g6 / divisor
 
-    return bin_centers, g, g6
+    return r_values, g, g6
 
 
 def dists_and_orders(f, t):
-    dists = spatial.distance.pdist(f[['x', 'y']].values)
-    dists = spatial.distance.squareform(dists)
+    idx = get_idx(f, t)
+    dists = get_dists(f, idx)
+    orders = get_orders(f, idx)
+    return dists.ravel(), orders.ravel(), len(dists)
 
-    idx = f.edge_distance.values > t
 
-    orders = f[['order_r']].values + 1j * f[['order_i']].values
-    order_grid = orders[idx] @ np.conj(orders).transpose()
-    order_grid = np.abs(order_grid) + 1j
-    return dists[idx, :].ravel(), order_grid.ravel(), len(dists)
+def get_idx(f, t):
+    return f.edge_distance.values > t
+
+
+def get_dists(f, idx):
+    x = f[['x', 'y']].values
+    return spatial.distance.cdist(x[idx, :], x)
+
+
+def get_orders(f, idx):
+    orders = make_complex(f)
+    order_grid = make_order_grid(orders, idx)
+    return np.abs(order_grid)
+
+
+def make_order_grid(orders, idx):
+    return orders[idx] @ np.conj(orders).transpose()
+
+
+def make_complex(f):
+    return f[['order_r']].values + 1j * f[['order_i']].values
 
 
 def flat_array(x):
@@ -120,6 +145,10 @@ if __name__ == "__main__":
     plt.subplot(1, 2, 2)
     plt.plot(r, g6 / g)
     plt.show()
+
+    # df = data.df.loc[0]
+    # for i in range(1000):
+    #     dists_and_orders(df, 600)
 
 # %%
 # boundary = data.metadata['boundary']
