@@ -93,22 +93,12 @@ class PropertyCalculator:
                                      dr)
         return r, g, g6
 
-    def correlations_duty(self, duty, r_min=1, r_max=20, dr=0.02):
-        frames = np.unique(
-            self.data.df.loc[self.data.df.Duty == duty].index.values)
-        r, g, g6 = correlations.corr_multiple_frames(
-            self.data.df.loc[frames], self.data.metadata['boundary'],
-            r_min, r_max, dr)
-        return r, g, g6
-
     def correlations_all_duties(self, r_min=1, r_max=20, dr=0.02):
         df = self.data.df.loc[self.data.df.Duty < 405]
         boundary = self.data.metadata['boundary']
         res = df.groupby('Duty').progress_apply(
             correlations.corr_multiple_frames, boundary=boundary, r_min=r_min,
             r_max=r_max, dr=dr)
-        # r, g, g6, d = list(zip(*res))
-        # return r, g, g6, d
         return res
 
     def duty(self):
