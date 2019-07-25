@@ -18,11 +18,21 @@ class PropertyCalculator:
         self.core_name = os.path.splitext(self.data.filename)[0]
 
     def count(self):
+        """
+        Calculates average number of detected particles in a dataframes.
+
+        Adds result in 'number_of_particles' key in metadata dictionary.
+        """
         n = self.data.df.x.groupby('frame').count()
         n_mean = n.mean()
         self.data.metadata['number_of_particles'] = round(n_mean)
 
     def duty_cycle(self):
+        """
+        Calculates the duty cycle from the audio channel of the video.
+
+        Saves the result in the Duty column of the dataframe.
+        """
         vid_name = self.data.metadata['video_filename']
         num_frames = self.data.metadata['number_of_frames']
         duty_cycle_vals = duty.duty(vid_name, num_frames)
@@ -37,6 +47,12 @@ class PropertyCalculator:
         self.data.add_frame_property('Duty', duty_cycle_vals)
 
     def order(self):
+        """
+        Calculates the order parameter and number of neighbours.
+
+        Saves results in 'order_r', 'order_i' and 'neighbors' columns
+        in the dataframe.
+        """
         dask_data = dd.from_pandas(self.data.df, chunksize=10000)
         meta = dask_data._meta.copy()
         meta['order_r'] = np.array([], dtype='float32')
@@ -49,6 +65,13 @@ class PropertyCalculator:
         self.data.save()
 
     def density(self):
+        """
+        Calculates the density, shape_factor for each particle.
+        Also checks whether particle is on the edge of the cell or not.
+
+        Saves result in 'density', 'shape_factor' and 'on_edge' columns
+        in the dataframe.
+        """
         dask_data = dd.from_pandas(self.data.df, chunksize=10000)
         meta = dask_data._meta.copy()
         meta['density'] = np.array([], dtype='float32')
@@ -63,6 +86,9 @@ class PropertyCalculator:
         self.data.save()
 
     def distance(self):
+        """
+        Calculates distance of each particle from the edge of the cell.
+        """
         self.data.df['edge_distance'] = edge_distance.distance(
             self.data.df[['x', 'y']].values, self.data.metadata['boundary'])
 
@@ -94,6 +120,14 @@ class PropertyCalculator:
         return r, g, g6
 
     def correlations_all_duties(self, r_min=1, r_max=20, dr=0.02):
+        """
+        Calculates the positional and orientational correlations for each
+        duty cycle using all points from all frames with the same duty cycle.
+
+        Returns
+        -------
+        Dataframe with duty, r, g, g6 columns
+        """
         df = self.data.df
         boundary = self.data.metadata['boundary']
         res = df.groupby('Duty').progress_apply(
@@ -105,14 +139,8 @@ class PropertyCalculator:
         """Return the duty cycle of each frame"""
         return self.data.df.groupby('frame').first()['Duty']
 
-    def check_level(self):
-        x = self.data.get_column('x')
-        y = self.data.get_column('y')
-        points = np.vstack((x, y)).transpose()
-        boundary = self.data.get_boundary(0)
-        level.check_level(points, boundary)
-
     def histogram(self, frames, column, bins):
+        """Calculate a histogram for a given property"""
         counts, bins = histograms.histogram(self.data.df, frames, column,
                                             bins=bins)
         return counts, bins
