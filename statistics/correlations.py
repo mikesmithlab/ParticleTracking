@@ -12,7 +12,7 @@ def corr(features, boundary, r_min, r_max, dr):
 
     r_values = np.arange(r_min, r_max, dr) * radius
 
-    dists, orders = dists_and_orders(features, r_max * radius)
+    dists, orders, N = dists_and_orders(features, r_max * radius)
     g, bins = np.histogram(dists, bins=r_values)
     g6, bins = np.histogram(dists, bins=r_values, weights=orders)
 
