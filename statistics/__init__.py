@@ -94,7 +94,7 @@ class PropertyCalculator:
         return r, g, g6
 
     def correlations_all_duties(self, r_min=1, r_max=20, dr=0.02):
-        df = self.data.df.loc[self.data.df.Duty < 405]
+        df = self.data.df
         boundary = self.data.metadata['boundary']
         res = df.groupby('Duty').progress_apply(
             correlations.corr_multiple_frames, boundary=boundary, r_min=r_min,
