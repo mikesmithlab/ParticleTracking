@@ -145,10 +145,60 @@ class PropertyCalculator:
                                             bins=bins)
         return counts, bins
 
+    def order_duty(self):
+        self.data.df['order_mag'] = np.abs(
+            self.data.df.order_r +
+            1j * self.data.df.order_i
+        )
+        group = self.data.df.groupby('Duty')['order_mag'].mean()
+        return group.index.values, group.values
+
+    def density_duty(self):
+        group = self.data.df.groupby('Duty')['density'].mean()
+        return group.index.values, group.values
+
+    def order_histogram_duties(self):
+        """
+        Calculates the histogram of the order parameter.
+
+        Uses all the particles that are in each duty cycle.
+        """
+        duty = np.unique(self.duty())
+        bins = []
+        freqs = []
+        for d in duty:
+            orders = self.data.df.loc[
+                self.data.df.Duty == d, ['order_r', 'order_i']
+            ].values
+            order_mag = np.abs(orders[:, 0] + 1j * orders[:, 1])
+            n, b = np.histogram(order_mag, bins=100, density=True)
+            bins.append(b)
+            freqs.append(n)
+        return duty, bins, freqs
+
+    def density_histogram_duties(self):
+        duty = np.unique(self.duty())
+        bins = []
+        freqs = []
+        for d in duty:
+            densities = self.data.df.loc[
+                self.data.df.Duty == d,
+                'density'
+            ].values
+            n, b = np.histogram(densities, bins=100, density=True)
+            bins.append(b)
+            freqs.append(n)
+        return duty, bins, freqs
+
+
 
 if __name__ == "__main__":
     from ParticleTracking import dataframes, statistics
+    from Generic import filedialogs
 
-    file = "/media/data/Data/July2019/RampsN29/15790009.hdf5"
+    file = filedialogs.load_filename()
+    # file = "/media/data/Data/July2019/RampsN29/15790009.hdf5"
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
+    duty, bins, freqs = calc.density_histogram_duties()
+    # calc.density()
