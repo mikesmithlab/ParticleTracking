@@ -62,6 +62,8 @@ class PropertyCalculator:
             self.data.df = (dask_data.groupby('frame')
                             .apply(order.order_process, meta=meta)
                             .compute(scheduler='processes'))
+        self.data.df['order'] = np.abs(
+            self.data.df.order_r + 1j * self.data.df.order_i)
         self.data.save()
 
     def density(self):
