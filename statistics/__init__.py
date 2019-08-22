@@ -3,9 +3,12 @@ import os
 import dask.dataframe as dd
 import numpy as np
 from dask.diagnostics import ProgressBar
+from tqdm import tqdm
 
 from ParticleTracking.statistics import order, voronoi_cells, \
     correlations, level, edge_distance, histograms, duty
+
+tqdm.pandas()
 
 
 class PropertyCalculator:
@@ -15,11 +18,21 @@ class PropertyCalculator:
         self.core_name = os.path.splitext(self.data.filename)[0]
 
     def count(self):
+        """
+        Calculates average number of detected particles in a dataframes.
+
+        Adds result in 'number_of_particles' key in metadata dictionary.
+        """
         n = self.data.df.x.groupby('frame').count()
         n_mean = n.mean()
         self.data.metadata['number_of_particles'] = round(n_mean)
 
     def duty_cycle(self):
+        """
+        Calculates the duty cycle from the audio channel of the video.
+
+        Saves the result in the Duty column of the dataframe.
+        """
         vid_name = self.data.metadata['video_filename']
         num_frames = self.data.metadata['number_of_frames']
         duty_cycle_vals = duty.duty(vid_name, num_frames)
@@ -34,6 +47,12 @@ class PropertyCalculator:
         self.data.add_frame_property('Duty', duty_cycle_vals)
 
     def order(self):
+        """
+        Calculates the order parameter and number of neighbours.
+
+        Saves results in 'order_r', 'order_i' and 'neighbors' columns
+        in the dataframe.
+        """
         dask_data = dd.from_pandas(self.data.df, chunksize=10000)
         meta = dask_data._meta.copy()
         meta['order_r'] = np.array([], dtype='float32')
@@ -46,6 +65,13 @@ class PropertyCalculator:
         self.data.save()
 
     def density(self):
+        """
+        Calculates the density, shape_factor for each particle.
+        Also checks whether particle is on the edge of the cell or not.
+
+        Saves result in 'density', 'shape_factor' and 'on_edge' columns
+        in the dataframe.
+        """
         dask_data = dd.from_pandas(self.data.df, chunksize=10000)
         meta = dask_data._meta.copy()
         meta['density'] = np.array([], dtype='float32')
@@ -60,6 +86,9 @@ class PropertyCalculator:
         self.data.save()
 
     def distance(self):
+        """
+        Calculates distance of each particle from the edge of the cell.
+        """
         self.data.df['edge_distance'] = edge_distance.distance(
             self.data.df[['x', 'y']].values, self.data.metadata['boundary'])
 
@@ -90,36 +119,86 @@ class PropertyCalculator:
                                      dr)
         return r, g, g6
 
-    def correlations_duty(self, duty, r_min=1, r_max=20, dr=0.02):
-        frames = np.unique(
-            self.data.df.loc[self.data.df.Duty == duty].index.values)
-        r, g, g6 = correlations.corr_multiple_frames(
-            self.data.df.loc[frames], self.data.metadata['boundary'],
-            r_min, r_max, dr)
-        return r, g, g6
+    def correlations_all_duties(self, r_min=1, r_max=20, dr=0.02):
+        """
+        Calculates the positional and orientational correlations for each
+        duty cycle using all points from all frames with the same duty cycle.
+
+        Returns
+        -------
+        Dataframe with duty, r, g, g6 columns
+        """
+        df = self.data.df
+        boundary = self.data.metadata['boundary']
+        res = df.groupby('Duty').progress_apply(
+            correlations.corr_multiple_frames, boundary=boundary, r_min=r_min,
+            r_max=r_max, dr=dr)
+        return res
 
     def duty(self):
         """Return the duty cycle of each frame"""
         return self.data.df.groupby('frame').first()['Duty']
 
-    def check_level(self):
-        x = self.data.get_column('x')
-        y = self.data.get_column('y')
-        points = np.vstack((x, y)).transpose()
-        boundary = self.data.get_boundary(0)
-        level.check_level(points, boundary)
-
     def histogram(self, frames, column, bins):
+        """Calculate a histogram for a given property"""
         counts, bins = histograms.histogram(self.data.df, frames, column,
                                             bins=bins)
         return counts, bins
 
+    def order_duty(self):
+        self.data.df['order_mag'] = np.abs(
+            self.data.df.order_r +
+            1j * self.data.df.order_i
+        )
+        group = self.data.df.groupby('Duty')['order_mag'].mean()
+        return group.index.values, group.values
+
+    def density_duty(self):
+        group = self.data.df.groupby('Duty')['density'].mean()
+        return group.index.values, group.values
+
+    def order_histogram_duties(self):
+        """
+        Calculates the histogram of the order parameter.
+
+        Uses all the particles that are in each duty cycle.
+        """
+        duty = np.unique(self.duty())
+        bins = []
+        freqs = []
+        for d in duty:
+            orders = self.data.df.loc[
+                self.data.df.Duty == d, ['order_r', 'order_i']
+            ].values
+            order_mag = np.abs(orders[:, 0] + 1j * orders[:, 1])
+            n, b = np.histogram(order_mag, bins=100, density=True)
+            bins.append(b)
+            freqs.append(n)
+        return duty, bins, freqs
+
+    def density_histogram_duties(self):
+        duty = np.unique(self.duty())
+        bins = []
+        freqs = []
+        for d in duty:
+            densities = self.data.df.loc[
+                self.data.df.Duty == d,
+                'density'
+            ].values
+            n, b = np.histogram(densities, bins=100, density=True)
+            bins.append(b)
+            freqs.append(n)
+        return duty, bins, freqs
+
+
 
 if __name__ == "__main__":
     from ParticleTracking import dataframes, statistics
+    from Generic import filedialogs
 
-    file = "/media/data/Data/July2019/RampsN29/15790009.hdf5"
+    file = filedialogs.load_filename()
+    # file = "/media/data/Data/July2019/RampsN29/15790009.hdf5"
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
-    d = calc.duty()[0]
-    calc.correlations_duty(d)
+    duty, bins, freqs = calc.density_histogram_duties()
+    # calc.density()

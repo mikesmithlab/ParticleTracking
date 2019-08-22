@@ -1,63 +1,92 @@
 import numpy as np
-import scipy.spatial as sp
+import pandas as pd
+from fast_histogram import histogram1d
+from scipy import spatial
 
 
 def corr(features, boundary, r_min, r_max, dr):
-    radius = features.r.mean()  # pixels
-    area = calculate_area_from_boundary(boundary)  # pixels squared
+    radius = features.r.mean()
+    area = calculate_area_from_boundary(boundary)
     N = features.x.count()
-    density = N / area  # pixels^-2
+    density = N / area
 
-    dists = sp.distance.pdist(features[['x', 'y']].values)  # pixels
-    dists = sp.distance.squareform(dists)  # pixels
+    r_values = np.arange(r_min, r_max, dr) * radius
 
-    orders = features[['order_r']].values + 1j * features[['order_i']].values
-    order_grid = orders @ np.conj(orders).transpose()
-
-    r_values = np.arange(r_min, r_max, dr) * radius  # pixels
-
+    dists, orders, N = dists_and_orders(features, r_max * radius)
     g, bins = np.histogram(dists, bins=r_values)
-    g6, bins = np.histogram(dists, bins=r_values, weights=order_grid)
+    g6, bins = np.histogram(dists, bins=r_values, weights=orders)
 
     bin_centres = bins[1:] - (bins[1] - bins[0]) / 2
-    divisor = 2 * np.pi * r_values[:-1] * dr * density * (N - 1)  # unitless
+    divisor = 2 * np.pi * r_values[:-1] * (bins[1] - bins[0]) * density * len(
+        dists)
 
     g = g / divisor
     g6 = g6 / divisor
     return bin_centres, g, g6
 
 
-def corr_multiple_frames(features, boundary, r_min, r_max, dr):
+def corr_multiple_frames(features, boundary=None, r_min=None, r_max=None,
+                         dr=None):
+    d = features.Duty.values[0]
     area = calculate_area_from_boundary(boundary)
     radius = features.r.mean()
-    N = round(features.groupby('frame').x.count().mean())
+    group = features.groupby('frame')
+    N = group.x.count().mean()
     density = N / area
 
-    frames_in_features = np.unique(features.index.values)
-
-    dists_all = []
-    order_all = []
-    for frame in frames_in_features:
-        features_frame = features.loc[frame]
-        dists = sp.distance.pdist(features_frame[['x', 'y']].values)
-        dists = sp.distance.squareform(dists)
-        orders = features_frame[['order_r']].values + 1j * features_frame[
-            ['order_i']].values
-        order_grid = orders @ np.conj(orders).transpose()
-        dists_all.append(dists)
-        order_all.append(order_grid)
+    res = group.apply(dists_and_orders, t=r_max * radius).values
+    dists, orders, N_queried = list(zip(*res))
+    dists = np.concatenate(dists)
+    orders = np.concatenate(orders)
+    N_queried = np.sum(N_queried)
 
     r_values = np.arange(r_min, r_max, dr) * radius
-    divisor = 2 * np.pi * r_values[:-1] * dr * density * (N - 1) * len(
-        frames_in_features)
-    g, bins = np.histogram(dists, bins=r_values)
-    g6, bins = np.histogram(dists, bins=r_values, weights=order_grid)
-    bin_centers = bins[1:] - (bins[1] - bins[0]) / 2
 
+    divisor = 2 * np.pi * r_values * (dr * radius) * density * N_queried
+
+    g = histogram1d(dists, len(r_values),
+                    (np.min(r_values), np.max(r_values)))
+    g6 = histogram1d(dists, len(r_values),
+                     (np.min(r_values), np.max(r_values)),
+                     weights=orders)
     g = g / divisor
     g6 = g6 / divisor
+    res = pd.DataFrame({'r': r_values, 'g': g, 'g6': g6})
+    return res
 
-    return bin_centers, g, g6
+
+def dists_and_orders(f, t=1000):
+    idx = get_idx(f, t)
+    dists = get_dists(f, idx)
+    orders = get_orders(f, idx)
+    return dists.ravel(), orders.ravel(), len(dists)
+
+
+def get_idx(f, t):
+    return f.edge_distance.values > t
+
+
+def get_dists(f, idx):
+    x = f[['x', 'y']].values
+    return spatial.distance.cdist(x[idx, :], x)
+
+
+def get_orders(f, idx):
+    orders = make_complex(f)
+    order_grid = make_order_grid(orders, idx)
+    return np.abs(order_grid)
+
+
+def make_order_grid(orders, idx):
+    return orders[idx] @ np.conj(orders).transpose()
+
+
+def make_complex(f):
+    return f[['order_r']].values + 1j * f[['order_i']].values
+
+
+def flat_array(x):
+    return np.concatenate([item.ravel() for item in x])
 
 
 def calculate_area_from_boundary(boundary):
@@ -97,7 +126,25 @@ if __name__ == "__main__":
     data = dataframes.DataStore(file)
     df = data.df.loc[:50]
     boundary = data.metadata['boundary']
-    r, g, g6 = corr_multiple_frames(df, boundary, 1, 10, 0.01)
+    r, g, g6 = corr_multiple_frames(df, boundary, 1, 20, 0.01)
+
     plt.figure()
+    plt.subplot(1, 2, 1)
     plt.plot(r, g)
+    plt.subplot(1, 2, 2)
+    plt.plot(r, g6 / g)
     plt.show()
+
+    # df = data.df.loc[0]
+    # for i in range(1000):
+    #     dists_and_orders(df, 600)
+
+# %%
+# boundary = data.metadata['boundary']
+# r, g, g6 = corr_multiple_frames(df, boundary, 1, 10, 0.01)
+# plt.figure()
+# plt.subplot(1, 2, 1)
+# plt.plot(r, g - 1)
+# plt.subplot(1, 2, 2)
+# plt.plot(r, g6 / g)
+# plt.show()

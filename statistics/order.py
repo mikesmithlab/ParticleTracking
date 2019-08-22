@@ -1,11 +1,11 @@
 import numpy as np
 import scipy.spatial as sp
-import pandas as pd
 
-def order_process(features, rad_t=3):
-    # features = features.copy()
+
+def order_process(features, threshold=2.3):
     points = features[['x', 'y', 'r']].values
-    orders, neighbors = order_and_neighbors(points[:, :2], np.mean(points[:, 2]) * rad_t)
+    threshold *= np.mean(points[:, 2])
+    orders, neighbors = order_and_neighbors(points[:, :2], threshold)
     features['order_r'] = np.real(orders).astype('float32')
     features['order_i'] = np.imag(orders).astype('float32')
     features['neighbors'] = neighbors
@@ -43,8 +43,12 @@ def calculate_angles(vectors):
 
 
 def calculate_orders(angles, list_indices, filtered):
-    step = np.exp(6j * angles) * filtered
+    # calculate summand for every angle
+    step = np.exp(6j * angles)
+    # set summand to zero if bond length > threshold
+    step *= filtered
     list_indices -= 1
+    # sum the angles and count neighbours for each particle
     stacked = np.cumsum((step, filtered), axis=1)[:, list_indices[1:]]
     stacked[:, 1:] = np.diff(stacked, axis=1)
     neighbors = stacked[1, :]
