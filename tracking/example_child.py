@@ -23,6 +23,9 @@ class ExampleChild(ParticleTracker):
         """
         self.tracking = tracking
         self.parameters = configurations.EXAMPLE_CHILD_PARAMETERS
+        #If you want to use the variance method to subtract a bkg img use the following line
+        #The bkg image should be stored with the movie with same name + suffix = _bkgimg.png
+        #self.parameters['bkg_img'] = cv2.imread(filename[:-5] + '_bkgimg.png')]
         self.ip = preprocessing.Preprocessor(self.parameters)
         self.input_filename = filename
         if self.tracking:
