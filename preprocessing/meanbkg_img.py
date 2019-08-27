@@ -18,15 +18,11 @@ if __name__ == '__main__':
         for i in range(readvid.num_frames-1):
             frame=readvid.read_next_frame().astype(np.int32)
             new_frame=np.reshape(frame,(sz[0],sz[1]*sz[2]))
-            #display(new_frame)
             frame_assemble=np.sum((frame_assemble,new_frame),axis=0, dtype=np.int32)
-            #display(frame_assemble)
             counter=counter+1
         frame = (frame_assemble / counter).astype(np.uint8)
         frame_assemble = np.reshape(frame,(sz[0],sz[1],sz[2]))
-        frame = cv2.add(cv2.subtract(frame_init, frame_assemble),
-                        cv2.subtract(frame_assemble, frame_init))
-        cv2.imwrite(file[:-4]+'_bkgimg.png', frame)
+        cv2.imwrite(file[:-4]+'_bkgimg.png', frame_assemble)
 
 
         readvid.close()

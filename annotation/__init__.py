@@ -18,6 +18,7 @@ class TrackingAnnotator(video.Annotator):
             annotated_frame = images.draw_contours(frame, [
                     particle[0]], col=self.params['colors'][col_id], thickness=self.params['contour thickness'])
         return annotated_frame
+    
 
     def _add_number(self, frame, f):
         x = self.data.get_info(f, 'x')

@@ -70,6 +70,7 @@ class ParticleTracker:
         cpus = mp.cpu_count()
         self.num_processes = cpus // 2 if self.multiprocess else 1
 
+
     def track(self):
         """Call this to start tracking"""
         self._get_video_info()

@@ -35,7 +35,7 @@ def crop_and_mask(frame, parameters):
     cropped_frame = images.crop_img(masked_frame, crop)
     return cropped_frame
 
-def variance(frame, norm=True):
+def variance(frame, parameters, bkg='img', norm=True):
     '''
     Send grayscale frame. Finds mean value of background and then returns
     frame which is the absolute difference of each pixel from that value
@@ -44,11 +44,18 @@ def variance(frame, norm=True):
     :param frame:
     :return:
     '''
-    norm=True
-    mean_val = int(np.mean(frame))
 
-    mean_frame = mean_val*np.ones(np.shape(frame), dtype=np.uint8)
-    frame = cv2.add(cv2.subtract(frame, mean_frame), cv2.subtract(mean_frame, frame))
+    norm=True
+    if bkg == 'mean':
+        mean_val = int(np.mean(frame))
+        subtract_frame = mean_val*np.ones(np.shape(frame), dtype=np.uint8)
+    elif bkg == 'img':
+        #This option subtracts the previously created image which is added to dictionary.
+        subtract_frame = parameters['bkg_img']
+    else:
+        subtract_frame = np.zeros(np.shape(frame))
+
+    frame = cv2.add(cv2.subtract(frame, subtract_frame), cv2.subtract(subtract_frame, frame))
     if norm == True:
         frame = cv2.normalize(frame, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
 

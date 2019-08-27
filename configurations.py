@@ -137,6 +137,48 @@ BACTERIA2_PARAMETERS = {
     'scale':1
     }
 
+TRACKPY_PARAMETERS = {
+    'crop method': 'no_crop',
+    'method': ('grayscale', 'adjust_gamma','adaptive_threshold'),
+    'gamma': [30, 0, 1000, 1],
+    'adaptive threshold block size': [61, 3, 101, 2],
+    'adaptive threshold C': [-17, -30, 30, 1],
+    'adaptive threshold mode': [0, 0, 1, 1],
+    'diameter': [10, 0, 500, 2],
+    'separation': [1, 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         , 1000, 1],
+    'max frame displacement': 50,
+    'min frame life': 1,
+    'memory': 3,
+    'trajectory smoothing': 3,
+    'noise cutoff': [5, 0, 100, 1],
+    'single bacterium cutoff': [237, 100, 300, 1],
+    'colors': {0:(0,0,0),
+           1:(255,0,0),
+           2:(0,255,0),
+           3:(0,0,255),
+           4:(255,255,0),
+           5:(0,255,255),
+           6:(255,0,255),
+           7:(128,0,0),
+           8:(0,128,0),
+           9:(0,0,128),
+           10:(128,128,0),
+           11:(128,0,128),
+           12:(0,128,128),
+           13:(165,42,42),
+           14:(255,69,0),
+           15:(0,250,154),
+           16:(32,178,170),
+           17:(30,144,255),
+           18:(139,0,128),
+           19:(128,128,128)
+           },
+    'contour thickness': 2,
+    'trajectory thickness': 2,
+    'font size': 2,
+    'fps': 5,
+    'scale':1
+    }
 
 
 if __name__ == "__main__":
