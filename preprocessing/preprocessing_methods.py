@@ -44,17 +44,16 @@ def variance(frame, parameters, bkg='img', norm=True):
     :param frame:
     :return:
     '''
-
     norm=True
     if bkg == 'mean':
         mean_val = int(np.mean(frame))
         subtract_frame = mean_val*np.ones(np.shape(frame), dtype=np.uint8)
     elif bkg == 'img':
+        print('test')
         #This option subtracts the previously created image which is added to dictionary.
         subtract_frame = parameters['bkg_img']
     else:
         subtract_frame = np.zeros(np.shape(frame))
-
     frame = cv2.add(cv2.subtract(frame, subtract_frame), cv2.subtract(subtract_frame, frame))
     if norm == True:
         frame = cv2.normalize(frame, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)

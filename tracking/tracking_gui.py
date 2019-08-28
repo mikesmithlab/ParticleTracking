@@ -16,7 +16,7 @@ class TrackingGui(ParamGui):
             value = parameters[key]
             if type(value) == list:
                 self.param_dict[key] = value
-        self.param_dict['frame'] = [0, 0, self.tracker.cap.num_frames, 1]
+        self.param_dict['frame'] = [0, 0, self.tracker.cap.num_frames-1, 1]
         self.update_slideable_parameters()
         return self.param_dict
 
