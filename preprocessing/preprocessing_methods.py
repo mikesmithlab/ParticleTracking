@@ -35,7 +35,39 @@ def crop_and_mask(frame, parameters):
     cropped_frame = images.crop_img(masked_frame, crop)
     return cropped_frame
 
-def variance(frame, parameters, bkg='img', norm=True):
+def subtract_bkg(frame, parameters):
+    '''
+        Send grayscale frame. Finds mean value of background and then returns
+        frame which is the absolute difference of each pixel from that value
+        normalise=True will set the largest difference to 255
+
+        :param frame:
+        :return:
+        '''
+    norm = parameters['subtract bkg norm']
+
+    if parameters['subtract bkg type'] == 'mean':
+        mean_val = int(np.mean(frame))
+        subtract_frame = mean_val * np.ones(np.shape(frame), dtype=np.uint8)
+    elif parameters['subtract bkg type'] == 'img':
+        print('test')
+        temp_params = {}
+        temp_params['blur kernel'] = parameters['subtract blur kernel'].copy()
+        # This option subtracts the previously created image which is added to dictionary.
+        subtract_frame = parameters['bkg_img']
+        frame = blur(frame, temp_params)
+        subtract_frame = blur(subtract_frame, temp_params)
+
+    frame = cv2.subtract(subtract_frame, frame)
+
+    if norm == True:
+        frame = cv2.normalize(frame, None, alpha=0, beta=255,
+                              norm_type=cv2.NORM_MINMAX)
+
+    return frame
+
+
+def variance(frame, parameters):
     '''
     Send grayscale frame. Finds mean value of background and then returns
     frame which is the absolute difference of each pixel from that value
@@ -44,17 +76,25 @@ def variance(frame, parameters, bkg='img', norm=True):
     :param frame:
     :return:
     '''
-    norm=True
-    if bkg == 'mean':
+    norm=parameters['variance bkg norm']
+
+    if parameters['variance type'] == 'mean':
         mean_val = int(np.mean(frame))
         subtract_frame = mean_val*np.ones(np.shape(frame), dtype=np.uint8)
-    elif bkg == 'img':
-        print('test')
+    elif parameters['variance type'] == 'img':
+        temp_params = {}
+        temp_params['blur kernel'] = parameters['variance blur kernel'].copy()
         #This option subtracts the previously created image which is added to dictionary.
         subtract_frame = parameters['bkg_img']
-    else:
+        frame = blur(frame, temp_params)
+        subtract_frame = blur(subtract_frame, temp_params)
+    elif parameters['variance type'] == 'zeros':
         subtract_frame = np.zeros(np.shape(frame))
-    frame = cv2.add(cv2.subtract(frame, subtract_frame), cv2.subtract(subtract_frame, frame))
+    frame1 = cv2.subtract(subtract_frame, frame)
+    frame1 = cv2.normalize(frame1, frame1 ,0,255,cv2.NORM_MINMAX)
+    frame2 = cv2.subtract(frame, subtract_frame)
+    frame2 = cv2.normalize(frame2, frame2,0,255,cv2.NORM_MINMAX)
+    frame = cv2.add(frame1, frame2)
     if norm == True:
         frame = cv2.normalize(frame, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
 
@@ -84,6 +124,10 @@ def blur(frame, parameters):
     kernel = parameters['blur kernel'][0]
     return images.gaussian_blur(frame, (kernel, kernel))
 
+def medianblur(frame, parameters):
+    print(parameters)
+    kernel = parameters['blur kernel'][0]
+    return images.median_blur(frame, kernel)
 
 def opening(frame, parameters):
     kernel = parameters['opening kernel'][0]
