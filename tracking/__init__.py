@@ -121,8 +121,7 @@ class ParticleTracker:
         frame = cap.read_next_frame()
         new_frame, _, _ = self.ip.process(frame)
         self.width, self.height = images.get_width_and_height(new_frame)
-        print(self.width)
-        print(self.height)
+
 
     def _track_process(self, group_number):
         """
