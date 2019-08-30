@@ -1,9 +1,10 @@
 from Generic import images, video
 from ParticleTracking.tracking import ParticleTracker
 from ParticleTracking import configurations, preprocessing
+import trackpy as tp
 
 
-class ExampleChild(ParticleTracker):
+class Trackpy_Track(ParticleTracker):
     """
     Example class for inheriting ParticleTracker
     """
@@ -22,10 +23,7 @@ class ExampleChild(ParticleTracker):
             If true performs tracking on multiple cores
         """
         self.tracking = tracking
-        self.parameters = configurations.EXAMPLE_CHILD_PARAMETERS
-        #If you want to use the variance method to subtract a bkg img use the following line
-        #The bkg image should be stored with the movie with same name + suffix = _bkgimg.png
-        #self.parameters['bkg_img'] = cv2.imread(filename[:-5] + '_bkgimg.png')]
+        self.parameters = configurations.TRACKPY_PARAMETERS
         self.ip = preprocessing.Preprocessor(self.parameters)
         self.input_filename = filename
         if self.tracking:
@@ -57,7 +55,7 @@ class ExampleChild(ParticleTracker):
         new_frame, boundary, cropped_frame = self.ip.process(frame)
 
         ### ONLY EDIT BETWEEN THESE COMMENTS
-        info =images.find_circles(
+        info =tp.locate(
             new_frame,
             self.parameters['min_dist'][0],
             self.parameters['p_1'][0],
@@ -89,5 +87,5 @@ class ExampleChild(ParticleTracker):
 if __name__ == "__main__":
     from Generic import filedialogs
     file = filedialogs.load_filename('Load a video')
-    tracker = ExampleChild(file, tracking=True, multiprocess=False)
+    tracker = Trackpy_Track(file, tracking=True, multiprocess=False)
     tracker.track()
