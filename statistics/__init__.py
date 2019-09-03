@@ -2,6 +2,7 @@ import os
 
 import dask.dataframe as dd
 import numpy as np
+import trackpy as tp
 from dask.diagnostics import ProgressBar
 from tqdm import tqdm
 
@@ -16,6 +17,11 @@ class PropertyCalculator:
     def __init__(self, datastore):
         self.data = datastore
         self.core_name = os.path.splitext(self.data.filename)[0]
+
+    def link(self, search_range=15, memory=3):
+        self.data.df = tp.link(self.data.df.reset_index(), search_range,
+                               memory=memory).set_index('frame')
+        self.data.save()
 
     def count(self):
         """
@@ -64,6 +70,20 @@ class PropertyCalculator:
                             .compute(scheduler='processes'))
         self.data.df['order'] = np.abs(
             self.data.df.order_r + 1j * self.data.df.order_i)
+        self.data.save()
+
+    def order_mean(self):
+        dask_data = dd.from_pandas(self.data.df, chunksize=10000)
+        meta = dask_data._meta.copy()
+        meta['order_r_mean'] = np.array([], dtype='float32')
+        meta['order_i_mean'] = np.array([], dtype='float32')
+        meta['neighbors_mean'] = np.array([], dtype='uint8')
+        with ProgressBar():
+            self.data.df = (dask_data.groupby('frame')
+                            .apply(order.order_process_mean, meta=meta)
+                            .compute(scheduler='processes'))
+        self.data.df['order_mean'] = np.abs(
+            self.data.df.order_r_mean + 1j * self.data.df.order_i_mean)
         self.data.save()
 
     def density(self):
@@ -192,15 +212,22 @@ class PropertyCalculator:
             freqs.append(n)
         return duty, bins, freqs
 
+    def rolling_coordinates(self):
+        group = self.data.df.groupby('particle')
+        rolled = group[['x', 'y']].rolling(window=10, min_periods=1).mean() \
+            .rename(columns={'x': 'x_mean', 'y': 'y_mean'})
+        self.data.df = self.data.df.merge(rolled, on=['particle', 'frame'])
+        self.data.save()
 
 
 if __name__ == "__main__":
     from ParticleTracking import dataframes, statistics
-    from Generic import filedialogs
 
-    file = filedialogs.load_filename()
-    # file = "/media/data/Data/July2019/RampsN29/15790009.hdf5"
+    # file = filedialogs.load_filename()
+    file = "/media/data/Data/August2019/N26_2300_particles_at_600/15890001 _test.hdf5"
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
-    duty, bins, freqs = calc.density_histogram_duties()
-    # calc.density()
+    # duty, bins, freqs = calc.density_histogram_duties()
+    # calc.rolling_coordinates()
+    # calc.order_mean()
+    calc.link()

@@ -12,6 +12,16 @@ def order_process(features, threshold=2.3):
     return features
 
 
+def order_process_mean(features, threshold=2.3):
+    points = features[['x_mean', 'y_mean', 'r']].values
+    threshold *= np.mean(points[:, 2])
+    orders, neighbors = order_and_neighbors(points[:, :2], threshold)
+    features['order_r_mean'] = np.real(orders).astype('float32')
+    features['order_i_mean'] = np.imag(orders).astype('float32')
+    features['neighbors_mean'] = neighbors
+    return features
+
+
 def order_and_neighbors(points, threshold):
     list_indices, point_indices = find_delaunay_indices(points)
     vectors = find_vectors(points, list_indices, point_indices)
