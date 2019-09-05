@@ -160,12 +160,17 @@ class DataStore:
         """Move frame index to column"""
         self.df = self.df.reset_index()
 
-    def save(self):
+    def save(self, filename=None):
         """Save HDFStore"""
         self.add_headings_to_metadata()
-        with pd.HDFStore(self.filename) as store:
-            store.put('df', self.df)
-            store.get_storer('df').attrs.metadata = self.metadata
+        if filename is None:
+            with pd.HDFStore(self.filename) as store:
+                store.put('df', self.df)
+                store.get_storer('df').attrs.metadata = self.metadata
+        else:
+            with pd.HDFStore(filename) as store:
+                store.put('df', self.df)
+                store.get_storer('df').attrs.metadata = self.metadata
 
     def add_headings_to_metadata(self):
         self.metadata['headings'] = self.headings
