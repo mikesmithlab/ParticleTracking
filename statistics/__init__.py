@@ -8,7 +8,7 @@ from scipy import spatial
 from tqdm import tqdm
 
 from ParticleTracking.statistics import order, voronoi_cells, \
-    correlations, level, edge_distance, histograms, duty
+    correlations, level, edge_distance, histograms, duty, order_6
 
 tqdm.pandas()
 
@@ -72,6 +72,20 @@ class PropertyCalculator:
         self.data.df['order'] = np.abs(
             self.data.df.order_r + 1j * self.data.df.order_i)
         self.data.save()
+
+    def order_nearest_6(self):
+        dask_data = dd.from_pandas(self.data.df, chunksize=10000)
+        meta = dask_data._meta.copy()
+        meta['order_r_nearest_6'] = np.array([], dtype='float32')
+        meta['order_i_nearest_6'] = np.array([], dtype='float32')
+        with ProgressBar():
+            self.data.df = (dask_data.groupby('frame')
+                            .apply(order_6.order_process, meta=meta)
+                            .compute(scheduler='processes'))
+        self.data.df['order_nearest_6'] = np.abs(
+            self.data.df.order_r_nearest_6 + 1j * self.data.df.order_i_nearest_6)
+        # self.data.save()
+
 
     def order_mean(self):
         dask_data = dd.from_pandas(self.data.df, chunksize=10000)
