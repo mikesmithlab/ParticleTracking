@@ -4,10 +4,11 @@ import dask.dataframe as dd
 import numpy as np
 import trackpy as tp
 from dask.diagnostics import ProgressBar
+from scipy import spatial
 from tqdm import tqdm
 
 from ParticleTracking.statistics import order, voronoi_cells, \
-    correlations, level, edge_distance, histograms, duty
+    correlations, level, edge_distance, histograms, duty, order_6
 
 tqdm.pandas()
 
@@ -71,6 +72,20 @@ class PropertyCalculator:
         self.data.df['order'] = np.abs(
             self.data.df.order_r + 1j * self.data.df.order_i)
         self.data.save()
+
+    def order_nearest_6(self):
+        dask_data = dd.from_pandas(self.data.df, chunksize=10000)
+        meta = dask_data._meta.copy()
+        meta['order_r_nearest_6'] = np.array([], dtype='float32')
+        meta['order_i_nearest_6'] = np.array([], dtype='float32')
+        with ProgressBar():
+            self.data.df = (dask_data.groupby('frame')
+                            .apply(order_6.order_process, meta=meta)
+                            .compute(scheduler='processes'))
+        self.data.df['order_nearest_6'] = np.abs(
+            self.data.df.order_r_nearest_6 + 1j * self.data.df.order_i_nearest_6)
+        # self.data.save()
+
 
     def order_mean(self):
         dask_data = dd.from_pandas(self.data.df, chunksize=10000)
@@ -219,15 +234,28 @@ class PropertyCalculator:
         self.data.df = self.data.df.merge(rolled, on=['particle', 'frame'])
         self.data.save()
 
+    def average_distance_to_nearest(self, n=6):
+        def function(feat, n):
+            pos = feat[['x', 'y']].values
+            tree = spatial.cKDTree(pos)
+            dists, _ = tree.query(pos, k=n)
+            feat['average_distance_{}_nearest'.format(n)] = np.mean(dists,
+                                                                    axis=1)
+            return feat
+
+        self.data.df = self.data.df.groupby('frame').apply(function, n)
+        self.data.save()
+
 
 if __name__ == "__main__":
     from ParticleTracking import dataframes, statistics
+    from Generic import filedialogs
 
-    # file = filedialogs.load_filename()
-    file = "/media/data/Data/August2019/N26_2300_particles_at_600/15890001 _test.hdf5"
+    file = filedialogs.load_filename()
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
     # duty, bins, freqs = calc.density_histogram_duties()
     # calc.rolling_coordinates()
     # calc.order_mean()
-    calc.link()
+    # calc.link()
+    calc.average_distance_to_nearest(6)
