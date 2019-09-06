@@ -41,7 +41,7 @@ class ParticleTracker:
 
     """
 
-    def __init__(self, multiprocess=False):
+    def __init__(self, multiprocess=False, link_traj=True):
         """
 
         Parameters
@@ -69,6 +69,7 @@ class ParticleTracker:
         self.data_filename = self.filename + '.hdf5'
         cpus = mp.cpu_count()
         self.num_processes = cpus // 2 if self.multiprocess else 1
+        self.link_traj=link_traj
 
 
     def track(self):
@@ -78,7 +79,8 @@ class ParticleTracker:
             self._track_multiprocess()
         else:
             self._track_process(0)
-        self._link_trajectories()
+        if self.link_traj:
+            self._link_trajectories()
         self.save_crop()
         self.extra_steps()
 
@@ -233,7 +235,6 @@ class ParticleTracker2:
             map(self.analyse_frame, tqdm(frames, total=cap.num_frames))
         self.data = self.data.set_index('frame')
         self.data = self.data.sort_index()
-        print(self.data.head())
         # print(len(np.unique(self.data.particle_data.frame)))
         # self._link_trajectories()
         # self.extra_steps()
@@ -289,3 +290,7 @@ class ParticleTracker2:
         frame = cap.read_next_frame()
         new_frame, _, _ = self.ip.process(frame)
         self.width, self.height = images.get_width_and_height(new_frame)
+
+
+
+
