@@ -246,16 +246,37 @@ class PropertyCalculator:
         self.data.df = self.data.df.groupby('frame').apply(function, n)
         self.data.save()
 
+    def displacement(self):
+        df = self.data.df.reset_index()
+
+        def function(feat):
+            frame = feat.index.tolist()[0]
+            if frame == 0:
+                feat['dx'] = 0
+                feat['dy'] = 0
+                feat['dr'] = 0
+                feat['direction'] = 0
+            else:
+                related_frames = tp.relate_frames(df, frame - 1, frame) \
+                    .reset_index()[['dx', 'dy', 'dr', 'direction', 'particle']]
+                feat = feat.reset_index('frame').merge(related_frames,
+                                                       on='particle').set_index(
+                    'frame')
+            return feat
+
+        self.data.df = self.data.df.groupby('frame', group_keys=False).apply(
+            function)
+        self.data.save()
 
 if __name__ == "__main__":
     from ParticleTracking import dataframes, statistics
-    from Generic import filedialogs
 
-    file = filedialogs.load_filename()
+    file = "/media/data/Data/September2019/CooledRepeats2300At775/Sample/15970001.hdf5"
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)
     # duty, bins, freqs = calc.density_histogram_duties()
     # calc.rolling_coordinates()
     # calc.order_mean()
     # calc.link()
-    calc.average_distance_to_nearest(6)
+    # calc.average_distance_to_nearest(6)
+    calc.displacement()
