@@ -10,7 +10,18 @@ class TrackingAnnotator(video.Annotator):
         self.params = params
         video.Annotator.__init__(self, in_name, out_name)
 
+    def _draw_circles(self, frame, f, param=None):
+        if param is None:
+            info = self.data.get_info(f, ['x', 'y', 'r'])
+        else:
+            info = self.data.get_info(f, ['x', 'y', 'r'])
+
+        #info = info[:, :3] if self.parameter == 'particle' else info
+        annotated_frame = images.pygame_draw_circles(frame, info)
+        return annotated_frame
+
     def _draw_boxes(self, frame, f):
+        #Requires a column classifying traj with corresponding colour
         box = self.data.get_info(f, 'box')
         classifiers = self.data.get_info(f,'classifier')
         for index, classifier in enumerate(classifiers):
