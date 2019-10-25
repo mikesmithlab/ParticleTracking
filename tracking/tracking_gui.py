@@ -24,11 +24,11 @@ class TrackingGui(ParamGui):
         parameters = self.tracker.parameters
         for key in self.param_dict:
             parameters[key] = self.param_dict[key]
-        self.tracker.update_parameters(parameters)
+        #self.tracker.update_parameters(parameters)
 
     def update(self):
         self.update_slideable_parameters()
-        new_frame, annotated_frame = self.tracker.analyse_frame()
+        new_frame, annotated_frame = self.tracker.process(self.param_dict[0])
         self._display_img(new_frame, annotated_frame)
 
 

@@ -1,6 +1,6 @@
 from Generic import images, video
 from ParticleTracking.tracking import ParticleTracker
-from ParticleTracking import configurations, preprocessing
+from ParticleTracking import configurations, preprocessing, postprocessing
 import trackpy as tp
 
 
@@ -23,17 +23,17 @@ class Hydrogel(ParticleTracker):
             If true performs tracking on multiple cores
         """
         self.tracking = tracking
-        self.parameters = configurations.EXAMPLE_CHILD_PARAMETERS
-        #If you want to use the variance method to subtract a bkg img use the following line
-        #The bkg image should be stored with the movie with same name + suffix = _bkgimg.png
-        #self.parameters['bkg_img'] = cv2.imread(filename[:-5] + '_bkgimg.png')]
+        self.parameters = configurations.HYDROGEL_PARAMETERS
+
         self.ip = preprocessing.Preprocessor(self.parameters)
+
         self.input_filename = filename
         if self.tracking:
             ParticleTracker.__init__(self, multiprocess=multiprocess)
         else:
             self.cap = video.ReadVideo(self.input_filename)
             self.frame = self.cap.read_next_frame()
+            self.pp = postprocessing.PostProcessor(self.parameters)
 
     def analyse_frame(self):
         """
@@ -60,16 +60,16 @@ class Hydrogel(ParticleTracker):
         ### ONLY EDIT BETWEEN THESE COMMENTS
 
 
-        info_headings = ['x', 'y', 'r']
+
         ### ONLY EDIT BETWEEN THESE COMMENTS
         if self.tracking:
             #return info, boundary, info_headings
             pass
         else:
             # THIS NEXT LINE CAN BE EDITED TOO
-            #annotated_frame = self._draw_circles(new_frame, info )
-            #return new_frame, annotated_frame
-            pass
+            #annotated_frame = self.annotate.process(frame)#draw_circles(new_frame, info )
+            return new_frame, new_frame
+
 
     def extra_steps(self):
         """
@@ -91,9 +91,9 @@ class Hydrogel(ParticleTracker):
 if __name__ == "__main__":
     from Generic import filedialogs
     from ParticleTracking.tracking.tracking_gui import TrackingGui
-    file = filedialogs.load_filename('Load a video')
+    #file = filedialogs.load_filename('Load a video')
+    file='/home/mike/Documents/HydrogelTest.m4v'
     tracker = Hydrogel(file, tracking=False, multiprocess=False)
-    
     TrackingGui(tracker)
     
     

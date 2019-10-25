@@ -186,8 +186,6 @@ HYDROGEL_PARAMETERS = {
     'adaptive threshold block size': [61, 3, 101, 2],
     'adaptive threshold C': [-17, -30, 30, 1],
     'adaptive threshold mode': [0, 0, 1, 1],
-    'diameter': [10, 0, 500, 2],
-    'separation': [1, 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         , 1000, 1],
     'max frame displacement': 50,
     'min frame life': 1,
     'memory': 3,
