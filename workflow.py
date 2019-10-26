@@ -2,10 +2,14 @@ from Generic.video import ReadVideo
 from ParticleTracking import tracking, configurations, preprocessing, postprocessing,annotation, linking
 from ParticleTracking import dataframes
 import os.path
+import numpy as np
 
 PARAMETERS = {
     'crop method': 'no_crop',
-    'preprocessor methods': ('grayscale','adaptive_threshold'),
+    'preprocessor method': ('grayscale','adaptive_threshold'),
+    'tracking method':'distance transform',
+    'postprocessor method': '',
+    'annotation method': '',
     'adaptive threshold block size': [61, 3, 101, 2],
     'adaptive threshold C': [-17, -30, 30, 1],
     'adaptive threshold mode': [0, 0, 1, 1],
@@ -73,29 +77,30 @@ class Tracking:
     def _setup(self):
         '''Create classes that will be used'''
         self.cap = ReadVideo(filename=self.video_filename)
-        if self.preprocess_select or self.track_select or self.annotate_select:
-            self.frame=self.cap.read_next_frame()
+        self.frame=self.cap.read_next_frame()
 
         #if self.crop_select:
         #
         if self.preprocess_select:
-            self.ip = preprocessing.Preprocessor(self.parameters)
+            self.ip = preprocessing.Preprocessor(self.parameters, self.cap)
+
         if self.track_select:
-            self.pt = tracking.ParticleTracker()
+            self.pt = tracking.ParticleTracker(vidobject=self.cap, preprocessor=self.ip, data_filename=self.data_filename)
         if self.link_select:
             self.link = linking.LinkTrajectory(data_filename=self.data_filename, parameters=self.parameters)
         if self.postprocess_select:
-            self.pp = postprocessing.PostProcessor()
+            self.pp = postprocessing.PostProcessor(data_filename=self.data_filename)
         if self.annotate_select:
-            self.an = annotation.TrackingAnnotator()
+            self.an = annotation.TrackingAnnotator(vidobject=self.cap, data_filename=self.data_filename)
 
     def preprocess(self):
-        pass
+        frame, self.boundary, cropped_frame=self.ip.process()
 
     def track(self):
-        pass
+        self.pt.track()
 
     def link(self):
+        pass
 
     def postprocess(self):
         pass
@@ -106,6 +111,8 @@ class Tracking:
     def process(self,start=None,stop=None):
         self.start=start
         self.stop=stop
+        frame = self.cap.read_next_frame()
+        new_frame, boundary, cropped_frame = self.ip.process(frame)
 
         if self.preprocess_select:
             self.preprocess()
@@ -116,6 +123,25 @@ class Tracking:
         if self.annotate_select:
             self.annotate()
 
+    def process_frame(self, frame_num):
+        frame=self.cap.find_frame(frame_num)
+        if self.preprocess_select:
+            newframe,_,_=self.ip.process(frame)
+            print(np.shape(newframe))
+        else:
+            newframe=frame
+        if self.track_select:
+            self.pt.track()
+        if self.postprocess_select:
+            self.pp
+        if self.annotate_select:
+            annotatedframe=self.ip
+        else:
+            annotatedframe=frame
+            print(np.shape(annotatedframe))
+        return newframe, annotatedframe
+
+
 
 class Tracking_Daughter(Tracking):
     def __init__(self, video_filename=None):
@@ -123,7 +149,7 @@ class Tracking_Daughter(Tracking):
 
         Tracking.__init__(self, video_filename=video_filename)
 
-        self.preprocess_select = True
+        self.preprocess_select = False
         self.track_select = False
         self.postprocess_select = False
         self.annotate_select = False
@@ -132,8 +158,7 @@ class Tracking_Daughter(Tracking):
 
         self._setup()
 
-    def process_frame(self, frame_num):
-        self.process(start=frame_num,stop=frame_num)
+
 
 
 

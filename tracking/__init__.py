@@ -9,6 +9,7 @@ import time
 
 from Generic import images, video
 from ParticleTracking import dataframes
+from ParticleTracking.tracking import tracking_methods as tm
 
 
 class ParticleTracker:
@@ -41,7 +42,7 @@ class ParticleTracker:
 
     """
 
-    def __init__(self, multiprocess=False, link_traj=True):
+    def __init__(self, vidobject=None, preprocessor=None, data_filename=None, multiprocess=False):
         """
 
         Parameters
@@ -64,23 +65,23 @@ class ParticleTracker:
             'auto': Automatically crop around blue hexagon
             'manual': Manually select cropping points
         """
-        self.filename = os.path.splitext(self.input_filename)[0]
-        self.multiprocess = multiprocess
-        self.data_filename = self.filename + '.hdf5'
-        cpus = mp.cpu_count()
-        self.num_processes = cpus // 2 if self.multiprocess else 1
-        self.link_traj=link_traj
-
-
-    def track(self):
-        """Call this to start tracking"""
+        self.filename = os.path.splitext(vidobject.filename)[0]
+        self.cap=vidobject
+        self.ip=preprocessor
         self._get_video_info()
+
+        cpus = mp.cpu_count()
+        self.multiprocess = multiprocess
+        self.num_processes = cpus // 2 if self.multiprocess else 1
+
+
+    def track(self, f_index=None):
+        """Call this to start tracking"""
+
         if self.multiprocess:
             self._track_multiprocess()
         else:
-            self._track_process(0)
-        if self.link_traj:
-            self._link_trajectories()
+            self._track_process(0, f_index=f_index)
         self.save_crop()
         self.extra_steps()
 
@@ -116,16 +117,17 @@ class ParticleTracker:
         self.duty_cycle: ndarray
             duty cycles for each frame in the video
         """
-        cap = video.ReadVideo(self.input_filename)
-        self.num_frames = cap.num_frames
+
+        self.num_frames = self.cap.num_frames
         self.frame_div = self.num_frames // self.num_processes
-        self.fps = cap.fps
-        frame = cap.read_next_frame()
+        self.fps = self.cap.fps
+        frame = self.cap.read_next_frame()
         new_frame, _, _ = self.ip.process(frame)
-        self.width, self.height = images.get_width_and_height(new_frame)
+        self.width = self.cap.width
+        self.height = self.cap.height
 
 
-    def _track_process(self, group_number):
+    def _track_process(self, group_number, f_index=None):
         """
         Method called by track.
 
@@ -142,8 +144,11 @@ class ParticleTracker:
         with dataframes.DataStore(data_name, load=False) as data:
             data.add_metadata('number_of_frames', self.num_frames)
             data.add_metadata('video_filename', self.input_filename)
-            start = self.frame_div * group_number
-            self.cap = video.ReadVideo(self.input_filename)
+            if f_index is None:
+                start = self.frame_div * group_number
+            else:
+                start=f_index
+
             self.cap.set_frame(start)
             if group_number == 3:
                 missing = self.num_frames - 4*(self.num_frames//4)
@@ -157,6 +162,19 @@ class ParticleTracker:
                 if f == 0:
                     data.add_metadata('boundary', boundary)
 
+    def analyse_frame(self):
+
+        for method in self.parameters['tracking method']:
+            # Use function in preprocessing_methods
+            frame = self.cap.read_next_frame()
+            info, boundary, info_headings = getattr(tm, method)(self.ip.process(frame), self.parameters)
+
+        self.calls += 1
+        if self.return_all:
+            return frame, self.boundary, cropped_frame
+        else:
+            return frame
+
     def _cleanup_intermediate_dataframes(self):
         """Concatenates and removes intermediate dataframes"""
         dataframe_list = ["{}.hdf5".format(i) for i in
@@ -165,21 +183,6 @@ class ParticleTracker:
                                          self.data_filename)
         for file in dataframe_list:
             os.remove(file)
-
-    def _link_trajectories(self):
-        """Implements the trackpy functions link_df and filter_stubs"""
-        # Reload DataStore
-        with dataframes.DataStore(self.data_filename) as data:
-            # Trackpy methods
-            data.reset_index()
-            data.df = trackpy.link_df(
-                    data.df,
-                    self.parameters['max frame displacement'],
-                    memory=self.parameters['memory'])
-
-            data.df = trackpy.filter_stubs(
-                data.df, self.parameters['min frame life'])
-            data.set_frame_index()
 
     def update_parameters(self, parameters):
         self.parameters = parameters
@@ -249,19 +252,6 @@ class ParticleTracker2:
         f = data[1]
         self.data.add_tracking_data(f, circles, self.headings)
 
-
-    def _link_trajectories(self):
-        """Implements the trackpy functions link_df and filter_stubs"""
-        # Trackpy methods
-        self.data.particle_data = trackpy.link_df(
-            self.data.particle_data,
-            self.parameters['max frame displacement'],
-            memory=self.parameters['memory'])
-        self.data.particle_data = trackpy.filter_stubs(
-            self.data.particle_data, self.parameters['min frame life'])
-
-        # Save DataStore
-        self.data.save()
 
     def extra_steps(self):
         pass

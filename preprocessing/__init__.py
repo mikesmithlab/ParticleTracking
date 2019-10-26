@@ -52,7 +52,7 @@ class Preprocessor:
 
     """
 
-    def __init__(self, parameters, return_all=True):
+    def __init__(self, parameters, cap, return_all=True):
         """
         Parameters
         ----------
@@ -70,6 +70,8 @@ class Preprocessor:
             If 'blue hex' then uses auto crop function
             If 'manual' then uses manual crop function
         """
+        self.cap = cap
+
         self.parameters = parameters
         self.crop_method = self.parameters['crop method']
         self.mask_img = np.array([])
@@ -111,9 +113,12 @@ class Preprocessor:
 
         # Perform each method in the method list
         cropped_frame = frame.copy()
-        for method in self.parameters['method']:
+
+        for method in self.parameters['preprocessor method']:
             # Use function in preprocessing_methods
             frame = getattr(pm, method)(frame, self.parameters)
+            print('here')
+            print(np.shape(frame))
             if method == 'crop_and_mask':
                 cropped_frame = frame.copy()
         self.calls += 1
