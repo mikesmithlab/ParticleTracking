@@ -2,59 +2,45 @@ from Generic import video, images
 import cv2
 from cv2 import FONT_HERSHEY_PLAIN as font
 import numpy as np
+from ParticleTracking.annotation import annotation_methods as am
 import timeit
+from tqdm import tqdm
+from ParticleTracking import dataframes
 
-class TrackingAnnotator(video.Annotator):
+class TrackingAnnotator:#video.Annotator):
 
-    def __init__(self, in_name, out_name, params):
-        self.params = params
-        video.Annotator.__init__(self, in_name, out_name)
+    def __init__(self, parameters=None, vidobject=None, data_filename=None, bitrate='HIGH1080', framerate=50):
+        self.parameters = parameters
+        self.cap = vidobject
+        self.data_filename=data_filename
+        self.output_filename = self.cap.filename[:-4] + '_annotate.mp4'
+        self.out = video.WriteVideoFFMPEG(self.output_filename,
+                                          bitrate=bitrate, framerate=framerate)
 
-    def _draw_circles(self, frame, f, param=None):
-        if param is None:
-            info = self.data.get_info(f, ['x', 'y', 'r'])
-        else:
-            info = self.data.get_info(f, ['x', 'y', 'r'])
+    def annotate(self, f_index=None):
+        self._annotate_process(f_index=f_index)
 
-        #info = info[:, :3] if self.parameter == 'particle' else info
-        annotated_frame = images.pygame_draw_circles(frame, info)
-        return annotated_frame
+    def _annotate_process(self, f_index=None):
+        with dataframes.DataStore(self.data_filename, load=True) as data:
+            if f_index is None:
+                start=0
+                stop=self.cap.num_frames
+            else:
+                start=f_index
+                stop=f_index+1
+            self.cap.set_frame(start)
 
-    def _draw_boxes(self, frame, f):
-        #Requires a column classifying traj with corresponding colour
-        box = self.data.get_info(f, 'box')
-        classifiers = self.data.get_info(f,'classifier')
-        for index, classifier in enumerate(classifiers):
-            annotated_frame = images.draw_contours(frame, [
-                    box[index]], col=self.params['colors'][classifier], thickness=self.params['contour thickness'])
-        return annotated_frame
-    
+            for f in tqdm(range(start, stop, 1), 'Annotating'):
+                frame = self.cap.read_next_frame()
+                for method in self.parameters['annotation method']:
+                    # Use function in preprocessing_methods
+                    frame = getattr(am, method)(frame, data, f, self.parameters)
+                if f_index is None:
+                    self.out.add_frame(frame)
+            if f_index is None:
+                self.out.close()
+            else:
+                return frame
 
-    def _add_number(self, frame, f, colx='x', coly='y'):
-        #This can only be run on a linked trajectory
-        box = self.data.get_info(f, 'box')
 
-        x = self.data.get_info(f, colx)
-        y = self.data.get_info(f, coly)
-        particles = self.data.get_info(f, 'particle')
-        classifiers = self.data.get_info(f, 'classifier')
-
-        for index, classifier in enumerate(classifiers):
-            frame = cv2.putText(frame, str(int(particles[index])), (int(x[index]), int(y[index])), font, self.params['font size'], self.params['colors'][classifier], 1, cv2.LINE_AA)
-
-        return frame
-
-    def _draw_trajs(self, frame, f, colx='x',coly='y'):
-        df = self.data.df
-        #This can only be run on a linked trajectory
-        particle_ids = self.data.get_info(f, 'particle')
-
-        df_temp=df[df['particle'].isin(particle_ids)]
-        df_temp2 = df_temp[df_temp.index <= f]
-        for index, particle in enumerate(particle_ids):
-            traj_pts= df_temp2[df_temp2['particle'] == particle][[colx, coly,'classifier']]
-            frame = cv2.polylines(frame, np.int32([traj_pts[[colx,coly]].values]), False,
-                                  self.params['colors'][traj_pts['classifier'].median()],
-                                  self.params['trajectory thickness'])
-        return frame
 

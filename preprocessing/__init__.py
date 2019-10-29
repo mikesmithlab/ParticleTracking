@@ -117,8 +117,6 @@ class Preprocessor:
         for method in self.parameters['preprocessor method']:
             # Use function in preprocessing_methods
             frame = getattr(pm, method)(frame, self.parameters)
-            print('here')
-            print(np.shape(frame))
             if method == 'crop_and_mask':
                 cropped_frame = frame.copy()
         self.calls += 1

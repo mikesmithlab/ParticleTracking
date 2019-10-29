@@ -8,6 +8,7 @@ from tqdm import tqdm
 import time
 
 from Generic import images, video
+from Generic.images.basics import display
 from ParticleTracking import dataframes
 from ParticleTracking.tracking import tracking_methods as tm
 
@@ -42,7 +43,7 @@ class ParticleTracker:
 
     """
 
-    def __init__(self, vidobject=None, preprocessor=None, data_filename=None, multiprocess=False):
+    def __init__(self, parameters=None, preprocessor=None, vidobject=None, data_filename=None, multiprocess=False):
         """
 
         Parameters
@@ -66,9 +67,10 @@ class ParticleTracker:
             'manual': Manually select cropping points
         """
         self.filename = os.path.splitext(vidobject.filename)[0]
+        self.parameters=parameters
+        self.ip = preprocessor
         self.cap=vidobject
-        self.ip=preprocessor
-        self._get_video_info()
+        self.data_filename = self.filename + '.hdf5'
 
         cpus = mp.cpu_count()
         self.multiprocess = multiprocess
@@ -81,8 +83,11 @@ class ParticleTracker:
         if self.multiprocess:
             self._track_multiprocess()
         else:
+            print('here')
+            print(f_index)
             self._track_process(0, f_index=f_index)
-        self.save_crop()
+
+        #self.save_crop()
         self.extra_steps()
 
     def save_crop(self):
@@ -100,6 +105,66 @@ class ParticleTracker:
         p.close()
         p.join()
         self._cleanup_intermediate_dataframes()
+
+
+
+    def _track_process(self, group_number, f_index=None):
+        """
+        Method called by track.
+
+        If not using multiprocess call with group number 0
+
+        Parameters
+        ----------
+        group_number: int
+            Sets the group number for multiprocessing to split the input.
+        """
+        # Create the DataStore instance
+        data_name = (str(group_number) + '.hdf5'
+                     if self.multiprocess else self.data_filename)
+        with dataframes.DataStore(data_name, load=False) as data:
+            data.add_metadata('number_of_frames', self.cap.num_frames)
+            data.add_metadata('video_filename', self.cap.filename)
+            if f_index is None:
+                start=0
+                stop=self.cap.num_frames
+                #start = self.frame_div * group_number
+            else:
+                start=f_index
+                stop=f_index + 1
+
+            self.cap.set_frame(start)
+            '''
+            if group_number == 3:
+                missing = self.cap.num_frames - 4*(self.cap.num_frames//4)
+                frame_div = self.frame_div + missing
+            else:
+                frame_div = self.frame_div
+            '''
+
+            # Iterate over frames
+            for f in tqdm(range(start, stop, 1), 'Tracking'):
+                #info, boundary, info_headings = self.analyse_frame()
+                df_frame = self.analyse_frame()
+                data.add_tracking_data(f, df_frame)
+                #data.add_tracking_data(start + f, info, col_names=info_headings)
+                #if f == 0:
+                #    data.add_metadata('boundary', boundary)
+            data.save(filename=self.data_filename)
+
+
+    def analyse_frame(self):
+        frame = self.cap.read_next_frame()
+        for method in self.parameters['tracking method']:
+            # Use function in preprocessing_methods
+
+            if self.ip is None:
+                preprocessed_frame = frame
+            else:
+                preprocessed_frame,_,_ = self.ip.process(frame)
+            #info, boundary, info_headings = getattr(tm, method)(preprocessed_frame, self.parameters)
+            df_frame = getattr(tm, method)(preprocessed_frame, self.parameters)
+            return df_frame #info, boundary, info_headings
 
     def _get_video_info(self):
         """
@@ -123,57 +188,6 @@ class ParticleTracker:
         self.fps = self.cap.fps
         frame = self.cap.read_next_frame()
         new_frame, _, _ = self.ip.process(frame)
-        self.width = self.cap.width
-        self.height = self.cap.height
-
-
-    def _track_process(self, group_number, f_index=None):
-        """
-        Method called by track.
-
-        If not using multiprocess call with group number 0
-
-        Parameters
-        ----------
-        group_number: int
-            Sets the group number for multiprocessing to split the input.
-        """
-        # Create the DataStore instance
-        data_name = (str(group_number) + '.hdf5'
-                     if self.multiprocess else self.data_filename)
-        with dataframes.DataStore(data_name, load=False) as data:
-            data.add_metadata('number_of_frames', self.num_frames)
-            data.add_metadata('video_filename', self.input_filename)
-            if f_index is None:
-                start = self.frame_div * group_number
-            else:
-                start=f_index
-
-            self.cap.set_frame(start)
-            if group_number == 3:
-                missing = self.num_frames - 4*(self.num_frames//4)
-                frame_div = self.frame_div + missing
-            else:
-                frame_div = self.frame_div
-            # Iterate over frames
-            for f in tqdm(range(frame_div), 'Tracking'):
-                info, boundary, info_headings = self.analyse_frame()
-                data.add_tracking_data(start + f, info, col_names=info_headings)
-                if f == 0:
-                    data.add_metadata('boundary', boundary)
-
-    def analyse_frame(self):
-
-        for method in self.parameters['tracking method']:
-            # Use function in preprocessing_methods
-            frame = self.cap.read_next_frame()
-            info, boundary, info_headings = getattr(tm, method)(self.ip.process(frame), self.parameters)
-
-        self.calls += 1
-        if self.return_all:
-            return frame, self.boundary, cropped_frame
-        else:
-            return frame
 
     def _cleanup_intermediate_dataframes(self):
         """Concatenates and removes intermediate dataframes"""
@@ -215,7 +229,6 @@ class ParticleTracker2:
     #     # print(self.data.inspect_dataframes())
 
     def track(self):
-        self._get_video_info()
         cap = video.ReadVideo(self.input_filename)
         # self.data = dataframes.DataStore(self.data_filename, load=False)
         frames = cap.frames()
@@ -279,7 +292,7 @@ class ParticleTracker2:
         self.fps = cap.fps
         frame = cap.read_next_frame()
         new_frame, _, _ = self.ip.process(frame)
-        self.width, self.height = images.get_width_and_height(new_frame)
+
 
 
 
