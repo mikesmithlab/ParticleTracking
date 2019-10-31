@@ -13,24 +13,33 @@ class TrackingGui(ParamGui):
     def read_slideable_parameters(self):
         parameters = self.tracker.parameters
         self.param_dict = {}
-        for key in parameters:
-            value = parameters[key]
-            if type(value) == list:
-                self.param_dict[key] = value
+        for paramsubsetkey in parameters:
+            paramsubset = parameters[paramsubsetkey]
+            for key in paramsubset:
+                value = paramsubset[key]
+                if type(value) == list:
+                    self.param_dict[key] = value
         self.param_dict['frame'] = [0, 0, self.tracker.cap.num_frames-1, 1]
         self.update_slideable_parameters()
         return self.param_dict
 
     def update_slideable_parameters(self):
         parameters = self.tracker.parameters
-        for key in self.param_dict:
-            parameters[key] = self.param_dict[key]
+        for paramsubsetkey in parameters:
+            paramsubset = parameters[paramsubsetkey]
+
+            for key in paramsubset:
+                paramsubset[key] = self.param_dict[key]
         #self.tracker.update_parameters(parameters)
 
     def update(self):
         self.update_slideable_parameters()
         new_frame, annotated_frame = self.tracker.process_frame(self.param_dict['frame'][0])
-        self._display_img(stack_3(new_frame), annotated_frame)
+        if np.size(np.shape(new_frame)) == 2:
+            new_frame = stack_3(new_frame)
+        if np.size(np.shape(annotated_frame)) == 2:
+            annotated_frame = stack_3(annotated_frame)
+        self._display_img(new_frame, annotated_frame)
 
 
 if __name__ == "__main__":

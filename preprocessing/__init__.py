@@ -73,9 +73,9 @@ class Preprocessor:
         self.cap = cap
 
         self.parameters = parameters
-        self.crop_method = self.parameters['crop method']
+        #self.crop_method = self.parameters['crop method']
         self.mask_img = np.array([])
-        self.crop = []
+        #self.crop = []
         self.boundary = None
         self.return_all = return_all
 
@@ -105,11 +105,11 @@ class Preprocessor:
         """
 
         # Find the crop for the first frame
-        if self.calls == 0:
-            self.crop, self.mask_img, self.boundary = \
-                getattr(pc, self.parameters['crop method'])(frame)
-            self.parameters['crop'] = self.crop
-            self.parameters['mask image'] = self.mask_img
+        #if self.calls == 0:
+            #self.crop, self.mask_img, self.boundary = \
+            #    getattr(pc, self.parameters['crop method'])(frame)
+            #self.parameters['crop'] = self.crop
+            #self.parameters['mask image'] = self.mask_img
 
         # Perform each method in the method list
         cropped_frame = frame.copy()
@@ -117,10 +117,10 @@ class Preprocessor:
         for method in self.parameters['preprocessor method']:
             # Use function in preprocessing_methods
             frame = getattr(pm, method)(frame, self.parameters)
-            if method == 'crop_and_mask':
-                cropped_frame = frame.copy()
+            #if method == 'crop_and_mask':
+            #    cropped_frame = frame.copy()
         self.calls += 1
         if self.return_all:
-            return frame, self.boundary, cropped_frame
+            return frame, frame, frame#self.boundary, cropped_frame
         else:
             return frame
