@@ -8,10 +8,13 @@ PARAMETERS = {
     'crop method': 'no_crop',
     'preprocessor method': ('grayscale','adaptive_threshold'),
     'tracking method':('trackpy',),#track_big_blob',),
-    'trackpy:size estimate':[11,1, 101,2],
+    'trackpy:size estimate':[5,1, 101,2],
     'trackpy:invert':[0,0,1,1],
     'postprocessor method': '',
     'annotation method': ('_draw_circles',),
+    'circle:radius':10,
+    'circle:cmap':(0,0,255),
+    'circle:thickness':2,
     'adaptive threshold block size': [81, 3, 101, 2],
     'adaptive threshold C': [12, -30, 30, 1],
     'adaptive threshold mode': [1, 0, 1, 1],
@@ -111,22 +114,17 @@ class Tracking:
     def annotate(self):
         pass
 
-    def process(self,start=None,stop=None):
-        self.start=start
-        self.stop=stop
-        frame = self.cap.read_next_frame()
-        new_frame, boundary, cropped_frame = self.ip.process(frame)
-
-        if self.preprocess_select:
-            self.preprocess()
+    def process(self):
         if self.track_select:
-            self.track()
+            self.pt.track()
         if self.postprocess_select:
-            self.postprocess()
+            self.pp
         if self.annotate_select:
-            self.annotate()
+            self.an.annotate()
+
 
     def process_frame(self, frame_num):
+        #For use with the TrackingGui
         frame=self.cap.find_frame(frame_num)
         if self.preprocess_select:
             newframe,_,_=self.ip.process(frame)
@@ -167,5 +165,5 @@ if '__main__' == __name__:
     from ParticleTracking.tracking.tracking_gui import TrackingGui
 
     track = Tracking_Daughter(video_filename='/home/mike/Documents/HydrogelTest.m4v')
-    #track.process()
-    TrackingGui(track)
+    track.process()
+    #TrackingGui(track)

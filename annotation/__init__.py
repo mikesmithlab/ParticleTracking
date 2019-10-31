@@ -18,9 +18,6 @@ class TrackingAnnotator:#video.Annotator):
                                           bitrate=bitrate, framerate=framerate)
 
     def annotate(self, f_index=None):
-        self._annotate_process(f_index=f_index)
-
-    def _annotate_process(self, f_index=None):
         with dataframes.DataStore(self.data_filename, load=True) as data:
             if f_index is None:
                 start=0
@@ -32,6 +29,7 @@ class TrackingAnnotator:#video.Annotator):
 
             for f in tqdm(range(start, stop, 1), 'Annotating'):
                 frame = self.cap.read_next_frame()
+
                 for method in self.parameters['annotation method']:
                     # Use function in preprocessing_methods
                     frame = getattr(am, method)(frame, data, f, self.parameters)

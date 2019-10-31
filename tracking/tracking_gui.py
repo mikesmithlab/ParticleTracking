@@ -1,5 +1,6 @@
 from Generic.images import ParamGui
-
+from Generic.images.basics import stack_3
+import numpy as np
 
 class TrackingGui(ParamGui):
 
@@ -29,7 +30,7 @@ class TrackingGui(ParamGui):
     def update(self):
         self.update_slideable_parameters()
         new_frame, annotated_frame = self.tracker.process_frame(self.param_dict['frame'][0])
-        self._display_img(new_frame, annotated_frame)
+        self._display_img(stack_3(new_frame), annotated_frame)
 
 
 if __name__ == "__main__":

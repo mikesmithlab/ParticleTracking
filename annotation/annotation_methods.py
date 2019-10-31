@@ -3,12 +3,15 @@ from Generic import images
 import cv2
 
 
-def _draw_circles(frame, data, f, param=None, default_r=15):
+def _draw_circles(frame, data, f, parameters=None):
     if 'r' not in list(data.df.columns):
-        data.add_particle_property('r', default_r)
-    info = data.get_info(f, ['x', 'y', 'r'])
-    annotated_frame = images.pygame_draw_circles(frame, info)
-    return annotated_frame
+        data.add_particle_property('r', parameters['circle:radius'])
+    colour = parameters['circle:cmap']
+    thickness = parameters['circle:thickness']
+    circles = data.get_info(f, ['x', 'y', 'r'])
+    for circle in circles:
+        frame = cv2.circle(frame, (int(circle[0]), int(circle[1])), int(circle[2]), colour, thickness)
+    return frame
 
 def _draw_boxes(self, frame, f):
     #Requires a column classifying traj with corresponding colour
