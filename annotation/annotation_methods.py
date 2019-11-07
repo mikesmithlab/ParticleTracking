@@ -5,6 +5,19 @@ import cv2
 
 
 def draw_circles(frame, data, f, parameters=None):
+    '''
+    Function draws circles on an image at x,y locations. If data.df['r'] exists
+    circles have this radius, else 'r' col is created with value set from annotation
+    sub dictionary.
+
+    :param frame: frame to be annotated should be 3 colour channel
+    :param data: datastore with particle information
+    :param f: frame number
+    :param parameters: annotation sub dictionary
+
+    :return: annotated frame
+    '''
+
     if 'r' not in list(data.df.columns):
         data.add_particle_property('r', get_param_val(parameters['circle:radius']))
     colour = parameters['circle:cmap']
@@ -24,21 +37,49 @@ def _draw_boxes(frame, data, f, parameters=None):
         box[index]], col=get_param_val(parameters['colors'])[classifier], thickness=get_param_val(parameters['contour thickness']))
     return annotated_frame
 
-'''
-def _add_number(self, frame, f, colx='x', coly='y'):
-    #This can only be run on a linked trajectory
-    box = self.data.get_info(f, 'box')
+def add_label(frame, data, f, parameters=None):
+    '''
+    Function puts text on an image at specific location.
+    This function is for adding metadata or info not labelling
+    particles with their ids.
 
-    x = self.data.get_info(f, colx)
-    y = self.data.get_info(f, coly)
-    particles = self.data.get_info(f, 'particle')
-    classifiers = self.data.get_info(f, 'classifier')
+    :param frame: frame to be annotated should be 3 colour channel
+    :param data: datastore with particle information
+    :param f: frame number
+    :param parameters: annotation sub dictionary
 
-    for index, classifier in enumerate(classifiers):
-        frame = cv2.putText(frame, str(int(particles[index])), (int(x[index]), int(y[index])), font, self.params['font size'], self.params['colors'][classifier], 1, cv2.LINE_AA)
+    :return: annotated frame
+    '''
+    text=''
+    x=1
+    y=1
+    annotated_frame=cv2.putText(frame, text ,(x, y), parameters['font'], parameters['font size'], parameters['font colour'],1, cv2.LINE_AA)
+
+    return annotated_frame
+
+def add_particle_numbers(frame, data, f, parameters=None):
+    '''
+        Function annotates image with particle ids
+        This function only makes sense if run on linked trajectories
+
+        :param frame: frame to be annotated should be 3 colour channel
+        :param data: datastore with particle information
+        :param f: frame number
+        :param parameters: annotation sub dictionary
+
+        :return: annotated frame
+        '''
+
+    x = data.get_info(f, 'x')
+    y = data.get_info(f, 'y')
+    particles = data.get_info(f, 'particle')
+
+    for index in enumerate(particles):
+        frame = cv2.putText(frame, str(int(particles[index])), (int(x[index]), int(y[index])), parameters['font'], parameters['font size'], params['font colours'], 1, cv2.LINE_AA)
 
     return frame
 
+'''
 def _draw_trajs(self, frame, f, colx='x',coly='y'):
 df = self.data.df
 #This can only be run on a linked trajectory
