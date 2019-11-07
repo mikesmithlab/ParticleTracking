@@ -4,13 +4,14 @@ from Generic.images.basics import display
 import numpy as np
 import skimage
 import trackpy as tp
+from ParticleTracking.general.parameters import get_param_val
 
-def distance_transform(frame, parameters):
+def distance_transform(frame, parameters=None):
     dist = cv2.distanceTransform(frame, cv2.DIST_L2, 5)
     display(dist/np.max(dist))
     return dist
 
-def track_big_blob(frame, parameters):
+def track_big_blob(frame, parameters=None):
     contours = images.find_contours(frame)
 
     for index, contour in enumerate(contours):
@@ -23,7 +24,7 @@ def track_big_blob(frame, parameters):
     framenum = framenum + 1
     return info, boundary, info_headings
 
-def trackpy(frame, parameters):
-    df = tp.locate(frame, parameters['trackpy:size estimate'][0], invert=parameters['trackpy:invert'][0])
+def trackpy(frame, parameters=None):
+    df = tp.locate(frame, get_param_val(parameters['trackpy:size estimate']), invert=get_param_val(parameters['trackpy:invert']))
     return df
 

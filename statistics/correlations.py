@@ -119,7 +119,7 @@ def sort_polygon_vertices(points):
 
 
 if __name__ == "__main__":
-    from ParticleTracking import dataframes
+    from ParticleTracking.general import dataframes
     import matplotlib.pyplot as plt
 
     file = "/media/data/Data/July2019/RampsN29/15790009.hdf5"

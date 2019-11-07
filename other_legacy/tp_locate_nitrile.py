@@ -2,8 +2,9 @@ import numpy as np
 import trackpy as tp
 
 from Generic import images, video
-from ParticleTracking import configurations, preprocessing, dataframes, \
-    statistics
+from ParticleTracking import preprocessing, statistics
+from ParticleTracking.other_legacy import configurations
+from ParticleTracking.general import dataframes
 from ParticleTracking.tracking import ParticleTracker
 
 

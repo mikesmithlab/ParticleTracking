@@ -1,4 +1,4 @@
-from ParticleTracking import dataframes
+from ParticleTracking.general import dataframes
 import trackpy
 
 class LinkTrajectory:

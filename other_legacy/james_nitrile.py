@@ -1,10 +1,11 @@
 from Generic import images, video, audio
 from ParticleTracking.tracking import ParticleTracker2 as ParticleTracker
-from ParticleTracking import configurations, dataframes, preprocessing
+from ParticleTracking import preprocessing
+from ParticleTracking.other_legacy import configurations
+from ParticleTracking.general import dataframes
 import numpy as np
 from numba import jit
 import matplotlib.path as mpath
-import pandas as pd
 
 
 class JamesPT(ParticleTracker):

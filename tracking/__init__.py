@@ -1,16 +1,12 @@
-import multiprocessing as mp
-from multiprocessing.pool import ThreadPool, Pool
+from multiprocessing.pool import ThreadPool
 import os
 import pandas as pd
-import numpy as np
-import trackpy
 from tqdm import tqdm
-import time
 
-from Generic import images, video
-from Generic.images.basics import display
-from ParticleTracking import dataframes
+from Generic import video
+from ParticleTracking.general import dataframes
 from ParticleTracking.tracking import tracking_methods as tm
+
 
 
 class ParticleTracker:
@@ -87,13 +83,13 @@ class ParticleTracker:
         #    print(f_index)
         self._track_process(0, f_index=f_index)
 
-        #self.save_crop()
+        self.save_crop()
         #self.extra_steps()
 
-    #def save_crop(self):
-    #    with dataframes.DataStore(self.data_filename) as data:
-    #        crop = self.ip.crop
-    #        data.add_metadata('crop', crop)
+    def save_crop(self):
+        with dataframes.DataStore(self.data_filename) as data:
+            crop = self.ip.crop
+            data.add_metadata('crop', crop)
 
     #def extra_steps(self):
     #    pass
@@ -142,7 +138,6 @@ class ParticleTracker:
             else:
                 frame_div = self.frame_div
             '''
-
             # Iterate over frames
             for f in tqdm(range(start, stop, 1), 'Tracking'):
                 #info, boundary, info_headings = self.analyse_frame()
@@ -153,20 +148,16 @@ class ParticleTracker:
                 #    data.add_metadata('boundary', boundary)
             data.save(filename=self.data_filename)
 
-
     def analyse_frame(self):
         frame = self.cap.read_next_frame()
-        #This loop should only run once - one tracking method
-        for method in self.parameters['tracking method']:
-            # Use function in preprocessing_methods
 
-            if self.ip is None:
-                preprocessed_frame = frame
-            else:
-                preprocessed_frame,_,_ = self.ip.process(frame)
-            #info, boundary, info_headings = getattr(tm, method)(preprocessed_frame, self.parameters)
-            df_frame = getattr(tm, method)(preprocessed_frame, self.parameters)
-            return df_frame #info, boundary, info_headings
+        method = self.parameters['track method']
+        if self.ip is None:
+            preprocessed_frame = frame
+        else:
+            preprocessed_frame,_,_ = self.ip.process(frame)
+        df_frame = getattr(tm, method)(preprocessed_frame, self.parameters)
+        return df_frame
 
     def _get_video_info(self):
         """
@@ -205,6 +196,11 @@ class ParticleTracker:
         self.ip.update_parameters(self.parameters)
 
 
+
+
+
+
+'''legacy code?'''
 class ParticleTracker2:
 
     def __init__(self, multiprocess=False):

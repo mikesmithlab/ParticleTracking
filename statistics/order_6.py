@@ -29,7 +29,8 @@ def order_and_neighbors(points):
 # %%
 
 if __name__ == "__main__":
-    from ParticleTracking import dataframes, statistics
+    from ParticleTracking import statistics
+    from ParticleTracking.general import dataframes
 
     file = "/media/data/Data/August2019/N26_2300_particles_at_600/15890003.hdf5"
     data = dataframes.DataStore(file, load=True)

@@ -2,17 +2,18 @@ from Generic import images
 import cv2
 import cv2
 import numpy as np
+from ParticleTracking.general.parameters import  get_param_val
 
 '''Should ideally be in tracking_methods'''
 #def distance(frame, parameters):
 #    dist = cv2.distanceTransform(frame, cv2.DIST_L2, 5)
 #    return dist
 
-def grayscale(frame, parameters):
+def grayscale(frame, parameters=None):
     return images.bgr_2_grayscale(frame)
 
 
-def crop_and_mask(frame, parameters):
+def crop_and_mask(frame, parameters=None):
     """
     Masks then crops a given frame
 
@@ -36,7 +37,7 @@ def crop_and_mask(frame, parameters):
     cropped_frame = images.crop_img(masked_frame, crop)
     return cropped_frame
 
-def subtract_bkg(frame, parameters):
+def subtract_bkg(frame, parameters=None):
     '''
         Send grayscale frame. Finds mean value of background and then returns
         frame which is the absolute difference of each pixel from that value
@@ -51,7 +52,6 @@ def subtract_bkg(frame, parameters):
         mean_val = int(np.mean(frame))
         subtract_frame = mean_val * np.ones(np.shape(frame), dtype=np.uint8)
     elif parameters['subtract bkg type'] == 'img':
-        print('test')
         temp_params = {}
         temp_params['blur kernel'] = parameters['subtract blur kernel'].copy()
         # This option subtracts the previously created image which is added to dictionary.
@@ -68,7 +68,7 @@ def subtract_bkg(frame, parameters):
     return frame
 
 
-def variance(frame, parameters):
+def variance(frame, parameters=None):
     '''
     Send grayscale frame. Finds mean value of background and then returns
     frame which is the absolute difference of each pixel from that value
@@ -84,7 +84,7 @@ def variance(frame, parameters):
         subtract_frame = mean_val*np.ones(np.shape(frame), dtype=np.uint8)
     elif parameters['variance type'] == 'img':
         temp_params = {}
-        temp_params['blur kernel'] = parameters['variance blur kernel'].copy()
+        temp_params['blur kernel'] = get_param_val(parameters['variance blur kernel'].copy())
         #This option subtracts the previously created image which is added to dictionary.
         subtract_frame = parameters['bkg_img']
         frame = blur(frame, temp_params)
@@ -101,57 +101,56 @@ def variance(frame, parameters):
 
     return frame
 
-def flip(frame, parameters):
+def flip(frame, parameters=None):
     return ~frame
 
 
-def threshold(frame, parameters):
-    threshold = parameters['threshold'][0]
-    mode = parameters['threshold mode']
+def threshold(frame, parameters=None):
+    threshold = get_param_val(parameters['threshold'])
+    mode = get_param_val(parameters['threshold mode'])
     return images.threshold(frame, threshold, mode)
 
 
-def adaptive_threshold(frame, parameters):
-    block = parameters['adaptive threshold block size'][0]
-    const = parameters['adaptive threshold C'][0]
-    invert = parameters['adaptive threshold mode'][0]
+def adaptive_threshold(frame, parameters=None):
+    block = get_param_val(parameters['adaptive threshold block size'])
+    const = get_param_val(parameters['adaptive threshold C'])
+    invert = get_param_val(parameters['adaptive threshold mode'])
     if invert == 1:
         return images.adaptive_threshold(frame, block, const, mode=cv2.THRESH_BINARY_INV)
     else:
         return images.adaptive_threshold(frame, block, const)
 
 
-def blur(frame, parameters):
-    kernel = parameters['blur kernel'][0]
+def blur(frame, parameters=None):
+    kernel = get_param_val(parameters['blur kernel'])
     return images.gaussian_blur(frame, (kernel, kernel))
 
-def medianblur(frame, parameters):
-    print(parameters)
-    kernel = parameters['blur kernel'][0]
+def medianblur(frame, parameters=None):
+    kernel = get_param_val(parameters['blur kernel'])
     return images.median_blur(frame, kernel)
 
-def opening(frame, parameters):
-    kernel = parameters['opening kernel'][0]
+def opening(frame, parameters=None):
+    kernel = get_param_val(parameters['opening kernel'])
     return images.opening(frame, (kernel, kernel))
 
 
-def closing(frame, parameters):
-    kernel = parameters['closing kernel'][0]
+def closing(frame, parameters=None):
+    kernel = get_param_val(parameters['closing kernel'])
     return images.closing(frame, (kernel, kernel))
 
 
-def dilate(frame, parameters):
-    kernel = parameters['dilate kernel'][0]
+def dilate(frame, parameters=None):
+    kernel = get_param_val(parameters['dilate kernel'])
     return images.dilate(frame, (kernel, kernel))
 
 
-def erode(frame, parameters):
-    kernel = parameters['erode kernel'][0]
+def erode(frame, parameters=None):
+    kernel = get_param_val(parameters['erode kernel'])
     return images.erode(frame, (kernel, kernel))
 
 
-def adjust_gamma(image, parameters):
-    gamma = parameters['gamma'][0]/100.0
+def adjust_gamma(image, parameters=None):
+    gamma = get_param_val(parameters['gamma'])/100.0
     # build a lookup table mapping the pixel values [0, 255] to
     # their adjusted gamma values
     invGamma = 1.0 / gamma
@@ -161,12 +160,13 @@ def adjust_gamma(image, parameters):
     # apply gamma correction using the lookup table
     return cv2.LUT(image, table)
 
-def resize(frame, parameters):
-    scale = parameters['resize scale']
+def resize(frame, parameters=None):
+    scale = get_param_val(parameters['resize scale'])
     return images.resize(frame, scale)
 
 if __name__ == "__main__":
     """Run this to output list of functions"""
+    from ParticleTracking.preprocessing import preprocessing_methods as pm
     all_dir = dir(pm)
     all_functions = [a for a in all_dir if a[0] != '_']
     print(all_functions)

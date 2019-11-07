@@ -1,10 +1,10 @@
 from Generic import images, video
 from ParticleTracking.tracking import ParticleTracker
-from ParticleTracking import configurations, preprocessing
-import trackpy as tp
+from ParticleTracking import preprocessing, postprocessing
+from ParticleTracking.other_legacy import configurations
 
 
-class Trackpy_Track(ParticleTracker):
+class Hydrogel(ParticleTracker):
     """
     Example class for inheriting ParticleTracker
     """
@@ -23,14 +23,17 @@ class Trackpy_Track(ParticleTracker):
             If true performs tracking on multiple cores
         """
         self.tracking = tracking
-        self.parameters = configurations.TRACKPY_PARAMETERS
+        self.parameters = configurations.HYDROGEL_PARAMETERS
+
         self.ip = preprocessing.Preprocessor(self.parameters)
+
         self.input_filename = filename
         if self.tracking:
             ParticleTracker.__init__(self, multiprocess=multiprocess)
         else:
             self.cap = video.ReadVideo(self.input_filename)
             self.frame = self.cap.read_next_frame()
+            self.pp = postprocessing.PostProcessor(self.parameters)
 
     def analyse_frame(self):
         """
@@ -55,22 +58,18 @@ class Trackpy_Track(ParticleTracker):
         new_frame, boundary, cropped_frame = self.ip.process(frame)
 
         ### ONLY EDIT BETWEEN THESE COMMENTS
-        info =tp.locate(
-            new_frame,
-            self.parameters['min_dist'][0],
-            self.parameters['p_1'][0],
-            self.parameters['p_2'][0],
-            self.parameters['min_rad'][0],
-            self.parameters['max_rad'][0])
 
-        info_headings = ['x', 'y', 'r']
+
+
         ### ONLY EDIT BETWEEN THESE COMMENTS
         if self.tracking:
-            return info, boundary, info_headings
+            #return info, boundary, info_headings
+            pass
         else:
             # THIS NEXT LINE CAN BE EDITED TOO
-            annotated_frame = images.draw_circles(cropped_frame, info)
-            return new_frame, annotated_frame
+            #annotated_frame = self.annotate.process(frame)#draw_circles(new_frame, info )
+            return new_frame, new_frame
+
 
     def extra_steps(self):
         """
@@ -83,9 +82,18 @@ class Trackpy_Track(ParticleTracker):
         pass
 
 
+    def _draw_circles(self, frame, info):
+        # info = info[:, :3] if self.parameter == 'particle' else info
+        annotated_frame = images.pygame_draw_circles(frame, info)
+        return annotated_frame
+
 
 if __name__ == "__main__":
-    from Generic import filedialogs
-    file = filedialogs.load_filename('Load a video')
-    tracker = Trackpy_Track(file, tracking=True, multiprocess=False)
-    tracker.track()
+    from ParticleTracking.tracking.tracking_gui import TrackingGui
+    #file = filedialogs.load_filename('Load a video')
+    file='/home/mike/Documents/HydrogelTest.m4v'
+    tracker = Hydrogel(file, tracking=False, multiprocess=False)
+    TrackingGui(tracker)
+    
+    
+    #tracker.track()

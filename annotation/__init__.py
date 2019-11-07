@@ -1,11 +1,8 @@
-from Generic import video, images
-import cv2
-from cv2 import FONT_HERSHEY_PLAIN as font
-import numpy as np
+from Generic import video
 from ParticleTracking.annotation import annotation_methods as am
-import timeit
 from tqdm import tqdm
-from ParticleTracking import dataframes
+from ParticleTracking.general import dataframes
+
 
 class TrackingAnnotator:#video.Annotator):
 
@@ -30,7 +27,7 @@ class TrackingAnnotator:#video.Annotator):
             for f in tqdm(range(start, stop, 1), 'Annotating'):
                 frame = self.cap.read_next_frame()
 
-                for method in self.parameters['annotation method']:
+                for method in self.parameters['annotate method']:
                     # Use function in preprocessing_methods
                     frame = getattr(am, method)(frame, data, f, self.parameters)
                 if f_index is None:

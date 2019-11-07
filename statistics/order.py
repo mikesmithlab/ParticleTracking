@@ -70,7 +70,9 @@ def calculate_orders(angles, list_indices, filtered):
 
 if __name__ == "__main__":
     from Generic import filedialogs
-    from ParticleTracking import dataframes, statistics
+    from ParticleTracking import statistics
+    from ParticleTracking.general import dataframes
+
     file = filedialogs.load_filename()
     data = dataframes.DataStore(file, load=True)
     calc = statistics.PropertyCalculator(data)

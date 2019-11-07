@@ -25,11 +25,17 @@ class TrackingGui(ParamGui):
 
     def update_slideable_parameters(self):
         parameters = self.tracker.parameters
+        print('start')
         for paramsubsetkey in parameters:
+            print(paramsubsetkey)
             paramsubset = parameters[paramsubsetkey]
-
+            print(paramsubset)
             for key in paramsubset:
-                paramsubset[key] = self.param_dict[key]
+                print(key)
+                print(paramsubset[key])
+                print(self.param_dict)
+                if key in self.param_dict.keys():
+                    paramsubset[key] = self.param_dict[key]
         #self.tracker.update_parameters(parameters)
 
     def update(self):
@@ -43,8 +49,8 @@ class TrackingGui(ParamGui):
 
 
 if __name__ == "__main__":
-    from ParticleTracking.tracking.example_child import ExampleChild
-    from ParticleTracking.tracking.james_nitrile import JamesPT
+    from ParticleTracking.other_legacy.example_child import ExampleChild
+    from ParticleTracking.other_legacy.james_nitrile import JamesPT
     from Generic import filedialogs
 
     file = filedialogs.load_filename('Load a video')

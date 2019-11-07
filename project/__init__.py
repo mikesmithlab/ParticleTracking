@@ -1,10 +1,13 @@
 from Generic.video import ReadVideo
-from ParticleTracking import tracking, configurations, preprocessing, postprocessing,annotation, linking
-from ParticleTracking import dataframes
+from ParticleTracking import tracking, preprocessing, postprocessing,annotation, linking
 import os.path
-import numpy as np
+
 
 class PTWorkflow:
+    '''
+    PTWorkflow is a parent class that handles the workflow of a project.
+    
+    '''
     def __init__(self, video_filename=None):
         #Load video file, load dataframe, load config
         #create video object
@@ -46,7 +49,7 @@ class PTWorkflow:
         if self.track_select:
             self.pt.track()
         if self.postprocess_select:
-            self.pp
+            self.pp.process()
         if self.annotate_select:
             self.an.annotate()
 

@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from ParticleTracking import dataframes
+from ParticleTracking.general import dataframes
 import trackpy as tp
 
 def subtract_drift(df, classifier=None):

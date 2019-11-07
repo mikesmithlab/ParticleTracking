@@ -3,7 +3,8 @@ import numpy as np
 from matplotlib.widgets import Slider
 
 from Generic import images
-from ParticleTracking import statistics, dataframes
+from ParticleTracking import statistics
+from ParticleTracking.general import dataframes
 
 
 class OrderGui(images.ParamGui):

@@ -269,7 +269,8 @@ class PropertyCalculator:
         self.data.save()
 
 if __name__ == "__main__":
-    from ParticleTracking import dataframes, statistics
+    from ParticleTracking import statistics
+    from ParticleTracking.general import dataframes
 
     file = "/media/data/Data/September2019/CooledRepeats2300At775/Sample/15970001.hdf5"
     data = dataframes.DataStore(file, load=True)

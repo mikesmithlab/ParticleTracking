@@ -1,19 +1,16 @@
 from ParticleTracking.project import PTWorkflow
 
-#crop = {
-#    'crop method': 'no_crop'
-#    }
-
 preprocess = {
+    'crop method':'no_crop',
     'preprocessor method': ('grayscale','adaptive_threshold'),
-    'adaptive threshold block size': [81, 3, 101, 2],
+    'adaptive threshold block size': 81,#[81, 3, 101, 2],
     'adaptive threshold C': [12, -30, 30, 1],
     'adaptive threshold mode': [1, 0, 1, 1],
     }
 
 track = {
-    'track method':('trackpy',),
-    'trackpy:size estimate':[5,1, 101,2],
+    'track method':'trackpy',
+    'trackpy:size estimate':[19,1, 101,2],
     'trackpy:invert':[0,0,1,1]
     }
 
@@ -26,17 +23,15 @@ link = {
     }
 
 postprocess = {
-    'postprocess method': ''
+    'postprocess method': None
     }
 
 annotate = {
-    'annotate method': ('_draw_circles',),
+    'annotate method': ('draw_circles',),
     'circle:radius':10,
     'circle:cmap':(0,0,255),
     'circle:thickness':2
     }
-
-
 
 PARAMETERS = {
     #'crop':crop,
@@ -47,7 +42,35 @@ PARAMETERS = {
     'annotate':annotate
     }
 
-class Example(PTWorkflow):
+class PTProject(PTWorkflow):
+    '''
+    PTProject is a daughter class which is used as the interface to a particle tracking project.
+
+    Setup:
+    Select which bits of the process you are interested in by setting the Boolean
+    Operators. You attach a dictionary PARAMETERS which controls all of the settings.
+    It is up to you to make sure you have the correct parameters.
+
+    Create an "instance" of the class:
+    track=PTProject(video_filename="Full Path To File")
+
+    There are 2 modes of operation:
+    1) Pass the instance as an argument to TrackGui to optimise/trial things
+    track = PTProject(video_filename='/home/mike/Documents/HydrogelTest.m4v')
+    TrackingGui(track)
+    2) call "instance".process() to process an entire movie.
+    track = PTProject(video_filename='/home/mike/Documents/HydrogelTest.m4v')
+    track.process()
+
+    You can select the various parts of the operation by setting the flags to self.process_select
+    self.preprocess_select = True
+    self.track_select = True
+    self.postprocess_select = False
+    self.annotate_select = True
+
+    What these processes will do is governed by the respective parts of the PARAMETERS dictionary above
+    '''
+
     def __init__(self, video_filename=None):
         #Select operations to be performed
 
@@ -64,12 +87,10 @@ class Example(PTWorkflow):
 
 
 
-
-
 if '__main__' == __name__:
 
     from ParticleTracking.tracking.tracking_gui import TrackingGui
 
-    track = Example(video_filename='/home/mike/Documents/HydrogelTest.m4v')
+    track = PTProject(video_filename='/home/mike/Documents/HydrogelTest.m4v')
     #track.process()
     TrackingGui(track)
