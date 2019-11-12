@@ -17,7 +17,7 @@ class TrackingGui(ParamGui):
             paramsubset = parameters[key]
 
             for subkey in paramsubset:
-                   if type(paramsubset[subkey]) == dict:
+                if type(paramsubset[subkey]) == dict:
                     paramsubsubset = paramsubset[subkey]
                     for subsubkey in paramsubsubset:
                         value = paramsubsubset[subsubkey]
@@ -37,7 +37,7 @@ class TrackingGui(ParamGui):
                     for subsubkey in paramsubsubset:
                         if subsubkey in self.param_dict.keys():
                             paramsubsubset[subsubkey] = self.param_dict[subsubkey]
-        #self.tracker.update_parameters(parameters)
+    
 
     def update(self):
         self.update_slideable_parameters()
