@@ -188,18 +188,21 @@ def adaptive_threshold(frame, parameters=None):
     across the image etc.
 
     options:
-    parameters['adaptive threshold block size'] : Size of local block of pixels to calculate threshold on
-    parameters['adaptive threshold C'] : The mean-c value see here: http://homepages.inf.ed.ac.uk/rbf/HIPR2/adpthrsh.htm
-    parameters['adaptive threshold mode'] : inverts behaviour
+    parameters['adaptive threshold']['block size'] : Size of local block of pixels to calculate threshold on
+    parameters['adaptive threshold']['C'] : The mean-c value see here: http://homepages.inf.ed.ac.uk/rbf/HIPR2/adpthrsh.htm
+    parameters['adaptive threshold']['mode'] : inverts behaviour
 
     :param frame: grayscale image
     :param parameters: parameters dictionary
 
     :return: binary image
     '''
-    block = get_param_val(parameters['adaptive threshold block size'])
-    const = get_param_val(parameters['adaptive threshold C'])
-    invert = get_param_val(parameters['adaptive threshold mode'])
+    params = parameters['adaptive threshold']
+    print('pre test')
+
+    block = get_param_val(params['block size'])
+    const = get_param_val(params['C'])
+    invert = get_param_val(params['mode'])
     if invert == 1:
         return images.adaptive_threshold(frame, block, const, mode=cv2.THRESH_BINARY_INV)
     else:

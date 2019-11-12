@@ -13,29 +13,30 @@ class TrackingGui(ParamGui):
     def read_slideable_parameters(self):
         parameters = self.tracker.parameters
         self.param_dict = {}
-        for paramsubsetkey in parameters:
-            paramsubset = parameters[paramsubsetkey]
-            for key in paramsubset:
-                value = paramsubset[key]
-                if type(value) == list:
-                    self.param_dict[key] = value
+        for key in parameters:
+            paramsubset = parameters[key]
+
+            for subkey in paramsubset:
+                   if type(paramsubset[subkey]) == dict:
+                    paramsubsubset = paramsubset[subkey]
+                    for subsubkey in paramsubsubset:
+                        value = paramsubsubset[subsubkey]
+                        if type(value) == list:
+                            self.param_dict[subsubkey] = value
         self.param_dict['frame'] = [0, 0, self.tracker.cap.num_frames-1, 1]
         self.update_slideable_parameters()
         return self.param_dict
 
     def update_slideable_parameters(self):
         parameters = self.tracker.parameters
-        print('start')
-        for paramsubsetkey in parameters:
-            print(paramsubsetkey)
-            paramsubset = parameters[paramsubsetkey]
-            print(paramsubset)
-            for key in paramsubset:
-                print(key)
-                print(paramsubset[key])
-                print(self.param_dict)
-                if key in self.param_dict.keys():
-                    paramsubset[key] = self.param_dict[key]
+        for key in parameters:
+            paramsubset = parameters[key]
+            for subkey in paramsubset:
+                if type(paramsubset[subkey]) == dict:
+                    paramsubsubset=paramsubset[subkey]
+                    for subsubkey in paramsubsubset:
+                        if subsubkey in self.param_dict.keys():
+                            paramsubsubset[subsubkey] = self.param_dict[subsubkey]
         #self.tracker.update_parameters(parameters)
 
     def update(self):

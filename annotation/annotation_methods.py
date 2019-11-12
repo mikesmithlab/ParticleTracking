@@ -4,7 +4,7 @@ from Generic import images
 import cv2
 
 
-def draw_circles(frame, data, f, parameters=None):
+def circles(frame, data, f, parameters=None):
     '''
     Function draws circles on an image at x,y locations. If data.df['r'] exists
     circles have this radius, else 'r' col is created with value set from annotation
@@ -28,7 +28,7 @@ def draw_circles(frame, data, f, parameters=None):
     return frame
 
 #Not yet working
-def _draw_boxes(frame, data, f, parameters=None):
+def _boxes(frame, data, f, parameters=None):
     #Requires a column classifying traj with corresponding colour
     box = data.get_info(f, 'box')
     classifiers = data.get_info(f,'classifier')

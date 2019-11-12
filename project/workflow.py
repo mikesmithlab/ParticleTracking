@@ -3,15 +3,17 @@ from ParticleTracking.project import PTWorkflow
 preprocess = {
     'crop method':'no_crop',
     'preprocessor method': ('grayscale','adaptive_threshold'),
-    'adaptive threshold block size': 81,#[81, 3, 101, 2],
-    'adaptive threshold C': [12, -30, 30, 1],
-    'adaptive threshold mode': [1, 0, 1, 1],
+    'adaptive threshold':{'block size': 81,#[81, 3, 101, 2],
+                           'C': [12, -30, 30, 1],
+                            'mode': [1, 0, 1, 1]
+                          }
     }
 
 track = {
     'track method':'trackpy',
-    'trackpy:size estimate':[19,1, 101,2],
-    'trackpy:invert':[0,0,1,1]
+    'trackpy':{'size estimate':[19,1, 101,2],
+                'invert':[0,0,1,1]
+               }
     }
 
 link = {
@@ -27,10 +29,12 @@ postprocess = {
     }
 
 annotate = {
-    'annotate method': ('draw_circles',),
-    'circle:radius':10,
-    'circle:cmap':(0,0,255),
-    'circle:thickness':2
+    'annotate method': ('circles',),
+    'circles':{'radius':10,
+               'cmaptype':'discrete',#'continuous'
+               'cmap':{0:(0,0,255),0.5:(0,255,0)},#{0:0}
+               'thickness':2
+               }
     }
 
 PARAMETERS = {
@@ -77,9 +81,9 @@ class PTProject(PTWorkflow):
         PTWorkflow.__init__(self, video_filename=video_filename)
 
         self.preprocess_select = True
-        self.track_select = True
+        self.track_select = False
         self.postprocess_select = False
-        self.annotate_select = True
+        self.annotate_select = False
 
         self.parameters = PARAMETERS
 
