@@ -37,7 +37,7 @@ class TrackingGui(ParamGui):
                     for subsubkey in paramsubsubset:
                         if subsubkey in self.param_dict.keys():
                             paramsubsubset[subsubkey] = self.param_dict[subsubkey]
-    
+
 
     def update(self):
         self.update_slideable_parameters()
