@@ -11,7 +11,7 @@ def find_manual_crop_and_mask(frame):
     """
     no_of_sides = int(input('Enter no of sides'))
     crop_inst = images.CropShape(frame, no_of_sides)
-    mask_img, crop, boundary, _ = crop_inst.find_crop_and_mask()
+    mask_img, crop, boundary, _ = crop_inst.begin_crop()
 
     if np.shape(boundary) == (3,):
         # boundary = [xc, yc, r]

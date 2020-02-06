@@ -1,5 +1,5 @@
 from Generic import images, video, audio
-from ParticleTracking.tracking import ParticleTracker2 as ParticleTracker
+from ParticleTracking.tracking import ParticleTracker
 from ParticleTracking import configurations, dataframes, preprocessing
 import numpy as np
 from numba import jit
@@ -15,24 +15,18 @@ class JamesPT(ParticleTracker):
         self.ip = preprocessing.Preprocessor(self.parameters)
         self.input_filename = filename
         if self.tracking:
-            ParticleTracker.__init__(self, multiprocess=multiprocess)
+            ParticleTracker.__init__(self, multiprocess=multiprocess, link_traj=False)
         else:
             self.cap = video.ReadVideo(self.input_filename)
             self.frame = self.cap.read_next_frame()
 
         self.headings = ('x', 'y', 'r')
 
-    def analyse_frame(self, args):
-        frame = args[0]
-        f = args[1]
-        # print(frame_and_f)
-        # frame = frame_and_f[0]
-        #
-        # f = frame_and_f[1]
-        # if self.tracking:
-        #     frame = self.cap.read_next_frame()
-        # else:
-        #     frame = self.cap.find_frame(self.parameters['frame'][0])
+    def analyse_frame(self):
+        if self.tracking:
+            frame = self.cap.read_next_frame()
+        else:
+            frame = self.cap.find_frame(self.parameters['frame'][0])
         new_frame, boundary, cropped_frame = self.ip.process(frame)
         circles = images.find_circles(
             new_frame,
@@ -43,15 +37,11 @@ class JamesPT(ParticleTracker):
             self.parameters['max_rad'][0])
         circles = get_points_inside_boundary(circles, boundary)
         circles = check_circles_bg_color(circles, new_frame, 150)
-        circles = {'x': circles[:, 0], 'y': circles[:, 1], 'r': circles[:, 2], 'frame': f}
-        # self.data.add_tracking_data(f, circles, col_names=self.headings)
-        return circles # pd.DataFrame(circles)
-        # if self.tracking:
-        #     return circles, boundary
-        # else:
-        #     annotated_frame = images.draw_circles(cropped_frame, circles)
-        #     return new_frame, annotated_frame
-
+        if self.tracking:
+            return circles, boundary, ['x', 'y', 'r']
+        else:
+            annotated_frame = images.draw_circles(cropped_frame, circles)
+            return new_frame, annotated_frame
 
     def extra_steps(self):
         duty_cycle = read_audio_file(self.input_filename, self.num_frames)

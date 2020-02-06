@@ -21,20 +21,14 @@ Run this file to print out the possible methods in preprocessing.
 """
 
 NITRILE_BEADS_PARAMETERS = {
-    'crop method': 'find_blue_hex_crop_and_mask',
-    'method': ('flip', 'crop_and_mask', 'grayscale', 'flip', 'threshold'),
+    'crop method': 'find_manual_crop_and_mask',
+    'method': ('flip', 'crop_and_mask', 'grayscale'),
     'number of tray sides': 6,
-    'min_dist': [23, 3, 51, 1],
-    'p_1': [105, 1, 255, 1],
-    'p_2': [4, 1, 20, 1],
-    'dp': [1, 1, 5, 1],
-    'min_rad': [13, 1, 101, 1],
-    'threshold': [170, 1, 255, 1],
-    'threshold mode': cv2.THRESH_TOZERO_INV,
-    'max_rad': [14, 1, 101, 1],
-    'max frame displacement': 10,
-    'min frame life': 5,
-    'memory': 3
+    'min_dist': [17, 3, 51, 1],
+    'p_1': [203, 1, 255, 1],
+    'p_2': [6, 1, 20, 1],
+    'min_rad': [14, 1, 101, 1],
+    'max_rad': [14, 1, 101, 1]
     }
 
 TRACKPY_NITRILE_PARAMETERS = {
